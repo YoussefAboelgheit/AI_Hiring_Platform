@@ -1,0 +1,23 @@
+{
+  "name": "ai_hiring_platform",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/YoussefAboelgheit/AI_Hiring_Platform#readme",
+  "bugs": {
+    "url": "https://github.com/YoussefAboelgheit/AI_Hiring_Platform/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YoussefAboelgheit/AI_Hiring_Platform.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
