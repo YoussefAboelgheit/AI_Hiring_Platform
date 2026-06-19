@@ -1,7 +1,7 @@
 {
-  "name": "online-course-platform",
+  "name": "AI_Hiring_Platform",
   "version": "1.0.0",
-  "description": "Online Course Platform Backend API",
+  "description": "AI Hiring Platform Backend API",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
