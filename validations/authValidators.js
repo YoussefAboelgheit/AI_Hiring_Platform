@@ -27,3 +27,16 @@ export const loginValidator = [
   body("password")
     .notEmpty().withMessage("Password is required"),
 ];
+
+export const resetPasswordValidator = [
+  body("currentPassword")
+    .notEmpty().withMessage("Current password is required"),
+
+  body("newPassword")
+    .isLength({ min: 8 }).withMessage("New password must be at least 8 characters")
+    .custom((value, { req }) => {
+      if (value === req.body.currentPassword)
+        throw new Error("New password must be different from current password");
+      return true;
+    }),
+];

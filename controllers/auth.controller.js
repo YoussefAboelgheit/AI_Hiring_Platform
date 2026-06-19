@@ -3,7 +3,7 @@ import User from "../models/user.js";
 import RefreshToken from "../models/refreshToken.js";
 import HTTPError from "../util/httpError.js";
 
- 
+
 const generateTokens = async (user) => {
   const accessToken = jwt.sign(
     { userId: user._id, role: user.role },
@@ -18,21 +18,21 @@ const generateTokens = async (user) => {
   );
 
   await RefreshToken.create({
-    token:     refreshToken,
-    user:      user._id,
+    token: refreshToken,
+    user: user._id,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
   return { accessToken, refreshToken };
 };
 
- 
+
 const setRefreshCookie = (res, refreshToken) => {
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure:   process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
-    maxAge:   7 * 24 * 60 * 60 * 1000,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 };
 
@@ -75,7 +75,7 @@ export const login = async (req, res, next) => {
       message: "Login successful",
       accessToken,
       user: {
-        _id:  user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -99,7 +99,7 @@ export const logout = async (req, res, next) => {
       return next(new HTTPError(401, "Invalid refresh token"));
     }
 
-    const userTokens  = await RefreshToken.find({ user: payload.userId });
+    const userTokens = await RefreshToken.find({ user: payload.userId });
     const comparisons = await Promise.all(userTokens.map((t) => t.compareToken(rawRefreshToken)));
     const matchedIndex = comparisons.findIndex((match) => match === true);
 
@@ -128,8 +128,8 @@ export const refresh = async (req, res, next) => {
       return next(new HTTPError(401, "Invalid or expired refresh token"));
     }
 
-    const userTokens   = await RefreshToken.find({ user: payload.userId });
-    const comparisons  = await Promise.all(userTokens.map((t) => t.compareToken(rawRefreshToken)));
+    const userTokens = await RefreshToken.find({ user: payload.userId });
+    const comparisons = await Promise.all(userTokens.map((t) => t.compareToken(rawRefreshToken)));
     const matchedIndex = comparisons.findIndex((match) => match === true);
 
     if (matchedIndex === -1) return next(new HTTPError(401, "Refresh token not found"));
@@ -158,6 +158,24 @@ export const refresh = async (req, res, next) => {
 export const getMe = async (req, res, next) => {
   try {
     return res.status(200).json({ user: req.user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await User.findById(req.user._id);
+
+    const isMatched = await user.comparePassword(currentPassword);
+    if (!isMatched) return next(new HTTPError(401, "Current password is incorrect"));
+
+    user.password = newPassword;
+    await user.save();
+
+    return res.status(200).json({ message: "Password reset successfully" });
   } catch (err) {
     next(err);
   }
