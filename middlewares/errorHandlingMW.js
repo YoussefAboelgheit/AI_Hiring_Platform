@@ -27,6 +27,11 @@ export default (err, req, res, next) => {
     message = `Invalid value for field '${err.path}': ${err.value}`;
   }
 
+  if (err.code === "LIMIT_FILE_SIZE") {
+    statusCode = 400;
+    message = "File size must be less than 50 MB";
+  }
+
 
   return res.status(statusCode).json({
     status: "error",

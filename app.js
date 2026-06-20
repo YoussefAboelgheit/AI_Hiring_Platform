@@ -8,6 +8,7 @@ import notFoundMW from "./middlewares/notFoundMW.js";
 
 // ── Import Routers ────────────────────────────────────────────────────────────
 import authRouter   from "./routes/auth.router.js";
+import userRouter   from "./routes/user.router.js";
 const app = express();
 
 
@@ -27,12 +28,13 @@ app.use((req, res, next) => {
 });
 
 app.use(morgan("dev"));
-app.use(express.json());
+app.use(express.json({ limit: "25mb" }));
 
 app.use(cookieParser());
 
 // ── Route Mounting ────────────────────────────────────────────────────────────
 app.use("/api/auth", authRouter);
+app.use("/api/users", userRouter);
 
 
 

@@ -1,5 +1,34 @@
 import { body } from "express-validator";
 
+function getMimeFromBuffer(buffer) {
+  const hex = buffer.toString("hex", 0, 12).toLowerCase();
+  if (hex.startsWith("25504446")) return "application/pdf";
+  if (hex.startsWith("89504e47")) return "image/png";
+  if (hex.startsWith("ffd8ff")) return "image/jpeg";
+  return null;
+}
+
+function validateUploadedFile(file, allowedMimes) {
+  if (!file || !file.buffer || file.buffer.length === 0) {
+    return { isValid: false, reason: "File is empty or corrupted" };
+  }
+  const detectedMime = getMimeFromBuffer(file.buffer);
+  if (!detectedMime) {
+    return { isValid: false, reason: "Invalid or unsupported file signature" };
+  }
+  if (file.mimetype && file.mimetype !== detectedMime) {
+    const isJpgJpeg = (file.mimetype === "image/jpg" || file.mimetype === "image/jpeg") &&
+                      (detectedMime === "image/jpg" || detectedMime === "image/jpeg");
+    if (!isJpgJpeg) {
+      return { isValid: false, reason: "File content does not match the file type" };
+    }
+  }
+  if (!allowedMimes.includes(detectedMime)) {
+    return { isValid: false, reason: `File type not allowed. Allowed types: ${allowedMimes.join(", ")}` };
+  }
+  return { isValid: true };
+}
+
 export const registerValidator = [
   body("name")
     .trim()
@@ -14,6 +43,59 @@ export const registerValidator = [
 
   body("password")
     .isLength({ min: 8 }).withMessage("Password must be at least 8 characters"),
+
+  body("role")
+    .optional()
+    .isIn(["candidate", "hr"])
+    .withMessage("Role must be candidate or hr"),
+
+  body("company_logo")
+    .custom((value, { req }) => {
+      const role = req.body.role || "candidate";
+      if (role === "hr") {
+        if (!req.files || !req.files.company_logo) {
+          throw new Error("Company logo is required for HR");
+        }
+        const file = req.files.company_logo[0];
+        const validation = validateUploadedFile(file, ["image/png", "image/jpeg", "image/jpg"]);
+        if (!validation.isValid) {
+          throw new Error(validation.reason);
+        }
+      }
+      return true;
+    }),
+
+  body("profile_image")
+    .custom((value, { req }) => {
+      const role = req.body.role || "candidate";
+      if (role === "candidate") {
+        if (!req.files || !req.files.profile_image) {
+          throw new Error("Profile image is required for Candidate");
+        }
+        const file = req.files.profile_image[0];
+        const validation = validateUploadedFile(file, ["image/png", "image/jpeg", "image/jpg"]);
+        if (!validation.isValid) {
+          throw new Error(validation.reason);
+        }
+      }
+      return true;
+    }),
+
+  body("CV")
+    .custom((value, { req }) => {
+      const role = req.body.role || "candidate";
+      if (role === "candidate") {
+        if (!req.files || !req.files.CV) {
+          throw new Error("CV file is required for Candidate");
+        }
+        const file = req.files.CV[0];
+        const validation = validateUploadedFile(file, ["application/pdf"]);
+        if (!validation.isValid) {
+          throw new Error(validation.reason);
+        }
+      }
+      return true;
+    }),
 ];
 
 

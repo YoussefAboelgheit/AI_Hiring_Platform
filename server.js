@@ -1,6 +1,9 @@
 import app from "./app.js";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
+import dns from "dns";
+
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 dotenv.config();
 
@@ -20,7 +23,7 @@ mongoose
 
 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
