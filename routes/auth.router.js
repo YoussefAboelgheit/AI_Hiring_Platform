@@ -1,6 +1,12 @@
 import { Router } from "express";
-import {register,login,logout,refresh,getMe,resetPassword} from "../controllers/auth.controller.js";
-import { registerValidator, loginValidator, resetPasswordValidator } from "../validations/authValidators.js";
+import {
+    register, login, logout, refresh, getMe, resetPassword,
+    forgotPassword, confirmForgotPassword
+} from "../controllers/auth.controller.js";
+import {
+    registerValidator, loginValidator, resetPasswordValidator,
+    forgotPasswordValidator, confirmForgotPasswordValidator
+} from "../validations/authValidators.js";
 import validateResults from "../validations/validateResults.js";
 import authMW from "../middlewares/authMW.js";
 import { uploadFields } from "../middlewares/uploadMW.js";
@@ -17,5 +23,7 @@ router.get("/me", authMW, getMe);
 
 router.patch("/reset-password", authMW, resetPasswordValidator, validateResults, resetPassword);
 
+router.post("/forgot-password", forgotPasswordValidator, validateResults, forgotPassword);
+router.post("/confirm-forgot-password", authMW, confirmForgotPasswordValidator, validateResults, confirmForgotPassword);
 
 export default router;

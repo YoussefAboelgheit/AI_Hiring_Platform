@@ -131,3 +131,19 @@ export const resetPasswordValidator = [
       return true;
     }),
 ];
+
+export const forgotPasswordValidator = [
+  body("email")
+    .trim()
+    .notEmpty().withMessage("Email is required")
+    .isEmail().withMessage("Please provide a valid email address")
+    .normalizeEmail(),
+];
+
+export const confirmForgotPasswordValidator = [
+  body("token")
+    .notEmpty().withMessage("Token is required"),
+
+  body("newPassword")
+    .isLength({ min: 8 }).withMessage("New password must be at least 8 characters"),
+];
