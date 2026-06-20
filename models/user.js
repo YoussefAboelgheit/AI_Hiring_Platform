@@ -45,11 +45,6 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
-    avatar: {
-      type: String,
-      default: "",
-    },
-
     company_logo: {
       type: String,
       default: "",

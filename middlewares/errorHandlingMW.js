@@ -29,7 +29,36 @@ export default (err, req, res, next) => {
 
   if (err.code === "LIMIT_FILE_SIZE") {
     statusCode = 400;
-    message = "File size must be less than 50 MB";
+    message = "Validation Error";
+    errors = [
+      {
+        type: "field",
+        msg: "File size must be less than 50 MB",
+        path: "file",
+        location: "body"
+      }
+    ];
+  } else if (
+    err.message === "Field name missing" ||
+    err.message === "Unexpected end of multipart data" ||
+    err.code?.startsWith("LIMIT_")
+  ) {
+    statusCode = 400;
+    message = "Validation Error";
+    
+    let userFriendlyMsg = err.message;
+    if (err.message === "Field name missing") {
+      userFriendlyMsg = "One of the form-data fields is checked but has an empty key name. Please check your Postman request body keys.";
+    }
+    
+    errors = [
+      {
+        type: "field",
+        msg: userFriendlyMsg,
+        path: "form-data",
+        location: "body"
+      }
+    ];
   }
 
 

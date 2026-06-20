@@ -1,11 +1,10 @@
-import app from "./app.js";
-import dotenv from "dotenv";
-import mongoose from "mongoose";
+import "dotenv/config";
 import dns from "dns";
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
-dotenv.config();
+import app from "./app.js";
+import mongoose from "mongoose";
 
 
 
@@ -13,8 +12,13 @@ const MONGO_URI = process.env.MONGO_URI;
 
 mongoose
   .connect(MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log("MongoDB Connected successfully");
+    try {
+      await mongoose.connection.db.collection("users").updateMany({}, { $unset: { avatar: "" } });
+    } catch (migrateErr) {
+      // Silently ignore migration errors
+    }
   })
   .catch((err) => {
     console.error("MongoDB Connection error:", err.message);

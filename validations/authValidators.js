@@ -12,20 +12,29 @@ function validateUploadedFile(file, allowedMimes) {
   if (!file || !file.buffer || file.buffer.length === 0) {
     return { isValid: false, reason: "File is empty or corrupted" };
   }
+
+  const isImage = allowedMimes.includes("image/png") || allowedMimes.includes("image/jpeg") || allowedMimes.includes("image/jpg");
+  const allowedFormatsMsg = isImage 
+    ? "Allowed formats are png, jpg, jpeg." 
+    : "Allowed format is pdf.";
+
   const detectedMime = getMimeFromBuffer(file.buffer);
   if (!detectedMime) {
-    return { isValid: false, reason: "Invalid or unsupported file signature" };
+    return { isValid: false, reason: `Invalid file format. ${allowedFormatsMsg}` };
   }
+
   if (file.mimetype && file.mimetype !== detectedMime) {
     const isJpgJpeg = (file.mimetype === "image/jpg" || file.mimetype === "image/jpeg") &&
                       (detectedMime === "image/jpg" || detectedMime === "image/jpeg");
     if (!isJpgJpeg) {
-      return { isValid: false, reason: "File content does not match the file type" };
+      return { isValid: false, reason: `File content does not match the file type. ${allowedFormatsMsg}` };
     }
   }
+
   if (!allowedMimes.includes(detectedMime)) {
-    return { isValid: false, reason: `File type not allowed. Allowed types: ${allowedMimes.join(", ")}` };
+    return { isValid: false, reason: `File type not allowed. ${allowedFormatsMsg}` };
   }
+
   return { isValid: true };
 }
 
