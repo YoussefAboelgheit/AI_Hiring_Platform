@@ -1,10 +1,8 @@
-import app from "./app.js";
 import dotenv from "dotenv";
+dotenv.config(); // ← must be before any other import
+
+import app from "./app.js";
 import mongoose from "mongoose";
-
-dotenv.config();
-
-
 
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -17,8 +15,6 @@ mongoose
     console.error("MongoDB Connection error:", err.message);
     process.exit(1);
   });
-
-
 
 const PORT = process.env.PORT || 3000;
 
