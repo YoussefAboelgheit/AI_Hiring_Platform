@@ -2,6 +2,9 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import RefreshToken from "../models/refreshToken.js";
 import HTTPError from "../util/httpError.js";
+import crypto from "crypto";
+import PasswordResetToken from "../models/passwordResetToken.js";
+import { sendEmail } from "../util/sendEmail.js";
 
 
 const generateTokens = async (user) => {
@@ -174,6 +177,89 @@ export const resetPassword = async (req, res, next) => {
 
     user.password = newPassword;
     await user.save();
+
+    return res.status(200).json({ message: "Password reset successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Step 1: User requests password reset
+export const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    const user = await User.findOne({ email });
+
+    // always return success even if email not found (security best practice)
+    if (!user) {
+      return res.status(200).json({
+        message: "If this email exists, a reset link has been sent",
+      });
+    }
+
+    // delete any existing reset tokens for this user
+    await PasswordResetToken.deleteMany({ user: user._id });
+
+    // generate raw token
+    const rawToken = crypto.randomBytes(32).toString("hex");
+
+    // save hashed token to DB
+    await PasswordResetToken.create({
+      user: user._id,
+      token: rawToken,
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+    });
+
+    const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${rawToken}&userId=${user._id}`;
+
+    await sendEmail({
+      to: user.email,
+      subject: "Password Reset Request",
+      html: `
+        <h2>Password Reset</h2>
+        <p>Click the link below to reset your password. It expires in 15 minutes.</p>
+        <a href="${resetLink}">${resetLink}</a>
+        <p>If you didn't request this, ignore this email.</p>
+      `,
+    });
+
+    return res.status(200).json({
+      message: "If this email exists, a reset link has been sent",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Step 2: User submits new password with token
+export const confirmForgotPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    const userId = req.user._id;             
+
+    const resetTokens = await PasswordResetToken.find({ user: userId });
+    if (!resetTokens.length) return next(new HTTPError(400, "Invalid or expired token"));
+
+    const comparisons = await Promise.all(resetTokens.map((t) => t.compareToken(token)));
+    const matchedIndex = comparisons.findIndex((match) => match === true);
+
+    if (matchedIndex === -1) return next(new HTTPError(400, "Invalid or expired token"));
+
+    const matched = resetTokens[matchedIndex];
+
+    if (matched.expiresAt < new Date()) {
+      await PasswordResetToken.findByIdAndDelete(matched._id);
+      return next(new HTTPError(400, "Reset token has expired"));
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return next(new HTTPError(404, "User not found"));
+
+    user.password = newPassword;
+    await user.save();
+
+    await PasswordResetToken.findByIdAndDelete(matched._id);
 
     return res.status(200).json({ message: "Password reset successfully" });
   } catch (err) {
