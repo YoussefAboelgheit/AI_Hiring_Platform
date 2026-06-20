@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import RefreshToken from "../models/refreshToken.js";
 import HTTPError from "../util/httpError.js";
+import { uploadToSupabase } from "../util/supabaseClient.js";
 import crypto from "crypto";
 import PasswordResetToken from "../models/passwordResetToken.js";
 import { sendEmail } from "../util/sendEmail.js";
@@ -44,11 +45,30 @@ export const register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
 
+    const userRole = role === "hr" ? "hr" : "candidate";
+
+    let companyLogoUrl = undefined;
+    let profileImageUrl = undefined;
+    let cvUrl = undefined;
+
+    if (userRole === "hr") {
+      const file = req.files.company_logo[0];
+      companyLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
+    } else {
+      const imgFile = req.files.profile_image[0];
+      const cvFile = req.files.CV[0];
+      profileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
+      cvUrl = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
+    }
+
     const user = await User.create({
       name,
       email,
       password,
-      role: role === "hr" ? "hr" : "candidate"
+      role: userRole,
+      company_logo: companyLogoUrl,
+      profile_image: profileImageUrl,
+      CV: cvUrl
     });
 
     return res.status(201).json({
@@ -82,6 +102,9 @@ export const login = async (req, res, next) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        company_logo: user.company_logo,
+        profile_image: user.profile_image,
+        CV: user.CV,
       },
     });
   } catch (err) {
@@ -236,7 +259,7 @@ export const forgotPassword = async (req, res, next) => {
 export const confirmForgotPassword = async (req, res, next) => {
   try {
     const { token, newPassword } = req.body;
-    const userId = req.user._id;             
+    const userId = req.user._id;
 
     const resetTokens = await PasswordResetToken.find({ user: userId });
     if (!resetTokens.length) return next(new HTTPError(400, "Invalid or expired token"));
