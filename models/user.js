@@ -49,9 +49,37 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
-    avatar: {
+    company_logo: {
       type: String,
       default: "",
+      required: [
+        function () {
+          return this && this.role === "hr";
+        },
+        "Company logo is required for HR",
+      ],
+    },
+
+    profile_image: {
+      type: String,
+      default: "",
+      required: [
+        function () {
+          return this && this.role === "candidate";
+        },
+        "Profile image is required for Candidate",
+      ],
+    },
+
+    CV: {
+      type: String,
+      default: "",
+      required: [
+        function () {
+          return this && this.role === "candidate";
+        },
+        "CV is required for Candidate",
+      ],
     },
     isVerified: {
       type: Boolean,

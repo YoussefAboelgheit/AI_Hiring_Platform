@@ -11,10 +11,11 @@ import {
 } from "../validations/authValidators.js";
 import validateResults from "../validations/validateResults.js";
 import authMW from "../middlewares/authMW.js";
+import { uploadFields } from "../middlewares/uploadMW.js";
 
 const router = Router();
 
-router.post("/register", registerValidator, validateResults, register);
+router.post("/register", uploadFields, registerValidator, validateResults, register);
 router.post("/login", loginValidator, validateResults, login);
 
 router.post("/logout", authMW, logout);

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import authHero from "../../assets/illustrations/auth-hero.png";
+import authHeroVideo from "../../assets/authhero.mp4";
 import s from "./LandingPage.module.css";
 
 // ─── Static Data ─────────────────────────────────────────────────────────────
@@ -67,9 +67,19 @@ export default function LandingPage() {
   return (
     <>
       {/* ── HERO ── */}
-      <section className={s.hero}>
-        <div className={s.heroGlow} />
-        <div className="container">
+      <section className={`${s.hero} ${s.heroVideo}`}>
+        <video
+          className={s.heroVideoBg}
+          src={authHeroVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+        />
+        <div className={s.heroVideoOverlay} aria-hidden="true" />
+        <div className={s.heroGlow} aria-hidden="true" />
+
+        <div className={`container ${s.heroContent}`}>
           <div className="row align-items-center g-4 g-lg-5">
             <div className={`col-12 col-lg-6 ${s.heroCopy}`}>
               <div className={s.badge}>
@@ -86,24 +96,25 @@ export default function LandingPage() {
                 <button className="btn-primary-custom btn-lg-custom" onClick={() => navigate("/register")}>
                   Get Started Free <i className="bi bi-arrow-right ms-1" />
                 </button>
-                <button className="btn-outline-custom btn-lg-custom" onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}>View Demo</button>
+                <button
+                  className={`btn-outline-custom btn-lg-custom ${s.btnOutlineLight}`}
+                  onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
+                >
+                  View Demo
+                </button>
               </div>
               <div className={`d-flex align-items-center gap-2 ${s.heroSocial}`}>
                 <div className={s.avatarGroup}>
-                  {["#7C3AED","#0EA5E9","#10B981","#F43F5E"].map((c, i) => (
+                  {["#7C3AED", "#0EA5E9", "#10B981", "#F43F5E"].map((c, i) => (
                     <div key={i} className={s.avatar} style={{ background: c, marginLeft: i ? -10 : 0 }} />
                   ))}
                 </div>
-                <span style={{ fontSize: 13, color: "#64748B" }}>
-                  <strong style={{ color: "#1E293B" }}>Join 500+ companies</strong> already hiring smarter
+                <span className={s.heroSocialText} style={{ fontSize: 13 }}>
+                  <strong className={s.heroSocialStrong}>Join 500+ companies</strong> already hiring smarter
                 </span>
               </div>
             </div>
-            <div className={`col-12 col-lg-6 text-center ${s.heroVisual}`}>
-              <div className="hero-illustration-wrap">
-                <img src={authHero} alt="HireAI Dashboard" className="hero-illustration-img" />
-              </div>
-            </div>
+            <div className={`col-12 col-lg-6 ${s.heroVisual}`} aria-hidden="true" />
           </div>
         </div>
       </section>
