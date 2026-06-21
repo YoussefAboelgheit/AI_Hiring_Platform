@@ -1,0 +1,247 @@
+{
+  "info": {
+    "_postman_id": "2bacb492-f607-4aca-aa01-ccb1b3fb9b59",
+    "name": "Graduation Project",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52806018",
+    "_collection_link": "https://go.postman.co/collection/52806018-2bacb492-f607-4aca-aa01-ccb1b3fb9b59?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "item": [
+            {
+              "name": "Register Candidate",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\":\"mostafa\",\r\n    \"email\":\"mostafa@gmail.com\",\r\n    \"password\":\"mostafa123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseURL}}api/auth/register",
+                  "host": [
+                    "{{BaseURL}}api"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Register HR",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\":\"Waleed Mamdouh\",\r\n    \"email\":\"waleedmamdouhfci@gmail.com\",\r\n    \"password\":\"waleed123\",\r\n    \"role\":\"hr\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseURL}}api/auth/register",
+                  "host": [
+                    "{{BaseURL}}api"
+                  ],
+                  "path": [
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "item": [
+            {
+              "name": "Login Candidate",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"mostafa@gmail.com\",\r\n    \"password\":\"mostafa123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseURL}}api/auth/login",
+                  "host": [
+                    "{{BaseURL}}api"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Login HR",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\":\"waleedmamdouhfci@gmail.com\",\r\n    \"password\":\"waleed123\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseURL}}api/auth/login",
+                  "host": [
+                    "{{BaseURL}}api"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "item": [
+            {
+              "name": "Logout",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\":\"mostafa\",\r\n    \"email\":\"mostafa@gmail.com\",\r\n    \"password\":\"mostafa123\"\r\n}"
+                },
+                "url": {
+                  "raw": "{{BaseURL}}api/auth/logout",
+                  "host": [
+                    "{{BaseURL}}api"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Profile",
+          "item": [
+            {
+              "name": "Get My Profile",
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"name\":\"mostafa\",\r\n    \"email\":\"mostafa@gmail.com\",\r\n    \"password\":\"mostafa123\"\r\n}"
+                },
+                "url": {
+                  "raw": "{{BaseURL}}api/me",
+                  "host": [
+                    "{{BaseURL}}api"
+                  ],
+                  "path": [
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Refresh",
+          "item": [
+            {
+              "name": "Refresh The Token",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseURL}}api/auth/refresh",
+                  "host": [
+                    "{{BaseURL}}api"
+                  ],
+                  "path": [
+                    "auth",
+                    "refresh"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "BaseURL",
+      "value": ""
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    }
+  ]
+}
