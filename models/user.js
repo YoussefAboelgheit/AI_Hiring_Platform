@@ -23,6 +23,10 @@ const userSchema = new mongoose.Schema(
         message: "Please provide a valid email address",
       },
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
 
     password: {
       type: String,
@@ -77,6 +81,10 @@ const userSchema = new mongoose.Schema(
         "CV is required for Candidate",
       ],
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    }
   },
   {
     timestamps: true,
