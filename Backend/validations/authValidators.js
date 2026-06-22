@@ -133,6 +133,7 @@ export const confirmForgotPasswordValidator = [
 
   body("newPassword")
     .isLength({ min: 8 }).withMessage("New password must be at least 8 characters"),
+<<<<<<< HEAD
 <<<<<<< HEAD:validations/authValidators.js
 ];
 
@@ -154,4 +155,6 @@ export const resendVerificationEmailValidator = [
     .normalizeEmail(),
 =======
 >>>>>>> d6a51689069641f972c8a9b5a39df1b3c9fc4a0c:Backend/validations/authValidators.js
+=======
+>>>>>>> d6a51689069641f972c8a9b5a39df1b3c9fc4a0c
 ];

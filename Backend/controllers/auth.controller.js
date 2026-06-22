@@ -8,7 +8,6 @@ import PasswordResetToken from "../models/passwordResetToken.js";
 import { sendEmail } from "../util/sendEmail.js";
 
 
-
 const generateTokens = async (user) => {
   const accessToken = jwt.sign(
     { userId: user._id, role: user.role },
