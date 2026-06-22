@@ -9,6 +9,7 @@ import { sendEmail } from "../util/sendEmail.js";
 import EmailVerificationToken from "../models/emailVerificationToken.js";
 import BlacklistedToken from "../models/blacklistedToken.js";
 
+
 const generateTokens = async (user) => {
   const accessToken = jwt.sign(
     { userId: user._id, role: user.role },
@@ -44,32 +45,38 @@ const setRefreshCookie = (res, refreshToken) => {
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     const userRole = role === "hr" ? "hr" : "candidate";
 
-    let companyLogoUrl = undefined;
-    let profileImageUrl = undefined;
-    let cvUrl = undefined;
+    let companyLogoUrl  = "";
+    let profileImageUrl = "";
+    let cvUrl           = "";
 
     if (userRole === "hr") {
-      const file = req.files.company_logo[0];
-      companyLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
+      if (req.files?.company_logo?.[0]) {
+        const file = req.files.company_logo[0];
+        companyLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
+      }
     } else {
-      const imgFile = req.files.profile_image[0];
-      const cvFile = req.files.CV[0];
-      profileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
-      cvUrl = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
+      if (req.files?.profile_image?.[0]) {
+        const imgFile   = req.files.profile_image[0];
+        profileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
+      }
+      if (req.files?.CV?.[0]) {
+        const cvFile = req.files.CV[0];
+        cvUrl        = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
+      }
     }
 
     const user = await User.create({
       name,
       email,
       password,
-      role: userRole,
-      company_logo: companyLogoUrl,
+      role:          userRole,
+      company_logo:  companyLogoUrl,
       profile_image: profileImageUrl,
-      CV: cvUrl
+      CV:            cvUrl,
     });
 
     const rawToken = crypto.randomBytes(32).toString("hex");
@@ -94,6 +101,7 @@ export const register = async (req, res, next) => {
         `,
       });
     } catch (emailErr) {
+      console.error("Email error:", emailErr.message);
       await EmailVerificationToken.deleteMany({ user: user._id });
       await User.findByIdAndDelete(user._id);
       return next(new HTTPError(500, "Failed to send verification email. Please use a valid email address."));
@@ -208,13 +216,13 @@ export const login = async (req, res, next) => {
       message: "Login successful",
       accessToken,
       user: {
-        _id:   user._id,
-        name:  user.name,
-        email: user.email,
-        role: user.role,
-        company_logo: user.company_logo,
+        _id:           user._id,
+        name:          user.name,
+        email:         user.email,
+        role:          user.role,
+        company_logo:  user.company_logo,
         profile_image: user.profile_image,
-        CV: user.CV,
+        CV:            user.CV,
       },
     });
   } catch (err) {
@@ -243,7 +251,6 @@ export const logout = async (req, res, next) => {
 
     await RefreshToken.findByIdAndDelete(userTokens[matchedIndex]._id);
 
-    // blacklist the access token
     const authHeader = req.headers.authorization;
     if (authHeader) {
       const accessToken = authHeader.split(" ")[1];

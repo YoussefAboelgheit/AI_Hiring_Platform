@@ -17,7 +17,6 @@ mongoose
     try {
       await mongoose.connection.db.collection("users").updateMany({}, { $unset: { avatar: "" } });
     } catch (migrateErr) {
-      // Silently ignore migration errors
     }
   })
   .catch((err) => {

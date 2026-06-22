@@ -7,8 +7,8 @@ import errorHandlingMW from "./middlewares/errorHandlingMW.js";
 import notFoundMW from "./middlewares/notFoundMW.js";
 
 // ── Import Routers ────────────────────────────────────────────────────────────
-import authRouter   from "./routes/auth.router.js";
-import userRouter   from "./routes/user.router.js";
+import authRouter from "./routes/auth.router.js";
+import userRouter from "./routes/user.router.js";
 const app = express();
 
 
@@ -28,8 +28,12 @@ app.use((req, res, next) => {
 });
 
 app.use(morgan("dev"));
-app.use(express.json({ limit: "25mb" }));
-
+app.use((req, res, next) => {
+  if (req.headers["content-type"]?.startsWith("multipart/form-data")) {
+    return next();
+  }
+  express.json({ limit: "25mb" })(req, res, next);
+});
 app.use(cookieParser());
 
 // ── Route Mounting ────────────────────────────────────────────────────────────

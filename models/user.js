@@ -23,10 +23,6 @@ const userSchema = new mongoose.Schema(
         message: "Please provide a valid email address",
       },
     },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
 
     password: {
       type: String,
@@ -49,42 +45,25 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+
     company_logo: {
       type: String,
       default: "",
-      required: [
-        function () {
-          return this && this.role === "hr";
-        },
-        "Company logo is required for HR",
-      ],
     },
 
     profile_image: {
       type: String,
       default: "",
-      required: [
-        function () {
-          return this && this.role === "candidate";
-        },
-        "Profile image is required for Candidate",
-      ],
     },
 
     CV: {
       type: String,
       default: "",
-      required: [
-        function () {
-          return this && this.role === "candidate";
-        },
-        "CV is required for Candidate",
-      ],
     },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    }
   },
   {
     timestamps: true,
