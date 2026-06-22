@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
+import BlacklistedToken from "../models/blacklistedToken.js";
 import HTTPError from "../util/httpError.js";
-
 
 export default async (req, res, next) => {
   try {
@@ -11,11 +11,13 @@ export default async (req, res, next) => {
     const accessToken = authHeader.split(" ")[1];
     if (!accessToken) return next(new HTTPError(401, "No token provided"));
 
+    const isBlacklisted = await BlacklistedToken.findOne({ token: accessToken });
+    if (isBlacklisted) return next(new HTTPError(401, "Token is no longer valid. Please log in again."));
+
     let payload;
     try {
       payload = jwt.verify(accessToken, process.env.JWT_ACCESS_TOKEN_SECRET);
-    }
-    catch (err) {
+    } catch (err) {
       return next(new HTTPError(401, err.message));
     }
 
@@ -23,10 +25,8 @@ export default async (req, res, next) => {
     if (!user) return next(new HTTPError(404, "User not found"));
 
     req.user = user;
-
     next();
-  }
-  catch (err) {
+  } catch (err) {
     next(err);
   }
 };
