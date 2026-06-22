@@ -28,7 +28,6 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
-
 export const getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -39,7 +38,6 @@ export const getUserById = async (req, res, next) => {
     next(err);
   }
 };
-
 
 export const createUser = async (req, res, next) => {
   try {
@@ -89,7 +87,6 @@ export const createUser = async (req, res, next) => {
     next(err);
   }
 };
-
 
 export const updateUser = async (req, res, next) => {
   try {
@@ -156,7 +153,6 @@ export const updateUser = async (req, res, next) => {
     next(err);
   }
 };
-
 
 export const deleteUser = async (req, res, next) => {
   try {

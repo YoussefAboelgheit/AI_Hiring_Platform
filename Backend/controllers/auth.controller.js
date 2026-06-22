@@ -30,7 +30,6 @@ const generateTokens = async (user) => {
   return { accessToken, refreshToken };
 };
 
-
 const setRefreshCookie = (res, refreshToken) => {
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
@@ -39,7 +38,6 @@ const setRefreshCookie = (res, refreshToken) => {
     maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 };
-
 
 export const register = async (req, res, next) => {
   try {
@@ -79,7 +77,6 @@ export const register = async (req, res, next) => {
   }
 };
 
-
 export const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -112,7 +109,6 @@ export const login = async (req, res, next) => {
   }
 };
 
-
 export const logout = async (req, res, next) => {
   try {
     const rawRefreshToken = req.cookies.refreshToken;
@@ -140,7 +136,6 @@ export const logout = async (req, res, next) => {
     next(err);
   }
 };
-
 
 export const refresh = async (req, res, next) => {
   try {
@@ -180,7 +175,6 @@ export const refresh = async (req, res, next) => {
   }
 };
 
-
 export const getMe = async (req, res, next) => {
   try {
     return res.status(200).json({ user: req.user });
@@ -206,7 +200,6 @@ export const resetPassword = async (req, res, next) => {
     next(err);
   }
 };
-
 // Step 1: User requests password reset
 export const forgotPassword = async (req, res, next) => {
   try {

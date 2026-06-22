@@ -3,7 +3,8 @@ import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
 import { useMutation } from "@tanstack/react-query";
-import { useAuth } from "../../context/useAuth";
+
+import {login} from "../../services/authService";
 import AuthHeroPanel from "../../components/auth/AuthHeroPanel";
 import BrandLogo from "../../components/common/BrandLogo";
 import BackButton from "../../components/common/BackButton";
@@ -19,7 +20,7 @@ const schema = yup.object({
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+
   const [show, setShow] = useState(false);
   const successMessage = location.state?.message;
 
