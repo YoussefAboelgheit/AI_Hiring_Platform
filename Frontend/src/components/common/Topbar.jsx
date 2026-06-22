@@ -5,6 +5,17 @@ export default function Topbar({ placeholder = "Search..." }) {
   const { user } = useAuth();
   const { toggleSidebar } = useAppShell();
 
+  const userImage = user?.profile_image || user?.avatar;
+
+  const getInitials = (name) => {
+    if (!name) return "US";
+    const parts = name.trim().split(" ");
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].slice(0, 2).toUpperCase();
+  };
+
   return (
     <header className="topbar">
       <button
@@ -30,11 +41,38 @@ export default function Topbar({ placeholder = "Search..." }) {
         <button type="button" className="topbar-icon-btn d-none d-md-flex" aria-label="Settings">
           <i className="bi bi-gear" />
         </button>
+        
         <div className="user-chip">
-          <img src={user?.avatar} alt={user?.name || "User"} />
+          {userImage ? (
+            <img 
+              src={userImage} 
+              alt={user?.name || "User"} 
+              style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }}
+            />
+          ) : (
+            <div 
+              className="user-avatar-initials"
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "50%",
+                backgroundColor: "#6366f1",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "12px",
+                fontWeight: "bold",
+                textTransform: "uppercase"
+              }}
+            >
+              {getInitials(user?.name)}
+            </div>
+          )}
+          
           <div className="d-none d-sm-block">
             <div className="name">{user?.name || "User"}</div>
-            <div className="role">{user?.title || "Member"}</div>
+            <div className="role">{user?.title || "Candidate"}</div>
           </div>
         </div>
       </div>

@@ -3,14 +3,17 @@ import { fetchMe, getSessionUser, updateSessionUser } from "./authService";
 import { fileToBase64 } from "./storage/fileUtils";
 import { getApiErrorMessage } from "./apiErrors";
 
-function mergeProfileWithExtras(user) {
+function mergeProfileWithExtras(apiResponse) {
+  const user = apiResponse?.user || apiResponse;
+
   return {
     ...candidateProfile,
-    id: user.id,
+    id: user._id || user.id,
     name: user.name || candidateProfile.name,
     email: user.email || candidateProfile.email,
     phone: user.phone || "",
-    avatar: user.avatar,
+    avatar: user.profile_image || user.avatar || null, 
+    cvUrl: user.CV || null, 
     title: user.title || candidateProfile.title,
     location: user.location || candidateProfile.location,
     bio: user.bio || candidateProfile.bio,
@@ -20,8 +23,8 @@ function mergeProfileWithExtras(user) {
 
 export async function getCandidateProfile() {
   try {
-    const user = await fetchMe();
-    return mergeProfileWithExtras(user);
+    const response = await fetchMe();
+    return mergeProfileWithExtras(response);
   } catch (error) {
     const fallback = getSessionUser();
     if (fallback) return mergeProfileWithExtras(fallback);
@@ -30,24 +33,26 @@ export async function getCandidateProfile() {
 }
 
 export async function getCompleteProfileDefaults() {
-  const user = getSessionUser();
+  const sessionData = getSessionUser();
+  const user = sessionData?.user || sessionData;
 
   if (user) {
     return {
       name: user.name || "",
       email: user.email || "",
       phone: user.phone || "",
-      avatar: user.avatar || null,
+      avatar: user.profile_image || user.avatar || null,
     };
   }
 
   try {
-    const profile = await fetchMe();
+    const response = await fetchMe();
+    const profile = response?.user || response;
     return {
       name: profile.name || "",
       email: profile.email || "",
       phone: profile.phone || "",
-      avatar: profile.avatar || null,
+      avatar: profile.profile_image || profile.avatar || null,
     };
   } catch {
     return { name: "", email: "", phone: "", avatar: null };
@@ -63,13 +68,13 @@ export async function saveCompleteProfile(data) {
   };
 
   if (data.avatarFile) {
-    updates.avatar = await fileToBase64(data.avatarFile);
+    updates.profile_image = await fileToBase64(data.avatarFile);
   } else if (data.avatar) {
-    updates.avatar = data.avatar;
+    updates.profile_image = data.avatar;
   }
 
   if (data.resume) {
-    updates.resumeName = data.resume;
+    updates.CV = data.resume;
   }
 
   const user = await updateSessionUser(updates);

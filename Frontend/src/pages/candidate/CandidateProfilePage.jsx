@@ -16,6 +16,15 @@ export default function CandidateProfilePage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const getInitials = (name) => {
+    if (!name) return "SA";
+    const parts = name.trim().split(" ");
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
+  };
+
   if (loading) return <LoadingState message="Loading profile..." />;
 
   if (error) {
@@ -37,14 +46,53 @@ export default function CandidateProfilePage() {
           <h1>Candidate Profile</h1>
           <p style={{ color: "var(--text-muted)", margin: 0 }}>Manage your professional identity and resume details.</p>
         </div>
-        <button type="button" className="btn-primary-custom"><i className="bi bi-pencil me-2" />Edit Profile</button>
+        <div style={{ display: "flex", gap: 12 }}>
+          {profile.cvUrl && (
+            <a 
+              href={profile.cvUrl} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="btn-outline-custom"
+              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
+            >
+              <i className="bi bi-file-earmark-pdf me-2" />
+              View CV
+            </a>
+          )}
+          <button type="button" className="btn-primary-custom">
+            <i className="bi bi-pencil me-2" />
+            Edit Profile
+          </button>
+        </div>
       </div>
 
       <div className="grid-profile">
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="hcard" style={{ padding: 24, textAlign: "center" }}>
             <div style={{ position: "relative", display: "inline-block", marginBottom: 16 }}>
-              <img src={profile.avatar} alt="" style={{ width: 100, height: 100, borderRadius: "50%", objectFit: "cover", border: "3px solid var(--primary-bg)" }} />
+              {profile.avatar ? (
+                <img 
+                  src={profile.avatar} 
+                  alt={profile.name} 
+                  style={{ width: 100, height: 100, borderRadius: "50%", objectFit: "cover", border: "3px solid var(--primary-bg)" }} 
+                />
+              ) : (
+                <div style={{ 
+                  width: 100, 
+                  height: 100, 
+                  borderRadius: "50%", 
+                  background: "var(--primary-bg)", 
+                  color: "var(--primary)", 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  fontSize: 28, 
+                  fontWeight: 800,
+                  border: "3px solid var(--primary)"
+                }}>
+                  {getInitials(profile.name)}
+                </div>
+              )}
               <span style={{ position: "absolute", bottom: 4, right: 4, width: 24, height: 24, background: "var(--primary)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" }}>
                 <i className="bi bi-check text-white" style={{ fontSize: 12 }} aria-hidden="true" />
               </span>
