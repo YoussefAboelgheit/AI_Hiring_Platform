@@ -3,7 +3,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
 import { useMutation } from "@tanstack/react-query";
+import {register} from "../../services/authService";
 import { useAuth } from "../../context/useAuth";
+
 import AuthHeroPanel from "../../components/auth/AuthHeroPanel";
 import BrandLogo from "../../components/common/BrandLogo";
 import BackButton from "../../components/common/BackButton";
@@ -21,7 +23,6 @@ export default function RegisterPage() {
 
 
   const navigate = useNavigate();
-  const { register } = useAuth();
   const [role, setRole] = useState("candidate");
   const [showPassword, setShowPassword] = useState(false);
 

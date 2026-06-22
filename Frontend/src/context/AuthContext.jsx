@@ -9,10 +9,8 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     let cancelled = false;
-
     async function bootstrapSession() {
       const token = userStorage.getAccessToken();
-
       if (!token) {
         if (!cancelled) {
           setUser(null);
@@ -20,7 +18,6 @@ export function AuthProvider({ children }) {
         }
         return;
       }
-
       try {
         const profile = await authService.fetchMe();
         if (!cancelled) setUser(profile);
@@ -40,37 +37,38 @@ export function AuthProvider({ children }) {
 
   const login = async (credentials) => {
     const { user: loggedInUser } = await authService.login(credentials);
+    
     setUser(loggedInUser);
     return loggedInUser;
   };
 
-  const register = async (data) => authService.register(data);
+  // const register = async (data) => authService.register(data);
 
-  const refreshUser = async () => {
-    const token = userStorage.getAccessToken();
-    if (!token) {
-      setUser(null);
-      return null;
-    }
+  // const refreshUser = async () => {
+  //   const token = userStorage.getAccessToken();
+  //   if (!token) {
+  //     setUser(null);
+  //     return null;
+  //   }
 
-    try {
-      const profile = await authService.fetchMe();
-      setUser(profile);
-      return profile;
-    } catch {
-      const stored = authService.getSessionUser();
-      setUser(stored);
-      return stored;
-    }
-  };
+  //   try {
+  //     const profile = await authService.fetchMe();
+  //     setUser(profile);
+  //     return profile;
+  //   } catch {
+  //     const stored = authService.getSessionUser();
+  //     setUser(stored);
+  //     return stored;
+  //   }
+  // };
 
-  const logout = async () => {
-    await authService.logout();
-    setUser(null);
-  };
-
+  // const logout = async () => {
+  //   await authService.logout();
+  //   setUser(null);
+  // };
+// , login, register, refreshUser, logout,initializing
   return (
-    <AuthContext.Provider value={{ user, login, register, refreshUser, logout, initializing }}>
+    <AuthContext.Provider value={{ user  }}>
       {children}
     </AuthContext.Provider>
   );
