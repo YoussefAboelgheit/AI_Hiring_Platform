@@ -45,8 +45,19 @@ const userSchema = new mongoose.Schema(
       default: "",
     },
 
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+
     company_logo: {
       type: String,
+<<<<<<< HEAD
+<<<<<<< HEAD:models/user.js
+      default: "",
+=======
+=======
+>>>>>>> d6a51689069641f972c8a9b5a39df1b3c9fc4a0c
       
       // default: "",
       // required: [
@@ -55,28 +66,20 @@ const userSchema = new mongoose.Schema(
       //   },
       //   "Company logo is required for HR",
       // ],
+<<<<<<< HEAD
+>>>>>>> d6a51689069641f972c8a9b5a39df1b3c9fc4a0c:Backend/models/user.js
+=======
+>>>>>>> d6a51689069641f972c8a9b5a39df1b3c9fc4a0c
     },
 
     profile_image: {
       type: String,
       default: "",
-      required: [
-        function () {
-          return this && this.role === "candidate";
-        },
-        "Profile image is required for Candidate",
-      ],
     },
 
     CV: {
       type: String,
       default: "",
-      required: [
-        function () {
-          return this && this.role === "candidate";
-        },
-        "CV is required for Candidate",
-      ],
     },
   },
   {

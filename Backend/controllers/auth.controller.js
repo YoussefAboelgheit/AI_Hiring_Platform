@@ -47,29 +47,63 @@ export const register = async (req, res, next) => {
 
     const userRole = role === "hr" ? "hr" : "candidate";
 
-    let companyLogoUrl = undefined;
-    let profileImageUrl = undefined;
-    let cvUrl = undefined;
+    let companyLogoUrl  = "";
+    let profileImageUrl = "";
+    let cvUrl           = "";
 
     if (userRole === "hr") {
-      const file = req.files.company_logo[0];
-      companyLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
+      if (req.files?.company_logo?.[0]) {
+        const file = req.files.company_logo[0];
+        companyLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
+      }
     } else {
-      const imgFile = req.files.profile_image[0];
-      const cvFile = req.files.CV[0];
-      profileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
-      cvUrl = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
+      if (req.files?.profile_image?.[0]) {
+        const imgFile   = req.files.profile_image[0];
+        profileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
+      }
+      if (req.files?.CV?.[0]) {
+        const cvFile = req.files.CV[0];
+        cvUrl        = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
+      }
     }
 
     const user = await User.create({
       name,
       email,
       password,
-      role: userRole,
-      company_logo: companyLogoUrl,
+      role:          userRole,
+      company_logo:  companyLogoUrl,
       profile_image: profileImageUrl,
-      CV: cvUrl
+      CV:            cvUrl,
     });
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+
+    await EmailVerificationToken.create({
+      user:      user._id,
+      token:     rawToken,
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    });
+
+    const verifyLink = `${process.env.CLIENT_URL}/verify-email?token=${rawToken}&userId=${user._id}`;
+
+    try {
+      await sendEmail({
+        to:      user.email,
+        subject: "Verify your email address",
+        html: `
+          <h2>Welcome ${user.name}!</h2>
+          <p>Please verify your email by clicking the link below. It expires in 24 hours.</p>
+          <a href="${verifyLink}">${verifyLink}</a>
+          <p>If you didn't create an account, ignore this email.</p>
+        `,
+      });
+    } catch (emailErr) {
+      console.error("Email error:", emailErr.message);
+      await EmailVerificationToken.deleteMany({ user: user._id });
+      await User.findByIdAndDelete(user._id);
+      return next(new HTTPError(500, "Failed to send verification email. Please use a valid email address."));
+    }
 
     return res.status(201).json({
       message: "Account created successfully. Please log in.",
@@ -104,7 +138,7 @@ export const login = async (req, res, next) => {
         role: user.role,
         company_logo: user.company_logo,
         profile_image: user.profile_image,
-        CV: user.CV,
+        CV:            user.CV,
       },
     });
   } catch (err) {
@@ -132,6 +166,20 @@ export const logout = async (req, res, next) => {
     if (matchedIndex === -1) return next(new HTTPError(401, "Refresh token not found"));
 
     await RefreshToken.findByIdAndDelete(userTokens[matchedIndex]._id);
+
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+      const accessToken = authHeader.split(" ")[1];
+      try {
+        const accessPayload = jwt.verify(accessToken, process.env.JWT_ACCESS_TOKEN_SECRET);
+        await BlacklistedToken.create({
+          token:     accessToken,
+          expiresAt: new Date(accessPayload.exp * 1000),
+        });
+      } catch (err) {
+        // token already expired, no need to blacklist
+      }
+    }
 
     res.clearCookie("refreshToken", { httpOnly: true, secure: true, sameSite: "strict" });
 
