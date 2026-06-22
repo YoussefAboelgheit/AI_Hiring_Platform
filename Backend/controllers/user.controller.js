@@ -52,7 +52,7 @@ export const createUser = async (req, res, next) => {
     let cvUrl = undefined;
 
     if (userRole === "hr") {
-      if (req.files && req.files.company_logo) {
+      if (req.files || req.files.company_logo) {
         const file = req.files.company_logo[0];
         companyLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
       }

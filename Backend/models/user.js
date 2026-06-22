@@ -52,7 +52,18 @@ const userSchema = new mongoose.Schema(
 
     company_logo: {
       type: String,
+<<<<<<< HEAD:models/user.js
       default: "",
+=======
+      
+      // default: "",
+      // required: [
+      //   function () {
+      //     return this && this.role === "hr";
+      //   },
+      //   "Company logo is required for HR",
+      // ],
+>>>>>>> d6a51689069641f972c8a9b5a39df1b3c9fc4a0c:Backend/models/user.js
     },
 
     profile_image: {
