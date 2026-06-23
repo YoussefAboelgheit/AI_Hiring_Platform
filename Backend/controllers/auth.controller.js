@@ -24,8 +24,8 @@ const generateTokens = async (user) => {
   );
 
   await RefreshToken.create({
-    token:     refreshToken,
-    user:      user._id,
+    token: refreshToken,
+    user: user._id,
     expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
@@ -36,9 +36,9 @@ const generateTokens = async (user) => {
 const setRefreshCookie = (res, refreshToken) => {
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure:   process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production",
     sameSite: "strict",
-    maxAge:   7 * 24 * 60 * 60 * 1000,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 };
 
@@ -49,9 +49,9 @@ export const register = async (req, res, next) => {
 
     const userRole = role === "hr" ? "hr" : "candidate";
 
-    let companyLogoUrl  = "";
+    let companyLogoUrl = "";
     let profileImageUrl = "";
-    let cvUrl           = "";
+    let cvUrl = "";
 
     if (userRole === "hr") {
       if (req.files?.company_logo?.[0]) {
@@ -60,12 +60,12 @@ export const register = async (req, res, next) => {
       }
     } else {
       if (req.files?.profile_image?.[0]) {
-        const imgFile   = req.files.profile_image[0];
+        const imgFile = req.files.profile_image[0];
         profileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
       }
       if (req.files?.CV?.[0]) {
         const cvFile = req.files.CV[0];
-        cvUrl        = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
+        cvUrl = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
       }
     }
 
@@ -73,25 +73,26 @@ export const register = async (req, res, next) => {
       name,
       email,
       password,
-      role:          userRole,
-      company_logo:  companyLogoUrl,
+      role: userRole,
+      company_logo: companyLogoUrl,
       profile_image: profileImageUrl,
-      CV:            cvUrl,
+      CV: cvUrl,
     });
 
     const rawToken = crypto.randomBytes(32).toString("hex");
 
     await EmailVerificationToken.create({
-      user:      user._id,
-      token:     rawToken,
+      user: user._id,
+      token: rawToken,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
 
-    const verifyLink = `${process.env.CLIENT_URL}/verify-email?token=${rawToken}&userId=${user._id}`;
+    const verifyLink =
+      `${process.env.SERVER_URL}/api/auth/verify-email?token=${rawToken}&userId=${user._id}`;
 
     try {
       await sendEmail({
-        to:      user.email,
+        to: user.email,
         subject: "Verify your email address",
         html: `
           <h2>Welcome ${user.name}!</h2>
@@ -109,7 +110,7 @@ export const register = async (req, res, next) => {
 
     return res.status(201).json({
       message: "Account created successfully. Please check your email to verify your account.",
-      userId:  user._id,
+      userId: user._id,
     });
   } catch (err) {
     next(err);
@@ -119,27 +120,61 @@ export const register = async (req, res, next) => {
 
 export const verifyEmail = async (req, res, next) => {
   try {
-    const { token, userId } = req.body;
+    const { token, userId } = req.query;
 
-    const tokens = await EmailVerificationToken.find({ user: userId });
-    if (!tokens.length) return next(new HTTPError(400, "Invalid or expired token"));
+    if (!token || !userId) {
+      return res.redirect(
+        `${process.env.CLIENT_URL}/login?verified=false`
+      );
+    }
 
-    const comparisons  = await Promise.all(tokens.map((t) => t.compareToken(token)));
-    const matchedIndex = comparisons.findIndex((match) => match === true);
+    const tokens = await EmailVerificationToken.find({
+      user: userId
+    });
 
-    if (matchedIndex === -1) return next(new HTTPError(400, "Invalid or expired token"));
+    if (!tokens.length) {
+      return res.redirect(
+        `${process.env.CLIENT_URL}/login?verified=false`
+      );
+    }
+
+    const comparisons = await Promise.all(
+      tokens.map((t) => t.compareToken(token))
+    );
+
+    const matchedIndex = comparisons.findIndex(
+      (match) => match === true
+    );
+
+    if (matchedIndex === -1) {
+      return res.redirect(
+        `${process.env.CLIENT_URL}/login?verified=false`
+      );
+    }
 
     const matched = tokens[matchedIndex];
 
     if (matched.expiresAt < new Date()) {
-      await EmailVerificationToken.findByIdAndDelete(matched._id);
-      return next(new HTTPError(400, "Verification token has expired"));
+      await EmailVerificationToken.findByIdAndDelete(
+        matched._id
+      );
+
+      return res.redirect(
+        `${process.env.CLIENT_URL}/login?verified=expired`
+      );
     }
 
-    await User.findByIdAndUpdate(userId, { isVerified: true });
-    await EmailVerificationToken.findByIdAndDelete(matched._id);
+    await User.findByIdAndUpdate(userId, {
+      isVerified: true
+    });
 
-    return res.status(200).json({ message: "Email verified successfully. You can now log in." });
+    await EmailVerificationToken.deleteMany({
+      user: userId
+    });
+
+    return res.redirect(
+      `${process.env.CLIENT_URL}/login?verified=true`
+    );
   } catch (err) {
     next(err);
   }
@@ -165,16 +200,16 @@ export const resendVerificationEmail = async (req, res, next) => {
     const rawToken = crypto.randomBytes(32).toString("hex");
 
     await EmailVerificationToken.create({
-      user:      user._id,
-      token:     rawToken,
+      user: user._id,
+      token: rawToken,
       expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
 
-    const verifyLink = `${process.env.CLIENT_URL}/verify-email?token=${rawToken}&userId=${user._id}`;
-
+    const verifyLink =
+      `${process.env.SERVER_URL}/api/auth/verify-email?token=${rawToken}&userId=${user._id}`;
     try {
       await sendEmail({
-        to:      user.email,
+        to: user.email,
         subject: "Verify your email address",
         html: `
           <h2>Email Verification</h2>
@@ -216,13 +251,13 @@ export const login = async (req, res, next) => {
       message: "Login successful",
       accessToken,
       user: {
-        _id:           user._id,
-        name:          user.name,
-        email:         user.email,
-        role:          user.role,
-        company_logo:  user.company_logo,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        company_logo: user.company_logo,
         profile_image: user.profile_image,
-        CV:            user.CV,
+        CV: user.CV,
       },
     });
   } catch (err) {
@@ -243,8 +278,8 @@ export const logout = async (req, res, next) => {
       return next(new HTTPError(401, "Invalid refresh token"));
     }
 
-    const userTokens   = await RefreshToken.find({ user: payload.userId });
-    const comparisons  = await Promise.all(userTokens.map((t) => t.compareToken(rawRefreshToken)));
+    const userTokens = await RefreshToken.find({ user: payload.userId });
+    const comparisons = await Promise.all(userTokens.map((t) => t.compareToken(rawRefreshToken)));
     const matchedIndex = comparisons.findIndex((match) => match === true);
 
     if (matchedIndex === -1) return next(new HTTPError(401, "Refresh token not found"));
@@ -257,7 +292,7 @@ export const logout = async (req, res, next) => {
       try {
         const accessPayload = jwt.verify(accessToken, process.env.JWT_ACCESS_TOKEN_SECRET);
         await BlacklistedToken.create({
-          token:     accessToken,
+          token: accessToken,
           expiresAt: new Date(accessPayload.exp * 1000),
         });
       } catch (err) {
@@ -286,8 +321,8 @@ export const refresh = async (req, res, next) => {
       return next(new HTTPError(401, "Invalid or expired refresh token"));
     }
 
-    const userTokens   = await RefreshToken.find({ user: payload.userId });
-    const comparisons  = await Promise.all(userTokens.map((t) => t.compareToken(rawRefreshToken)));
+    const userTokens = await RefreshToken.find({ user: payload.userId });
+    const comparisons = await Promise.all(userTokens.map((t) => t.compareToken(rawRefreshToken)));
     const matchedIndex = comparisons.findIndex((match) => match === true);
 
     if (matchedIndex === -1) return next(new HTTPError(401, "Refresh token not found"));
@@ -356,8 +391,8 @@ export const forgotPassword = async (req, res, next) => {
     const rawToken = crypto.randomBytes(32).toString("hex");
 
     await PasswordResetToken.create({
-      user:      user._id,
-      token:     rawToken,
+      user: user._id,
+      token: rawToken,
       expiresAt: new Date(Date.now() + 15 * 60 * 1000),
     });
 
@@ -365,7 +400,7 @@ export const forgotPassword = async (req, res, next) => {
 
     try {
       await sendEmail({
-        to:      user.email,
+        to: user.email,
         subject: "Password Reset Request",
         html: `
           <h2>Password Reset</h2>
@@ -394,7 +429,7 @@ export const confirmForgotPassword = async (req, res, next) => {
     const allTokens = await PasswordResetToken.find();
 
     // find which token matches
-    const comparisons  = await Promise.all(allTokens.map((t) => t.compareToken(token)));
+    const comparisons = await Promise.all(allTokens.map((t) => t.compareToken(token)));
     const matchedIndex = comparisons.findIndex((match) => match === true);
 
     if (matchedIndex === -1) return next(new HTTPError(400, "Invalid or expired token"));
