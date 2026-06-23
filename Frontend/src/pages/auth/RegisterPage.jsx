@@ -9,7 +9,7 @@ import BrandLogo from "../../components/common/BrandLogo";
 import BackButton from "../../components/common/BackButton";
 import styles from "./RegisterPage.module.css";
 
-//  Yup Schema 
+//  Yup Schema  for validation
 const schema = yup.object({
   name: yup.string().trim().required("Full name is required"),
   email: yup.string().email("Enter a valid email").required("Email is required"),
