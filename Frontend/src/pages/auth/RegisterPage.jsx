@@ -34,7 +34,7 @@ export default function RegisterPage() {
       navigate("/login", {
         replace: true,
         state: {
-          message: result.message || "Account created successfully. Please log in.",
+          message: result.message || "Account created successfully. Please check your email for the verification link.",
         },
       });
     },

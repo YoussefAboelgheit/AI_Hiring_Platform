@@ -37,6 +37,7 @@ export async function register({ name, email, password, role }) {
       password,
       role: toBackendRole(role),
     });
+    console.log(data);
 
     return { success: true, message: data.message };
   } catch (error) {

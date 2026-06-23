@@ -9,7 +9,6 @@ import { sendEmail } from "../util/sendEmail.js";
 import EmailVerificationToken from "../models/emailVerificationToken.js";
 import BlacklistedToken from "../models/blacklistedToken.js";
 
-
 const generateTokens = async (user) => {
   const accessToken = jwt.sign(
     { userId: user._id, role: user.role },
@@ -109,7 +108,7 @@ export const register = async (req, res, next) => {
     }
 
     return res.status(201).json({
-      message: "Account created successfully. Please check your email to verify your account.",
+      message: "Account created successfully. Please check your email for the verification link.",
       userId: user._id,
     });
   } catch (err) {
