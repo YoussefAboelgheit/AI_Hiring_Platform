@@ -46,6 +46,8 @@ const setRefreshCookie = (res, refreshToken) => {
 export const register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
+console.log("body:", req.body);
+console.log("role:", role);
 
     const userRole = role === "hr" ? "hr" : "candidate";
 

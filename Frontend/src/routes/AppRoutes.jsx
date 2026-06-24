@@ -51,9 +51,14 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={["candidate"]} />}>
+      <Route element={<ProtectedRoute allowedRoles={["candidate", "recruiter"]} />}>
         <Route element={<StandaloneLayout />}>
           <Route path="candidate/profile/complete" element={<CompleteProfilePage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute allowedRoles={["candidate"]} />}>
+        <Route element={<StandaloneLayout />}>
           <Route path="candidate/application-submitted" element={<ApplicationSubmittedPage />} />
         </Route>
 

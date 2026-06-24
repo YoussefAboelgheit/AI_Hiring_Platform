@@ -36,6 +36,7 @@ export default function RecruiterDashboard() {
         <button type="button" className="btn-primary-custom" onClick={() => navigate("/recruiter/jobs/new")}>
           <i className="bi bi-plus me-2"></i>Post New Job
         </button>
+        
       </div>
 
       <div className="grid-stats-4 mb-4">

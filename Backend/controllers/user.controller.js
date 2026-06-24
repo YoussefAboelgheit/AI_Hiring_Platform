@@ -47,23 +47,23 @@ export const createUser = async (req, res, next) => {
 
     const userRole = role || "candidate";
 
-    let companyLogoUrl = undefined;
-    let profileImageUrl = undefined;
-    let cvUrl = undefined;
+    let companyLogoUrl  = "";
+    let profileImageUrl = "";
+    let cvUrl           = "";
 
     if (userRole === "hr") {
-      if (req.files || req.files.company_logo) {
+      if (req.files?.company_logo?.[0]) {
         const file = req.files.company_logo[0];
         companyLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
       }
     } else if (userRole === "candidate") {
-      if (req.files && req.files.profile_image) {
-        const imgFile = req.files.profile_image[0];
+      if (req.files?.profile_image?.[0]) {
+        const imgFile   = req.files.profile_image[0];
         profileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
       }
-      if (req.files && req.files.CV) {
+      if (req.files?.CV?.[0]) {
         const cvFile = req.files.CV[0];
-        cvUrl = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
+        cvUrl        = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
       }
     }
 
@@ -71,11 +71,12 @@ export const createUser = async (req, res, next) => {
       name,
       email,
       password,
-      role: userRole,
+      role:          userRole,
       bio,
-      company_logo: companyLogoUrl,
+      company_logo:  companyLogoUrl,
       profile_image: profileImageUrl,
-      CV: cvUrl
+      CV:            cvUrl,
+      isVerified:    true, // admin-created users skip email verification
     });
 
     const userObj = user.toObject();
@@ -103,40 +104,42 @@ export const updateUser = async (req, res, next) => {
     if (!targetUser) return next(new HTTPError(404, "User not found"));
 
     const { name, email, bio } = req.body;
-
     const updateData = { name, email, bio };
 
     if (targetUser.role === "hr") {
-      if (req.files && req.files.company_logo) {
-        const file = req.files.company_logo[0];
-        const newLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
+      if (req.files?.company_logo?.[0]) {
+        const file        = req.files.company_logo[0];
+        const newLogoUrl  = await uploadToSupabase(file.buffer, file.mimetype, "logos");
         updateData.company_logo = newLogoUrl;
         if (targetUser.company_logo) {
           await deleteFromSupabase(targetUser.company_logo);
         }
       }
     } else if (targetUser.role === "candidate") {
-      if (req.files && req.files.profile_image) {
-        const imgFile = req.files.profile_image[0];
+      if (req.files?.profile_image?.[0]) {
+        const imgFile           = req.files.profile_image[0];
         const newProfileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
         updateData.profile_image = newProfileImageUrl;
         if (targetUser.profile_image) {
           await deleteFromSupabase(targetUser.profile_image);
         }
       }
-      if (req.files && req.files.CV) {
-        const cvFile = req.files.CV[0];
+      if (req.files?.CV?.[0]) {
+        const cvFile   = req.files.CV[0];
         const newCvUrl = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
-        updateData.CV = newCvUrl;
+        updateData.CV  = newCvUrl;
         if (targetUser.CV) {
           await deleteFromSupabase(targetUser.CV);
         }
       }
     }
 
-    if (req.user.role === "admin" && req.body.role) {
-      updateData.role = req.body.role;
-    }
+    if (req.body.role) {
+  if (req.user.role !== "admin") {
+    return next(new HTTPError(403, "You cannot update your role. Please contact an admin."));
+  }
+  updateData.role = req.body.role;
+}
 
     Object.keys(updateData).forEach(
       (key) => updateData[key] === undefined && delete updateData[key]
@@ -160,12 +163,25 @@ export const updateUser = async (req, res, next) => {
 
 export const deleteUser = async (req, res, next) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const targetId = req.params.id;
+
+    // only admin or the user themselves can delete
+    if (req.user.role !== "admin" && req.user._id.toString() !== targetId) {
+      return next(new HTTPError(403, "You are not authorized to delete this user"));
+    }
+
+    const user = await User.findById(targetId);
     if (!user) return next(new HTTPError(404, "User not found"));
+
+    // delete files from Supabase
+    if (user.company_logo)  await deleteFromSupabase(user.company_logo);
+    if (user.profile_image) await deleteFromSupabase(user.profile_image);
+    if (user.CV)            await deleteFromSupabase(user.CV);
+
+    await User.findByIdAndDelete(targetId);
 
     return res.status(200).json({ message: "User deleted successfully" });
   } catch (err) {
     next(err);
   }
 };
-
