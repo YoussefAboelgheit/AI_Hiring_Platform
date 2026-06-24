@@ -1,0 +1,480 @@
+openapi: 3.0.3
+info:
+  title: AI Hiring Platform - Jobs API
+  version: 1.0.0
+  description: API documentation for job endpoints, including filtering, search, sorting, pagination, and field limiting.
+
+servers:
+  - url: http://localhost:3001
+    description: Local development server
+
+tags:
+  - name: Jobs
+    description: Job listing and management endpoints
+
+paths:
+  /api/jobs:
+    get:
+      tags:
+        - Jobs
+      summary: Get all jobs
+      description: Public endpoint. Supports filtering, regex search, sorting, pagination, and field limiting.
+      parameters:
+        - name: status
+          in: query
+          description: Filter jobs by status.
+          schema:
+            type: string
+            enum: [Open, Closed, Drafted]
+          example: Open
+        - name: workplace
+          in: query
+          description: Filter jobs by workplace.
+          schema:
+            type: string
+            enum: [Onsite, Hybrid, Remote]
+          example: Remote
+        - name: jobType
+          in: query
+          description: Filter jobs by job type.
+          schema:
+            type: string
+            enum: [Intern, Full Time, Part Time]
+          example: Full Time
+        - name: location
+          in: query
+          description: Filter jobs by exact location value.
+          schema:
+            type: string
+          example: Cairo, Egypt
+        - name: category
+          in: query
+          description: Filter jobs by category ObjectId.
+          schema:
+            type: string
+          example: 665fc28a8e7b2a3a11000001
+        - name: recruiter
+          in: query
+          description: Filter jobs by recruiter ObjectId.
+          schema:
+            type: string
+          example: 665fc28a8e7b2a3a11000003
+        - name: search
+          in: query
+          description: Case-insensitive search across title, description, requirements, location, and skills.
+          schema:
+            type: string
+          example: react
+        - name: q
+          in: query
+          description: Alternative search parameter.
+          schema:
+            type: string
+          example: react
+        - name: keyword
+          in: query
+          description: Alternative search parameter.
+          schema:
+            type: string
+          example: react
+        - name: sort
+          in: query
+          description: Sort fields. Prefix a field with '-' for descending order. Multiple fields are comma-separated.
+          schema:
+            type: string
+          examples:
+            newest:
+              value: -createdAt
+            titleAsc:
+              value: title
+            multiple:
+              value: status,-createdAt
+        - name: page
+          in: query
+          description: Page number. Defaults to 1.
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          example: 1
+        - name: limit
+          in: query
+          description: Number of results per page. Defaults to 10 and is capped at 50.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+          example: 10
+        - name: fields
+          in: query
+          description: Comma-separated list of job fields to return.
+          schema:
+            type: string
+          example: title,description,status,location,applicationEnd
+        - name: applicationEnd[gte]
+          in: query
+          description: Filter jobs with applicationEnd greater than or equal to this date.
+          schema:
+            type: string
+            format: date
+          example: 2026-08-01
+        - name: applicationEnd[lte]
+          in: query
+          description: Filter jobs with applicationEnd less than or equal to this date.
+          schema:
+            type: string
+            format: date
+          example: 2026-12-31
+        - name: createdAt[gte]
+          in: query
+          description: Filter jobs created on or after this date.
+          schema:
+            type: string
+            format: date
+          example: 2026-06-01
+        - name: createdAt[lte]
+          in: query
+          description: Filter jobs created on or before this date.
+          schema:
+            type: string
+            format: date
+          example: 2026-06-30
+      responses:
+        "200":
+          description: Jobs returned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Job"
+              example:
+                jobs:
+                  - _id: 665fc28a8e7b2a3a11000002
+                    recruiter:
+                      _id: 665fc28a8e7b2a3a11000003
+                      name: Acme HR
+                      email: hr@acme.com
+                      role: hr
+                      company_logo: https://example.com/logo.png
+                      profile_image: https://example.com/avatar.png
+                    category:
+                      _id: 665fc28a8e7b2a3a11000001
+                      name: Engineering
+                    title: Frontend Developer
+                    description: Build responsive web interfaces for the hiring platform.
+                    workplace: Remote
+                    jobType: Full Time
+                    skills: [React, JavaScript, CSS]
+                    status: Open
+                    requirements: 2+ years of frontend experience.
+                    location: Cairo, Egypt
+                    applicationEnd: 2026-08-31T00:00:00.000Z
+                    createdAt: 2026-06-24T10:00:00.000Z
+                    updatedAt: 2026-06-24T10:00:00.000Z
+    post:
+      tags:
+        - Jobs
+      summary: Create a job
+      description: Requires an HR access token.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobInput"
+            example:
+              category: 665fc28a8e7b2a3a11000001
+              title: Frontend Developer
+              description: Build responsive web interfaces for the hiring platform.
+              workplace: Remote
+              jobType: Full Time
+              skills: [React, JavaScript, CSS]
+              status: Open
+              requirements: 2+ years of frontend experience.
+              location: Cairo, Egypt
+              applicationEnd: 2026-08-31
+      responses:
+        "201":
+          description: Job created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  job:
+                    $ref: "#/components/schemas/Job"
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: User is not allowed to create jobs.
+
+  /api/jobs/{id}:
+    get:
+      tags:
+        - Jobs
+      summary: Get job by ID
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: Job returned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found.
+    patch:
+      tags:
+        - Jobs
+      summary: Update a job
+      description: Requires an HR access token. Only the creator HR can update the job.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateJobInput"
+            example:
+              status: Closed
+              applicationEnd: 2026-07-15
+      responses:
+        "200":
+          description: Job updated successfully.
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: User is not allowed to update this job.
+        "404":
+          description: Job not found.
+    delete:
+      tags:
+        - Jobs
+      summary: Delete a job
+      description: Requires an HR access token. Only the creator HR can delete the job.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: Job deleted successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+              example:
+                message: Job deleted successfully
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: User is not allowed to delete this job.
+        "404":
+          description: Job not found.
+
+  /api/jobs/category/{category}:
+    get:
+      tags:
+        - Jobs
+      summary: Get jobs by category name
+      description: Public endpoint. Category matching is case-insensitive.
+      parameters:
+        - name: category
+          in: path
+          required: true
+          description: Category name.
+          schema:
+            type: string
+          example: engineering
+      responses:
+        "200":
+          description: Jobs returned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Job"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    JobId:
+      name: id
+      in: path
+      required: true
+      description: Job ObjectId.
+      schema:
+        type: string
+      example: 665fc28a8e7b2a3a11000002
+
+  schemas:
+    Recruiter:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+        company_logo:
+          type: string
+          nullable: true
+        profile_image:
+          type: string
+          nullable: true
+
+    Category:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+
+    Job:
+      type: object
+      properties:
+        _id:
+          type: string
+        recruiter:
+          $ref: "#/components/schemas/Recruiter"
+        category:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/Category"
+        title:
+          type: string
+        description:
+          type: string
+        workplace:
+          type: string
+          enum: [Onsite, Hybrid, Remote]
+        jobType:
+          type: string
+          enum: [Intern, Full Time, Part Time]
+        skills:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [Open, Closed, Drafted]
+        requirements:
+          type: string
+        location:
+          type: string
+        applicationEnd:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateJobInput:
+      type: object
+      required:
+        - title
+        - description
+        - workplace
+        - jobType
+        - skills
+      properties:
+        category:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+        workplace:
+          type: string
+          enum: [Onsite, Hybrid, Remote]
+        jobType:
+          type: string
+          enum: [Intern, Full Time, Part Time]
+        skills:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        status:
+          type: string
+          enum: [Open, Closed, Drafted]
+          default: Drafted
+        requirements:
+          type: string
+        location:
+          type: string
+        applicationEnd:
+          type: string
+          format: date
+          nullable: true
+
+    UpdateJobInput:
+      type: object
+      properties:
+        category:
+          type: string
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+        workplace:
+          type: string
+          enum: [Onsite, Hybrid, Remote]
+        jobType:
+          type: string
+          enum: [Intern, Full Time, Part Time]
+        skills:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        status:
+          type: string
+          enum: [Open, Closed, Drafted]
+        requirements:
+          type: string
+        location:
+          type: string
+        applicationEnd:
+          type: string
+          format: date
+          nullable: true
