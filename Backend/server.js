@@ -1,19 +1,12 @@
-import "dotenv/config";
-import dns from "dns";
+import "./config/env.js"; // ← must be absolutely first
 
+import dns from "dns";
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 import app from "./app.js";
-import connectDB from "./config/DB.js"; 
-import "dotenv/config";
-
-
+import connectDB from "./config/DB.js";
 
 connectDB();
-
-
-
-
 
 const PORT = process.env.PORT || 3001;
 
