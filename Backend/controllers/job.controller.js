@@ -1,5 +1,6 @@
 import Category from "../models/category.js";
 import Job from "../models/job.js";
+import APIFeatures from "../util/apiFeatures.js";
 import HTTPError from "../util/httpError.js";
 
 const recruiterPopulate = {
@@ -58,10 +59,15 @@ export const createJob = async (req, res, next) => {
 
 export const getAllJobs = async (req, res, next) => {
   try {
-    const jobs = await Job.find()
-      .populate(recruiterPopulate)
-      .populate(categoryPopulate)
-      .sort({ createdAt: -1 });
+    const features = new APIFeatures(Job.find(), req.query)
+      .filter()
+      .search(["title", "description", "requirements", "location", "skills"])
+      .sort()
+      .paginate()
+      .limitFields()
+      .populate([recruiterPopulate, categoryPopulate]);
+
+    const jobs = await features.query;
 
     return res.status(200).json({ jobs });
   } catch (err) {
