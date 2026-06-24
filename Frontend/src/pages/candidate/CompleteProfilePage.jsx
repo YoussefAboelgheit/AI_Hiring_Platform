@@ -14,7 +14,6 @@ export default function CompleteProfilePage() {
 
   const isRecruiter = isRecruiterRole(user?.role);
 
-  const [form, setForm] = useState({ name: "", email: "", phone: "" });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -24,7 +23,6 @@ export default function CompleteProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setForm({ name: user.name || "", email: user.email || "", phone: user.phone || "" });
       setAvatarPreview(user.avatar || resolveAvatar(user));
       setLoading(false);
     }
@@ -59,8 +57,8 @@ export default function CompleteProfilePage() {
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("email", form.email);
+      formData.append("name", user.name || "");
+      formData.append("email", user.email || "");
 
       if (!isRecruiter && avatarFile) {
         formData.append("profile_image", avatarFile);
@@ -94,7 +92,7 @@ export default function CompleteProfilePage() {
         <div className="text-center mb-4">
           <h1 className="h4 fw-bold">Complete Your Profile</h1>
           <p className="text-muted small">
-            {isRecruiter ? "Set up your company profile." : "Build your personal brand."}
+            {isRecruiter ? "Upload your company logo to finish setup." : "Build your personal brand."}
           </p>
         </div>
 
@@ -118,29 +116,6 @@ export default function CompleteProfilePage() {
             <p className="text-muted small mt-1">Upload Profile Picture</p>
           </div>
         )}
-
-        {isRecruiter && avatarPreview && (
-          <div className="text-center mb-4">
-            <img
-              src={avatarPreview}
-              alt="Company logo preview"
-              className="rounded object-fit-cover border"
-              style={{ width: "96px", height: "96px" }}
-            />
-            <p className="text-muted small mt-1">Current Company Logo</p>
-          </div>
-        )}
-
-        <div className="mb-3">
-          <label className="form-label small fw-semibold">
-            {isRecruiter ? "Company Name" : "Full Name"}
-          </label>
-          <input
-            className="form-control"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-        </div>
 
         <div className="mb-4">
           <label className="form-label small fw-semibold">
