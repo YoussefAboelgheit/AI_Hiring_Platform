@@ -10,6 +10,7 @@ const navItems = [
   { to: "/candidate/assessments", icon: "bi-clipboard-check", label: "Assessments" },
   { to: "/candidate/feedback", icon: "bi-chat-square-text", label: "Feedback" },
   { to: "/candidate/profile", icon: "bi-person", label: "Profile" },
+  { to: "/candidate/settings", icon: "bi-gear", label: "Settings" },
 ];
 
 export default function CandidateSidebar() {

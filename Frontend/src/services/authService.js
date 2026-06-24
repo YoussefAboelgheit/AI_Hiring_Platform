@@ -119,3 +119,18 @@ export async function saveCompleteProfile(userId, formData) {
     throw Object.assign(new Error(message), { cause: error });
   }
 }
+
+// change password
+
+export async function changePassword({ currentPassword, newPassword }) {
+  try {
+    const { data } = await apiClient.patch("/auth/reset-password", {
+      currentPassword,
+      newPassword,
+    });
+    return { success: true, message: data.message };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+}

@@ -11,6 +11,7 @@ const navItems = [
   { to: "/recruiter/assessment-generator", icon: "bi-clipboard-check", label: "Assessments" },
   { to: "/recruiter/feedback", icon: "bi-chat-square-text", label: "Feedback" },
   { to: "/candidate/profile/complete", icon: "bi-person", label: "Profile", profileItem: true },
+
 ];
 
 

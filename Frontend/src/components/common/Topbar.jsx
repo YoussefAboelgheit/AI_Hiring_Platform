@@ -1,10 +1,14 @@
 import { useAuth } from "../../context/useAuth";
 import { useAppShell } from "../../context/useAppShell";
+import { Link, useLocation } from "react-router-dom";
 
 export default function Topbar({ placeholder = "Search..." }) {
   const { user } = useAuth();
   const { toggleSidebar } = useAppShell();
-
+  const { pathname } = useLocation();
+  const settingsPath = pathname.startsWith("/recruiter")
+    ? "/recruiter/settings"
+    : "/candidate/settings";
   return (
     <header className="topbar">
       <button
@@ -28,7 +32,9 @@ export default function Topbar({ placeholder = "Search..." }) {
           <span className="topbar-notification-dot" />
         </button>
         <button type="button" className="topbar-icon-btn d-none d-md-flex" aria-label="Settings">
-          <i className="bi bi-gear" />
+          <Link to={settingsPath}>
+            <i className="bi bi-gear" />
+          </Link>
         </button>
         <div className="user-chip">
           <img src={user?.avatar} alt={user?.name || "User"} />
