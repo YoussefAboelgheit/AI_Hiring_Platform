@@ -5,7 +5,7 @@ function getMimeFromBuffer(buffer) {
   const hex = buffer.toString("hex", 0, 12).toLowerCase();
   if (hex.startsWith("25504446")) return "application/pdf";
   if (hex.startsWith("89504e47")) return "image/png";
-  if (hex.startsWith("ffd8ff")) return "image/jpeg";
+  if (hex.startsWith("ffd8ff"))   return "image/jpeg";
   return null;
 }
 
@@ -15,8 +15,8 @@ function validateUploadedFile(file, allowedMimes) {
   }
 
   const isImage = allowedMimes.includes("image/png") || allowedMimes.includes("image/jpeg") || allowedMimes.includes("image/jpg");
-  const allowedFormatsMsg = isImage 
-    ? "Allowed formats are png, jpg, jpeg." 
+  const allowedFormatsMsg = isImage
+    ? "Allowed formats are png, jpg, jpeg."
     : "Allowed format is pdf.";
 
   const detectedMime = getMimeFromBuffer(file.buffer);
@@ -38,6 +38,7 @@ function validateUploadedFile(file, allowedMimes) {
 
   return { isValid: true };
 }
+
 
 export const createUserValidator = [
   body("name")
@@ -68,51 +69,35 @@ export const createUserValidator = [
   body("company_logo")
     .custom((value, { req }) => {
       const role = req.body.role || "candidate";
-      if (role === "hr") {
-        if (!req.files || !req.files.company_logo) {
-          throw new Error("Company logo is required for HR");
-        }
+      if (role === "hr" && req.files?.company_logo?.[0]) {
         const file = req.files.company_logo[0];
         const validation = validateUploadedFile(file, ["image/png", "image/jpeg", "image/jpg"]);
-        if (!validation.isValid) {
-          throw new Error(validation.reason);
-        }
+        if (!validation.isValid) throw new Error(validation.reason);
       }
       return true;
     }),
 
   body("profile_image")
     .custom((value, { req }) => {
-      const role = req.body.role || "candidate";
-      if (role === "candidate") {
-        if (!req.files || !req.files.profile_image) {
-          throw new Error("Profile image is required for Candidate");
-        }
+      if (req.files?.profile_image?.[0]) {
         const file = req.files.profile_image[0];
         const validation = validateUploadedFile(file, ["image/png", "image/jpeg", "image/jpg"]);
-        if (!validation.isValid) {
-          throw new Error(validation.reason);
-        }
+        if (!validation.isValid) throw new Error(validation.reason);
       }
       return true;
     }),
 
   body("CV")
     .custom((value, { req }) => {
-      const role = req.body.role || "candidate";
-      if (role === "candidate") {
-        if (!req.files || !req.files.CV) {
-          throw new Error("CV file is required for Candidate");
-        }
+      if (req.files?.CV?.[0]) {
         const file = req.files.CV[0];
         const validation = validateUploadedFile(file, ["application/pdf"]);
-        if (!validation.isValid) {
-          throw new Error(validation.reason);
-        }
+        if (!validation.isValid) throw new Error(validation.reason);
       }
       return true;
     }),
 ];
+
 
 export const updateUserValidator = [
   body("name")
@@ -140,60 +125,42 @@ export const updateUserValidator = [
 
   body("company_logo")
     .custom(async (value, { req }) => {
-      if (req.files && req.files.company_logo) {
+      if (req.files?.company_logo?.[0]) {
         const targetId = req.params.id;
         const user = await User.findById(targetId);
-        if (!user) {
-          throw new Error("User not found");
-        }
-        if (user.role !== "hr") {
-          throw new Error("Company logo can only be set for HR");
-        }
+        if (!user) throw new Error("User not found");
+        if (user.role !== "hr") throw new Error("Company logo can only be set for HR");
         const file = req.files.company_logo[0];
         const validation = validateUploadedFile(file, ["image/png", "image/jpeg", "image/jpg"]);
-        if (!validation.isValid) {
-          throw new Error(validation.reason);
-        }
+        if (!validation.isValid) throw new Error(validation.reason);
       }
       return true;
     }),
 
   body("profile_image")
     .custom(async (value, { req }) => {
-      if (req.files && req.files.profile_image) {
+      if (req.files?.profile_image?.[0]) {
         const targetId = req.params.id;
         const user = await User.findById(targetId);
-        if (!user) {
-          throw new Error("User not found");
-        }
-        if (user.role !== "candidate") {
-          throw new Error("Profile image can only be set for Candidates");
-        }
+        if (!user) throw new Error("User not found");
+        if (user.role !== "candidate") throw new Error("Profile image can only be set for Candidates");
         const file = req.files.profile_image[0];
         const validation = validateUploadedFile(file, ["image/png", "image/jpeg", "image/jpg"]);
-        if (!validation.isValid) {
-          throw new Error(validation.reason);
-        }
+        if (!validation.isValid) throw new Error(validation.reason);
       }
       return true;
     }),
 
   body("CV")
     .custom(async (value, { req }) => {
-      if (req.files && req.files.CV) {
+      if (req.files?.CV?.[0]) {
         const targetId = req.params.id;
         const user = await User.findById(targetId);
-        if (!user) {
-          throw new Error("User not found");
-        }
-        if (user.role !== "candidate") {
-          throw new Error("CV can only be set for Candidates");
-        }
+        if (!user) throw new Error("User not found");
+        if (user.role !== "candidate") throw new Error("CV can only be set for Candidates");
         const file = req.files.CV[0];
         const validation = validateUploadedFile(file, ["application/pdf"]);
-        if (!validation.isValid) {
-          throw new Error(validation.reason);
-        }
+        if (!validation.isValid) throw new Error(validation.reason);
       }
       return true;
     }),

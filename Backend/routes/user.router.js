@@ -15,14 +15,13 @@ import { uploadFields } from "../middlewares/uploadMW.js";
 
 const router = Router();
 
-// Require authentication for all user endpoints
 router.use(authMW);
 
 router.get("/", authorize("admin"), paginationValidator, validateResults, getAllUsers);
 router.post("/", authorize("admin"), uploadFields, createUserValidator, validateResults, createUser);
 
 router.get("/:id", idParamValidator, validateResults, getUserById);
-router.patch("/:id", uploadFields, updateUserValidator, validateResults, updateUser);
+router.patch("/:id", uploadFields, idParamValidator, updateUserValidator, validateResults, updateUser);
 router.delete("/:id", idParamValidator, validateResults, deleteUser);
 
 export default router;
