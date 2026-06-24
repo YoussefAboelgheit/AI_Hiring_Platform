@@ -3,14 +3,16 @@ import { useAuth } from "../../context/useAuth";
 import { useAppShell } from "../../context/useAppShell";
 import SidebarLogo from "../common/SidebarLogo";
 
+
 const navItems = [
   { to: "/recruiter/dashboard", icon: "bi-grid-fill", label: "Dashboard", end: true },
   { to: "/recruiter/jobs", icon: "bi-briefcase", label: "Jobs", jobsSection: true },
   { to: "/recruiter/applications", icon: "bi-people", label: "Applications" },
   { to: "/recruiter/assessment-generator", icon: "bi-clipboard-check", label: "Assessments" },
   { to: "/recruiter/feedback", icon: "bi-chat-square-text", label: "Feedback" },
-  { to: "/recruiter/dashboard", icon: "bi-person", label: "Profile", profileItem: true },
+  { to: "/candidate/profile/complete", icon: "bi-person", label: "Profile", profileItem: true },
 ];
+
 
 export default function RecruiterSidebar() {
   const { logout } = useAuth();
@@ -57,6 +59,7 @@ export default function RecruiterSidebar() {
         <button type="button" onClick={handleLogout} className="nav-link w-100 border-0 bg-transparent text-start">
           <i className="bi bi-box-arrow-left" aria-hidden="true" /> Sign Out
         </button>
+        
       </div>
     </aside>
     </>
