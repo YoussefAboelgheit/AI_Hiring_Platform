@@ -7,6 +7,7 @@ import { useAuth } from "../../context/useAuth";
 import AuthHeroPanel from "../../components/auth/AuthHeroPanel";
 import BrandLogo from "../../components/common/BrandLogo";
 import BackButton from "../../components/common/BackButton";
+import ForgotPasswordModal from "../../components/auth/ForgotPasswordModal";
 import { getHomeForRole } from "../../routes/rolePaths";
 import styles from "./LoginPage.module.css";
 
@@ -21,6 +22,7 @@ export default function LoginPage() {
   const location = useLocation();
   const { login } = useAuth();
   const [show, setShow] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const successMessage = location.state?.message;
 
   //  React Query Mutation 
@@ -116,7 +118,21 @@ export default function LoginPage() {
                     <input type="checkbox" id="remember" />
                     <label htmlFor="remember" style={{ cursor: "pointer" }}>Keep me logged in for 30 days</label>
                   </div>
-                  <a href="#forgot" style={{ color: "var(--primary)", textDecoration: "none", fontWeight: 600 }}>Forgot password?</a>
+                  <button
+                    type="button"
+                    onClick={() => setForgotOpen(true)}
+                    style={{
+                      color: "var(--primary)",
+                      textDecoration: "none",
+                      fontWeight: 600,
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Forgot password?
+                  </button>
                 </div>
 
                 <button type="submit" className="btn-primary-custom w-100 mb-3" disabled={isPending}>
@@ -149,6 +165,8 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      <ForgotPasswordModal show={forgotOpen} onHide={() => setForgotOpen(false)} />
     </>
   );
 }

@@ -19,7 +19,7 @@ const refreshClient = axios.create({
 let refreshPromise = null;
 
 function isAuthExemptUrl(url = "") {
-  return /\/auth\/(login|register|refresh)(?:\?|$)/.test(url);
+  return /\/auth\/(login|register|refresh|forgot-password|confirm-forgot-password)(?:\?|$)/.test(url);
 }
 
 async function refreshAccessToken() {

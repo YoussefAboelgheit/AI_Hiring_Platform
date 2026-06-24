@@ -120,7 +120,30 @@ export async function saveCompleteProfile(userId, formData) {
   }
 }
 
-// change password
+export async function forgotPassword({ email }) {
+  try {
+    const { data } = await apiClient.post("/auth/forgot-password", {
+      email: email.trim(),
+    });
+    return { success: true, message: data.message };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+}
+
+export async function confirmForgotPassword({ token, newPassword }) {
+  try {
+    const { data } = await apiClient.post("/auth/confirm-forgot-password", {
+      token,
+      newPassword,
+    });
+    return { success: true, message: data.message };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+}
 
 export async function changePassword({ currentPassword, newPassword }) {
   try {
