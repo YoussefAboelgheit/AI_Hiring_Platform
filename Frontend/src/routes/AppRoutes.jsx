@@ -35,6 +35,7 @@ import RecruiterFeedbackPage from "../pages/recruiter/RecruiterFeedbackPage";
 import AssessmentGeneratorPage from "../pages/recruiter/AssessmentGeneratorPage";
 import AIRecommendationPage from "../pages/recruiter/AIRecommendationPage";
 import EmailInvitationsPage from "../pages/recruiter/EmailInvitationsPage";
+import SettingsPage from "../pages/settings/SettingsPage";
 
 export default function AppRoutes() {
   return (
@@ -72,6 +73,7 @@ export default function AppRoutes() {
           <Route path="applications" element={<MyApplicationsPage />} />
           <Route path="applications/:id" element={<ApplicationDetailPage />} />
           <Route path="profile" element={<CandidateProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="feedback" element={<AIFeedbackPage />} />
         </Route>
       </Route>
@@ -87,6 +89,7 @@ export default function AppRoutes() {
           <Route path="feedback" element={<RecruiterFeedbackPage />} />
           <Route path="assessment-generator" element={<AssessmentGeneratorPage />} />
           <Route path="ai-recommendation" element={<AIRecommendationPage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="email-invitations" element={<EmailInvitationsPage />} />
         </Route>
       </Route>
