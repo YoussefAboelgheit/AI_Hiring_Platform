@@ -9,5 +9,5 @@ await connectDB();
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);
-  console.log(`Swagger docs are available at http://localhost:${PORT}/docs`);
+  console.log(`Swagger docs for Jobs are available at http://localhost:${PORT}/docs`);
 });
