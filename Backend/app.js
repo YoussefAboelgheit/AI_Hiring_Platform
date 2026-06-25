@@ -13,6 +13,9 @@ import notFoundMW from "./middlewares/notFoundMW.js";
 import authRouter from "./routes/auth.router.js";
 import jobRouter from "./routes/job.router.js";
 import userRouter from "./routes/user.router.js";
+import categoryRouter from "./routes/category.router.js";
+
+
 
 const app = express();
 
@@ -66,7 +69,12 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/jobs", jobRouter);
 
+//categories
+app.use("/api/categories", categoryRouter);
+
 app.use(notFoundMW);
 app.use(errorHandlingMW);
+
+
 
 export default app;
