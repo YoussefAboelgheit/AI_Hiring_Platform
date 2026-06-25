@@ -5,6 +5,7 @@ import HTTPError from "../util/httpError.js";
 
 export default async (req, res, next) => {
   try {
+   
     const authHeader = req.headers.authorization;
     if (!authHeader) return next(new HTTPError(401, "No token provided"));
 

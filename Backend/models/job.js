@@ -11,11 +11,14 @@ const jobSchema = new mongoose.Schema(
       ref: "User",
       required: [true, "Recruiter is required"],
     },
+
+    //@desc  update caregory to be required
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
-      default: null,
+      required: [true, "Category is required"],
     },
+    
     title: {
       type: String,
       required: [true, "Title is required"],
@@ -75,7 +78,7 @@ const jobSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export default mongoose.model("Job", jobSchema);
