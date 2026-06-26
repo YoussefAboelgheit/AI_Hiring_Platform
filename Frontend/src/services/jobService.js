@@ -1,12 +1,26 @@
 import apiClient from "./apiClient";
+import { getApiErrorMessage } from "./apiErrors";
 import { jobs as mockJobs, jobDescriptionBullets } from "../mock/jobs";
 import { simulateDelay } from "../mock/utils";
 
-function resolveJobStatus({ status, applicationDeadline }) {
-  if (status === "draft" || !applicationDeadline) return status;
-  const deadline = new Date(`${applicationDeadline}T23:59:59`);
-  if (deadline < new Date()) return "closed";
-  return status;
+function mapFormToJobPayload(form) {
+  const payload = {
+    category: form.category,
+    title: form.title.trim(),
+    description: form.description.trim(),
+    workplace: form.workplace,
+    jobType: form.jobType,
+    skills: form.skills,
+    status: form.status || "Drafted",
+    requirements: form.requirements?.trim() ?? "",
+    location: form.location?.trim() ?? "",
+  };
+
+  if (form.applicationEnd) {
+    payload.applicationEnd = form.applicationEnd;
+  }
+
+  return payload;
 }
 
 function filterJobs(list, filters = {}) {
@@ -33,20 +47,15 @@ export async function getJobById(id) {
   return mockJobs.find((j) => j.id === id) || null;
 }
 
-export async function createJob(payload) {
-  await simulateDelay();
-  const status = resolveJobStatus(payload);
-  const job = {
-    id: `j${Date.now()}`,
-    ...payload,
-    status,
-    company: "HireAI",
-    posted: "Just now",
-  };
-  mockJobs.unshift(job);
-  // Future: const { data } = await apiClient.post("/jobs", job);
-  void apiClient;
-  return { success: true, id: job.id, status };
+export async function createJob(form) {
+  try {
+    const payload = mapFormToJobPayload(form);
+    const { data } = await apiClient.post("/jobs", payload);
+    return data;
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
 }
 
 export async function getJobDescriptionBullets() {
