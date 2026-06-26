@@ -1,7 +1,9 @@
 import Category from "../models/category.js";
 import Job from "../models/job.js";
+import JobApplication from "../models/jobApplication.js";
 import APIFeatures from "../util/apiFeatures.js";
 import HTTPError from "../util/httpError.js";
+import { uploadToSupabase } from "../util/supabaseClient.js";
 
 const recruiterPopulate = {
   path: "recruiter",
@@ -110,6 +112,41 @@ export const getJobsByCategory = async (req, res, next) => {
   }
 };
 
+export const getMyAppliedJobs = async (req, res, next) => {
+  try {
+    const applications = await JobApplication.find({ candidate: req.user._id })
+      .populate({
+        path: "job",
+        populate: [recruiterPopulate, categoryPopulate],
+      })
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ applications });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMyApplicationById = async (req, res, next) => {
+  try {
+    const application = await JobApplication.findOne({
+      _id: req.params.id,
+      candidate: req.user._id,
+    })
+      .populate({
+        path: "job",
+        populate: [recruiterPopulate, categoryPopulate],
+      })
+      .populate({ path: "candidate", select: "name email role profile_image CV" });
+
+    if (!application) return next(new HTTPError(404, "Application not found"));
+
+    return res.status(200).json({ application });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const updateJob = async (req, res, next) => {
   try {
     Object.assign(req.job, pickJobFields(req.body));
@@ -133,6 +170,52 @@ export const deleteJob = async (req, res, next) => {
     await req.job.deleteOne();
 
     return res.status(200).json({ message: "Job deleted successfully" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const applyToJob = async (req, res, next) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+    if (job.status !== "Open") {
+      return next(new HTTPError(400, "You can only apply to open jobs"));
+    }
+
+    if (job.applicationEnd && job.applicationEnd < new Date()) {
+      return next(new HTTPError(400, "Applications are closed for this job"));
+    }
+
+    const alreadyApplied = await JobApplication.findOne({
+      job: job._id,
+      candidate: req.user._id,
+    });
+
+    if (alreadyApplied) {
+      return next(new HTTPError(409, "You have already applied to this job"));
+    }
+
+    const uploadedCV = req.files?.CV?.[0];
+    const cvUrl = uploadedCV
+      ? await uploadToSupabase(uploadedCV.buffer, uploadedCV.mimetype, "applications/cvs")
+      : req.user.CV;
+
+    const application = await JobApplication.create({
+      job: job._id,
+      candidate: req.user._id,
+      CV: cvUrl,
+    });
+
+    const populatedApplication = await JobApplication.findById(application._id)
+      .populate({ path: "job", select: "title status workplace jobType location applicationEnd" })
+      .populate({ path: "candidate", select: "name email role profile_image CV" });
+
+    return res.status(201).json({
+      message: "Application submitted successfully",
+      application: populatedApplication,
+    });
   } catch (err) {
     next(err);
   }

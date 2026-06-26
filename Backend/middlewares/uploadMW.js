@@ -14,3 +14,7 @@ export const uploadFields = upload.fields([
   { name: "profile_image", maxCount: 1 },
   { name: "CV", maxCount: 1 },
 ]);
+
+export const uploadCV = upload.fields([
+  { name: "CV", maxCount: 1 },
+]);
