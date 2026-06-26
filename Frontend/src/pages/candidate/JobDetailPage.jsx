@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getJobById } from "../../services/jobService";
+import { getJobById, isJobAvailableForCandidate } from "../../services/jobService";
 import LoadingState from "../../components/common/LoadingState";
 import EmptyState from "../../components/common/EmptyState";
 import BackButton from "../../components/common/BackButton";
@@ -74,6 +74,10 @@ export default function JobDetailPage() {
   }
 
   const isDeadlinePast = job.applicationEnd && new Date(job.applicationEnd) < new Date();
+  const isAvailable = isJobAvailableForCandidate({
+    status: job.status,
+    applicationEnd: job.applicationEnd,
+  });
 
   return (
     <>
@@ -179,10 +183,10 @@ export default function JobDetailPage() {
             <button
               className="btn-primary-custom"
               style={{ width: "100%", marginBottom: 10 }}
-              disabled={isDeadlinePast || job.status === "Closed"}
+              disabled={!isAvailable}
               onClick={() => navigate(`/candidate/jobs/${job.id}/apply`)}
             >
-              {isDeadlinePast || job.status === "Closed" ? "Applications Closed" : "Apply Now"}
+              {!isAvailable ? "Applications Closed" : "Apply Now"}
             </button>
             <button className="btn-outline-custom" style={{ width: "100%" }}>Save Job</button>
           </div>

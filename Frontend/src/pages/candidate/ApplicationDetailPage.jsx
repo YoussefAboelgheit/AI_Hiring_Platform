@@ -47,7 +47,7 @@ export default function ApplicationDetailPage() {
     );
   }
 
-  const isPending = app.status === "reviewing";
+  const isPending = app.status === "pending" || app.status === "reviewing";
   const isRejected = app.status === "rejected";
   const isAccepted = app.status === "interviewing" || app.status === "accepted";
 
@@ -97,7 +97,19 @@ export default function ApplicationDetailPage() {
         </div>
       )}
 
-      {isRejected && (
+      {isRejected && app.matchScore == null && (
+        <div className="hcard" style={{ padding: 40, textAlign: "center" }}>
+          <h2 style={{ fontWeight: 800, marginBottom: 12 }}>Application Status: Rejected</h2>
+          <p style={{ color: "var(--text-muted)", maxWidth: 460, margin: "0 auto 28px", lineHeight: 1.7 }}>
+            Thank you for your interest. The recruiter has decided not to move forward with your application at this time.
+          </p>
+          <button type="button" className="btn-primary-custom" onClick={() => navigate("/candidate/jobs")}>
+            Browse More Jobs
+          </button>
+        </div>
+      )}
+
+      {isRejected && app.matchScore != null && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
             <div className="hcard" style={{ padding: 24 }}>
