@@ -30,6 +30,7 @@ import ApplicationSubmittedPage from "../pages/candidate/ApplicationSubmittedPag
 import RecruiterDashboard from "../pages/recruiter/RecruiterDashboard";
 import MyJobsPage from "../pages/recruiter/MyJobsPage";
 import PostJobPage from "../pages/recruiter/PostJobPage";
+import EditJobPage from "../pages/recruiter/EditJobPage";
 import ApplicantsListPage from "../pages/recruiter/ApplicantsListPage";
 import CandidateReviewPage from "../pages/recruiter/CandidateReviewPage";
 import TopCandidatesPage from "../pages/recruiter/TopCandidatesPage";
@@ -91,6 +92,7 @@ export default function AppRoutes() {
         <Route path="recruiter" element={<RecruiterLayout />}>
           <Route path="dashboard" element={<RecruiterDashboard />} />
           <Route path="jobs/new" element={<PostJobPage />} />
+          <Route path="jobs/edit/:id" element={<EditJobPage />} />
           <Route path="jobs" element={<MyJobsPage />} />
           <Route path="applications" element={<ApplicantsListPage />} />
           <Route path="candidates/:id" element={<CandidateReviewPage />} />

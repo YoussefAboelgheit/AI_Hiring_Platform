@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyJobs } from "../../services/recruiterService";
+import { deleteJob } from "../../services/jobService";
 import { useAuth } from "../../context/useAuth";
 import LoadingState from "../../components/common/LoadingState";
+import toast from "react-hot-toast";
 
 const statusStyles = {
   active: { label: "ACTIVE", bg: "#D1FAE5", color: "#065F46" },
@@ -15,6 +17,24 @@ export default function MyJobsPage() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(null);
+
+  const handleDelete = async (jobId, jobTitle) => {
+    if (!window.confirm(`Are you sure you want to delete "${jobTitle}"? This action cannot be undone.`)) return;
+    setDeleting(jobId);
+    try {
+      await deleteJob(jobId);
+      setData((prev) => ({
+        ...prev,
+        jobs: prev.jobs.filter((j) => j._id !== jobId),
+      }));
+      toast.success("Job deleted successfully.");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to delete job.");
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   useEffect(() => {
     if (user?._id) {
@@ -88,16 +108,19 @@ export default function MyJobsPage() {
                 {job.status === "draft" ? (
                   <>
                     <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/jobs/new")}>Publish Now</button>
-                    <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/jobs/new")}>Resume Editing</button>
+                    <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => navigate(`/recruiter/jobs/edit/${job._id}`)}>Resume Editing</button>
+                    <button type="button" className="btn-outline-custom" style={{ fontSize: 13, color: "#991B1B" }} onClick={() => handleDelete(job._id, job.title)} disabled={deleting === job._id}>{deleting === job._id ? "Deleting..." : "Delete"}</button>
                   </>
                 ) : job.status === "closed" ? (
                   <>
                     <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }}>View Archive</button>
+                    <button type="button" className="btn-outline-custom" style={{ fontSize: 13, color: "#991B1B" }} onClick={() => handleDelete(job._id, job.title)} disabled={deleting === job._id}>{deleting === job._id ? "Deleting..." : "Delete"}</button>
                   </>
                 ) : (
                   <>
                     <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/applications")}>View Details</button>
-                    <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/jobs/new")}>Edit Posting</button>
+                    <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => navigate(`/recruiter/jobs/edit/${job._id}`)}>Edit Posting</button>
+                    <button type="button" className="btn-outline-custom" style={{ fontSize: 13, color: "#991B1B" }} onClick={() => handleDelete(job._id, job.title)} disabled={deleting === job._id}>{deleting === job._id ? "Deleting..." : "Delete"}</button>
                   </>
                 )}
               </div>

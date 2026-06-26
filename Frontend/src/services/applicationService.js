@@ -24,12 +24,10 @@ export async function getApplicationById(id) {
 }
 
 export async function applyToJob(jobId, formData) {
-  await simulateDelay(500);
-  // Future: const { data } = await apiClient.post("/applications", formData);
-  void jobId;
-  void formData;
-  void apiClient;
-  return { success: true, applicationId: "a1" };
+  const { data } = await apiClient.post(`/jobs/${jobId}/apply`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
 }
 
 export async function getCandidateDashboardStats() {
