@@ -2,6 +2,44 @@ import { body, param } from "express-validator";
 import { JOB_STATUSES, JOB_TYPES, WORKPLACES } from "../models/job.js";
 import Category from "../models/category.js";
 
+function getMimeFromBuffer(buffer) {
+  const hex = buffer.toString("hex", 0, 12).toLowerCase();
+  if (hex.startsWith("25504446")) return "application/pdf";
+  if (hex.startsWith("89504e47")) return "image/png";
+  if (hex.startsWith("ffd8ff"))   return "image/jpeg";
+  return null;
+}
+
+function validateUploadedFile(file, allowedMimes) {
+  if (!file || !file.buffer || file.buffer.length === 0) {
+    return { isValid: false, reason: "File is empty or corrupted" };
+  }
+
+  const isImage = allowedMimes.includes("image/png") || allowedMimes.includes("image/jpeg") || allowedMimes.includes("image/jpg");
+  const allowedFormatsMsg = isImage
+    ? "Allowed formats are png, jpg, jpeg."
+    : "Allowed format is pdf.";
+
+  const detectedMime = getMimeFromBuffer(file.buffer);
+  if (!detectedMime) {
+    return { isValid: false, reason: `Invalid file format. ${allowedFormatsMsg}` };
+  }
+
+  if (file.mimetype && file.mimetype !== detectedMime) {
+    const isJpgJpeg = (file.mimetype === "image/jpg" || file.mimetype === "image/jpeg") &&
+                      (detectedMime === "image/jpg" || detectedMime === "image/jpeg");
+    if (!isJpgJpeg) {
+      return { isValid: false, reason: `File content does not match the file type. ${allowedFormatsMsg}` };
+    }
+  }
+
+  if (!allowedMimes.includes(detectedMime)) {
+    return { isValid: false, reason: `File type not allowed. ${allowedFormatsMsg}` };
+  }
+
+  return { isValid: true };
+}
+
 const optionalString = (field, label) =>
   body(field)
     .optional({ nullable: true })
@@ -124,4 +162,22 @@ export const updateJobValidator = [
     .optional({ nullable: true })
     .isISO8601().withMessage("Application end must be a valid date")
     .toDate(),
+];
+
+export const applyToJobValidator = [
+  body("CV")
+    .custom((value, { req }) => {
+      const uploadedCV = req.files?.CV?.[0];
+
+      if (!uploadedCV && !req.user?.CV) {
+        throw new Error("Please upload a CV to apply for this job");
+      }
+
+      if (uploadedCV) {
+        const validation = validateUploadedFile(uploadedCV, ["application/pdf"]);
+        if (!validation.isValid) throw new Error(validation.reason);
+      }
+
+      return true;
+    }),
 ];
