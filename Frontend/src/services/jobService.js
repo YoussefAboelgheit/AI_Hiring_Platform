@@ -1,5 +1,18 @@
 import apiClient from "./apiClient";
 import { getApiErrorMessage } from "./apiErrors";
+import { CANDIDATE_JOBS_PAGE_SIZE } from "../constants/jobEnums";
+
+function cleanParams(params) {
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== "" && value != null)
+  );
+}
+
+export function isJobAvailableForCandidate(job) {
+  if (job.status !== "Open") return false;
+  if (!job.applicationEnd) return true;
+  return new Date(job.applicationEnd) >= new Date();
+}
 
 function mapFormToJobPayload(form) {
   const payload = {
@@ -24,6 +37,37 @@ function mapFormToJobPayload(form) {
 export async function getJobs(filters = {}) {
   const { data } = await apiClient.get("/jobs", { params: filters });
   return data.jobs || [];
+}
+
+export async function getCandidateJobs(params = {}) {
+  try {
+    const limit = Math.min(params.limit ?? CANDIDATE_JOBS_PAGE_SIZE, 50);
+    const query = cleanParams({
+      page: params.page ?? 1,
+      limit,
+      sort: params.sort ?? "-createdAt",
+      status: params.status ?? "Open",
+      search: params.search,
+      workplace: params.workplace,
+      jobType: params.jobType,
+      location: params.location,
+      category: params.category,
+    });
+
+    const { data } = await apiClient.get("/jobs", { params: query });
+    const rawJobs = data.jobs ?? [];
+    const jobs = rawJobs.filter(isJobAvailableForCandidate);
+
+    return {
+      jobs,
+      page: query.page,
+      limit,
+      hasMore: rawJobs.length === limit,
+    };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
 }
 
 export async function getJobById(id) {

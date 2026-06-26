@@ -1,4 +1,7 @@
 export const queryKeys = {
   categories: ["categories"],
-  jobs: ["jobs"],
+  jobs: {
+    all: ["jobs"],
+    candidateList: (filters) => ["jobs", "candidate", filters],
+  },
 };
