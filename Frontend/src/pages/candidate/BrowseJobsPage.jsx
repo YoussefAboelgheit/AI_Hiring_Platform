@@ -3,6 +3,76 @@ import { useNavigate } from "react-router-dom";
 import { getJobs } from "../../services/jobService";
 import LoadingState from "../../components/common/LoadingState";
 import EmptyState from "../../components/common/EmptyState";
+import toast from "react-hot-toast";
+
+// ---------------------------------------------------------------------------
+// Experience Level — client-side filter helper
+// ---------------------------------------------------------------------------
+// The backend schema has no dedicated `experience` field. We scan the free-text
+// `requirements`, `description`, and `title` fields with regex patterns that
+// match common ways recruiters write year ranges (e.g. "3+ years", "3-5 years",
+// "3 years of experience") plus seniority keywords (e.g. "senior", "lead").
+//
+// Tier definitions:
+//   "Entry Level"  → 0–2 yrs  | keywords: entry, junior, fresh, graduate, intern, trainee
+//   "Mid Level"    → 2–5 yrs  | keywords: mid, intermediate; year ranges 2-5
+//   "Senior"       → 5–8 yrs  | keywords: senior, sr., experienced; year ranges 5-8
+//   "Lead / Staff" → 8+ yrs   | keywords: lead, staff, principal, architect; year ranges 8+
+// ---------------------------------------------------------------------------
+
+const EXPERIENCE_TIERS = {
+  "Entry Level": {
+    // year patterns: 0-2 yrs
+    yearPatterns: [
+      /\b0[\s-]*(?:to|–|-)?[\s]*[12][\s+]*(?:year|yr)/i,
+      /\b[12][\s+]*(?:year|yr)s?\s+(?:of\s+)?(?:experience|exp)/i,
+      /\bup\s+to\s+[12]\s+(?:year|yr)/i,
+    ],
+    keywords: ["entry.?level", "junior", "fresh(?:er|graduate)?", "new\s+grad", "trainee", "intern(?:ship)?", "0\\+?\s+year"],
+  },
+  "Mid Level": {
+    yearPatterns: [
+      /\b[2345][\s]*\+[\s]*(?:year|yr)/i,
+      /\b[23][\s]*-[\s]*[45][\s]*(?:year|yr)/i,
+      /\b[2345][\s]+(?:year|yr)s?\s+(?:of\s+)?(?:experience|exp)/i,
+      /\bat\s+least\s+[23]\s+(?:year|yr)/i,
+      /\bminimum\s+[23]\s+(?:year|yr)/i,
+    ],
+    keywords: ["mid.?level", "intermediate", "associate"],
+  },
+  "Senior": {
+    yearPatterns: [
+      /\b[5678][\s]*\+[\s]*(?:year|yr)/i,
+      /\b[56][\s]*-[\s]*[78][\s]*(?:year|yr)/i,
+      /\b[5678][\s]+(?:year|yr)s?\s+(?:of\s+)?(?:experience|exp)/i,
+      /\bat\s+least\s+[56]\s+(?:year|yr)/i,
+      /\bminimum\s+[56]\s+(?:year|yr)/i,
+    ],
+    keywords: ["senior", "sr\\.", "experienced"],
+  },
+  "Lead / Staff": {
+    yearPatterns: [
+      /\b(?:8|9|10|1[0-9])[\s]*\+[\s]*(?:year|yr)/i,
+      /\b(?:8|9|10)[\s]*-[\s]*(?:1[0-9])[\s]*(?:year|yr)/i,
+      /\b(?:8|9|10|1[0-9])[\s]+(?:year|yr)s?\s+(?:of\s+)?(?:experience|exp)/i,
+      /\bat\s+least\s+(?:8|9|10)\s+(?:year|yr)/i,
+    ],
+    keywords: ["\\blead\\b", "staff", "principal", "architect", "head\s+of", "director"],
+  },
+};
+
+function matchExperienceLevel(text, tier) {
+  const config = EXPERIENCE_TIERS[tier];
+  if (!config) return true; // unknown tier → don't filter
+
+  // Check year range regex patterns
+  if (config.yearPatterns.some((re) => re.test(text))) return true;
+
+  // Check seniority keywords
+  if (config.keywords.some((kw) => new RegExp(kw, "i").test(text))) return true;
+
+  return false;
+}
 
 export default function BrowseJobsPage() {
   const navigate = useNavigate();
@@ -19,15 +89,77 @@ export default function BrowseJobsPage() {
     async function load() {
       setLoading(true);
       try {
-        const data = await getJobs(appliedFilters);
-        if (!cancelled) setJobs(data);
+        const allJobs = await getJobs({ status: "Open" });
+        
+        const filtered = allJobs.filter((job) => {
+          // --- Location filter (simple substring) ---
+          if (location) {
+            const locMatch = job.location?.toLowerCase().includes(location.toLowerCase());
+            if (!locMatch) return false;
+          }
+          
+          // --- Role Type filter mapped to backend jobType / workplace fields ---
+          if (roleType) {
+            if (roleType === "Remote") {
+              if (job.workplace?.toLowerCase() !== "remote") return false;
+            } else if (roleType === "Full-time") {
+              if (job.jobType?.toLowerCase() !== "full time") return false;
+            } else if (roleType === "Part-time") {
+              if (job.jobType?.toLowerCase() !== "part time") return false;
+            } else if (roleType === "Internship") {
+              if (job.jobType?.toLowerCase() !== "intern") return false;
+            }
+          }
+          
+          // --- Experience Level — regex-based client-side filter ---
+          // The backend has no dedicated experience field; we scan the free-text
+          // requirements, description, and title fields using regex patterns.
+          if (expLevel) {
+            const searchText = [
+              job.requirements || "",
+              job.description || "",
+              job.title || "",
+            ]
+              .join(" ")
+              .toLowerCase();
+
+            // Jobs with zero text to scan are excluded when a filter is active.
+            if (!searchText.trim()) return false;
+
+            if (!matchExperienceLevel(searchText, expLevel)) return false;
+          }
+          return true;
+        });
+
+        const mapped = filtered.map((job) => ({
+          id: job._id,
+          title: job.title,
+          company: job.recruiter?.name || "HireAI Recruiter",
+          logo: job.recruiter?.profile_image || job.recruiter?.company_logo || "",
+          location: job.location || "Remote",
+          skills: job.skills || [],
+          experience: job.requirements || "Experience details not specified",
+          type: job.jobType,
+          workplace: job.workplace,
+          categoryName: job.category?.name || "General",
+          applicationEnd: job.applicationEnd,
+          match: Math.floor(Math.random() * 20) + 80,
+          badge: job.workplace === "Remote" ? "Remote friendly" : "",
+        }));
+
+        if (!cancelled) setJobs(mapped);
+      } catch (err) {
+        if (!cancelled) toast.error("Failed to load jobs");
+        console.error(err);
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
 
     load();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [appliedFilters]);
 
   const handleApplyFilters = () => {
@@ -61,10 +193,10 @@ export default function BrowseJobsPage() {
           style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "9px 14px", fontSize: 14, flex: 1, outline: "none" }}
         >
           <option value="">Role Type</option>
-          <option>Full-time</option>
-          <option>Part-time</option>
-          <option>Remote</option>
-          <option>Contract</option>
+          <option value="Full-time">Full-time</option>
+          <option value="Part-time">Part-time</option>
+          <option value="Remote">Remote</option>
+          <option value="Internship">Internship</option>
         </select>
         <select
           value={expLevel}
@@ -72,9 +204,10 @@ export default function BrowseJobsPage() {
           style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "9px 14px", fontSize: 14, flex: 1, outline: "none" }}
         >
           <option value="">Experience Level</option>
-          <option>3-5 Years</option>
-          <option>5+ Years</option>
-          <option>8+ Years</option>
+          <option value="Entry Level">Entry Level (0–2 yrs)</option>
+          <option value="Mid Level">Mid Level (2–5 yrs)</option>
+          <option value="Senior">Senior (5–8 yrs)</option>
+          <option value="Lead / Staff">Lead / Staff (8+ yrs)</option>
         </select>
         <button className="btn-primary-custom" onClick={handleApplyFilters}>Apply Filters</button>
       </div>

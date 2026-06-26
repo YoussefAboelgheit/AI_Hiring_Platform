@@ -6,6 +6,17 @@ import LoadingState from "../../components/common/LoadingState";
 import EmptyState from "../../components/common/EmptyState";
 import BackButton from "../../components/common/BackButton";
 
+/** Map raw backend job to a minimal UI shape */
+function normalizeJob(raw) {
+  if (!raw) return null;
+  return {
+    id: raw._id,
+    title: raw.title || "Untitled",
+    company: raw.recruiter?.name || raw.recruiter?.username || "HireAI Recruiter",
+    location: raw.location || "Remote",
+  };
+}
+
 export default function ApplyJobPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -22,8 +33,8 @@ export default function ApplyJobPage() {
     async function load() {
       setLoading(true);
       try {
-        const jobData = await getJobById(id);
-        if (!cancelled) setJob(jobData);
+        const raw = await getJobById(id);
+        if (!cancelled) setJob(normalizeJob(raw));
       } finally {
         if (!cancelled) setLoading(false);
       }

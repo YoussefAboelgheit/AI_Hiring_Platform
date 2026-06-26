@@ -4,6 +4,7 @@ import PublicLayout from "../layouts/PublicLayout";
 import AuthLayout from "../layouts/AuthLayout";
 import CandidateLayout from "../layouts/CandidateLayout";
 import RecruiterLayout from "../layouts/RecruiterLayout";
+import AdminLayout from "../layouts/AdminLayout";
 import StandaloneLayout from "../layouts/StandaloneLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import GuestRoute from "./GuestRoute";
@@ -37,6 +38,12 @@ import AssessmentGeneratorPage from "../pages/recruiter/AssessmentGeneratorPage"
 import AIRecommendationPage from "../pages/recruiter/AIRecommendationPage";
 import EmailInvitationsPage from "../pages/recruiter/EmailInvitationsPage";
 import SettingsPage from "../pages/settings/SettingsPage";
+
+
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import CategoryManagementPage from "../pages/admin/CategoryManagementPage";
+import JobManagementPage from "../pages/admin/JobManagementPage";
+import UserManagementPage from "../pages/admin/UserManagementPage";
 
 export default function AppRoutes() {
   return (
@@ -93,6 +100,16 @@ export default function AppRoutes() {
           <Route path="ai-recommendation" element={<AIRecommendationPage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="email-invitations" element={<EmailInvitationsPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+        <Route path="admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="categories" element={<CategoryManagementPage />} />
+          <Route path="jobs" element={<JobManagementPage />} />
+          <Route path="users" element={<UserManagementPage />} />
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
       </Route>
 

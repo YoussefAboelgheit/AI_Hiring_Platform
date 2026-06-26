@@ -31,7 +31,12 @@ export default function LoginPage() {
     onSuccess: (user) => {
       const from = location.state?.from;
       const fromPath = from?.pathname;
-      const rolePrefix = user.role === "recruiter" ? "/recruiter" : "/candidate";
+      const rolePrefix =
+        user.role === "admin"
+          ? "/admin"
+          : user.role === "recruiter"
+          ? "/recruiter"
+          : "/candidate";
       const canReturnToFrom = fromPath?.startsWith(rolePrefix);
 
       navigate(

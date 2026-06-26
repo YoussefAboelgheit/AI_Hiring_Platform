@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMyJobs } from "../../services/recruiterService";
+import { useAuth } from "../../context/useAuth";
 import LoadingState from "../../components/common/LoadingState";
 
 const statusStyles = {
@@ -11,12 +12,17 @@ const statusStyles = {
 
 export default function MyJobsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getMyJobs().then(setData).finally(() => setLoading(false));
-  }, []);
+    if (user?._id) {
+      getMyJobs(user._id)
+        .then(setData)
+        .finally(() => setLoading(false));
+    }
+  }, [user]);
 
   if (loading) return <LoadingState message="Loading jobs..." />;
   if (!data) return null;

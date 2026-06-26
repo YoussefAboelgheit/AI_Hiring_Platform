@@ -1,5 +1,6 @@
 export function toFrontendRole(backendRole) {
-  if (backendRole === "hr" || backendRole === "admin") return "recruiter";
+  if (backendRole === "admin") return "admin";
+  if (backendRole === "hr") return "recruiter";
   return backendRole;
 }
 
