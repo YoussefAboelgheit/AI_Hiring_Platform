@@ -13,6 +13,7 @@ Backend/
   models/
     category.js
     job.js
+    jobApplication.js
     user.js
   routes/
     job.router.js
@@ -29,6 +30,9 @@ POST   /api/jobs
 GET    /api/jobs
 GET    /api/jobs/:id
 GET    /api/jobs/category/:category
+GET    /api/jobs/applied/me
+GET    /api/jobs/applications/:id
+POST   /api/jobs/:id/apply
 PATCH  /api/jobs/:id
 DELETE /api/jobs/:id
 ```
@@ -47,6 +51,20 @@ DELETE /api/jobs/:id
 
 GET endpoints
   Public. No token required.
+
+POST /api/jobs/:id/apply
+  Requires Authorization: Bearer <candidate-access-token>
+  Candidates can upload a new CV with form-data field "CV".
+  If no CV is uploaded, the candidate profile CV is used.
+  If neither exists, the API returns a validation error.
+
+GET /api/jobs/applied/me
+  Requires Authorization: Bearer <candidate-access-token>
+  Returns all applications submitted by the logged-in candidate with job details.
+
+GET /api/jobs/applications/:id
+  Requires Authorization: Bearer <candidate-access-token>
+  Returns one application by application ID for the logged-in candidate.
 ```
 
 ## Postman Examples
@@ -298,6 +316,92 @@ Category matching is case-insensitive.
 GET http://localhost:3000/api/jobs/category/engineering
 ```
 
+### Get My Applied Jobs
+
+```http
+GET http://localhost:3000/api/jobs/applied/me
+Authorization: Bearer <candidate-access-token>
+```
+
+Response:
+
+```json
+{
+  "applications": [
+    {
+      "_id": "665fc28a8e7b2a3a11000004",
+      "job": {
+        "_id": "665fc28a8e7b2a3a11000002",
+        "title": "Frontend Developer",
+        "status": "Open",
+        "recruiter": {
+          "_id": "665fc28a8e7b2a3a11000003",
+          "name": "Acme HR",
+          "email": "hr@acme.com",
+          "role": "hr"
+        },
+        "category": {
+          "_id": "665fc28a8e7b2a3a11000001",
+          "name": "Engineering"
+        }
+      },
+      "CV": "https://example.com/cv.pdf",
+      "status": "Pending",
+      "createdAt": "2026-06-26T10:00:00.000Z",
+      "updatedAt": "2026-06-26T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+### Get My Application By ID
+
+Use the job application `_id`, not the job `_id`.
+
+```http
+GET http://localhost:3000/api/jobs/applications/665fc28a8e7b2a3a11000004
+Authorization: Bearer <candidate-access-token>
+```
+
+Response:
+
+```json
+{
+  "application": {
+    "_id": "665fc28a8e7b2a3a11000004",
+    "job": {
+      "_id": "665fc28a8e7b2a3a11000002",
+      "title": "Frontend Developer",
+      "description": "Build responsive web interfaces for the hiring platform.",
+      "workplace": "Remote",
+      "jobType": "Full Time",
+      "skills": ["React", "JavaScript", "CSS"],
+      "status": "Open",
+      "recruiter": {
+        "_id": "665fc28a8e7b2a3a11000003",
+        "name": "Acme HR",
+        "email": "hr@acme.com",
+        "role": "hr"
+      },
+      "category": {
+        "_id": "665fc28a8e7b2a3a11000001",
+        "name": "Engineering"
+      }
+    },
+    "candidate": {
+      "_id": "665fc28a8e7b2a3a11000005",
+      "name": "Candidate User",
+      "email": "candidate@example.com",
+      "role": "candidate"
+    },
+    "CV": "https://example.com/cv.pdf",
+    "status": "Pending",
+    "createdAt": "2026-06-26T10:00:00.000Z",
+    "updatedAt": "2026-06-26T10:00:00.000Z"
+  }
+}
+```
+
 ### Update Job
 
 ```http
@@ -318,6 +422,27 @@ Content-Type: application/json
 ```http
 DELETE http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002
 Authorization: Bearer <same-creator-hr-access-token>
+```
+
+### Apply To Job With New CV
+
+```http
+POST http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/apply
+Authorization: Bearer <candidate-access-token>
+Content-Type: multipart/form-data
+```
+
+```text
+CV: selected-file.pdf
+```
+
+### Apply To Job With Profile CV
+
+Send the same request without a body. The API uses the candidate's existing `CV` URL from their profile.
+
+```http
+POST http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/apply
+Authorization: Bearer <candidate-access-token>
 ```
 
 ## Valid Enum Values
