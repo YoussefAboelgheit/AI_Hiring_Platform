@@ -9,6 +9,8 @@ import {
   getMyApplicationById,
   getMyAppliedJobs,
   updateJob,
+  adminUpdateJobStatus,   // admin
+  adminDeleteJob, // admin
 } from "../controllers/job.controller.js";
 import authMW from "../middlewares/authMW.js";
 import { authorize } from "../middlewares/authorizeMW.js";
@@ -20,10 +22,34 @@ import {
   categoryNameParamValidator,
   createJobValidator,
   updateJobValidator,
+  updateJobStatusValidator,   //admin
 } from "../validations/jobValidators.js";
 import validateResults from "../validations/validateResults.js";
 
 const router = Router();
+
+// admin 
+router.patch(
+  "/admin/:id/status",
+  authMW,
+  authorize("admin"),
+  idParamValidator,
+  updateJobStatusValidator,
+  validateResults,
+  adminUpdateJobStatus
+);
+
+router.delete(
+  "/admin/:id",
+  authMW,
+  authorize("admin"),
+  idParamValidator,
+  validateResults,
+  adminDeleteJob
+);
+//////////
+
+//hr
 
 router.get("/", getAllJobs);
 router.get("/category/:category", categoryNameParamValidator, validateResults, getJobsByCategory);
