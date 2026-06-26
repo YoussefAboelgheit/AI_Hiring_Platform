@@ -46,6 +46,10 @@ export async function applyToJob(jobId, { cvFile } = {}) {
   }
 }
 
+/**
+ * Fetch the logged-in candidate's job applications.
+ * GET /api/jobs/applied/me
+ */
 export async function getMyApplications() {
   try {
     const { data } = await apiClient.get("/jobs/applied/me");

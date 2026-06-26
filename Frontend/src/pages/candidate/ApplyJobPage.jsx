@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { getJobById, isJobAvailableForCandidate } from "../../services/jobService";
 import { applyToJob, validateCvFile } from "../../services/applicationService";
 import { getCandidateProfile } from "../../services/profileService";
 import { useAuth } from "../../context/useAuth";
+import { queryKeys } from "../../constants/queryKeys";
 import LoadingState from "../../components/common/LoadingState";
 import EmptyState from "../../components/common/EmptyState";
 import BackButton from "../../components/common/BackButton";
@@ -25,6 +27,7 @@ function normalizeJob(raw) {
 export default function ApplyJobPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { user } = useAuth();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -101,6 +104,7 @@ export default function ApplyJobPage() {
     setSubmitting(true);
     try {
       const result = await applyToJob(job.id, useSavedCV ? {} : { cvFile: file });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.applications.mine });
       const applicationId = result?.application?._id;
 
       if (!applicationId) {

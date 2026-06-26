@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../../context/useAuth";
-import { getCandidateDashboardStats, getMyApplications } from "../../services/applicationService";
+import { getMyApplications, getCandidateDashboardStats } from "../../services/applicationService";
+import { queryKeys } from "../../constants/queryKeys";
 import StatusBadge from "../../components/common/StatusBadge";
 import LoadingState from "../../components/common/LoadingState";
 import EmptyState from "../../components/common/EmptyState";
@@ -9,36 +10,31 @@ import EmptyState from "../../components/common/EmptyState";
 export default function CandidateDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [stats, setStats] = useState([]);
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
+  const {
+    data: stats = [],
+    isLoading: statsLoading,
+  } = useQuery({
+    queryKey: ["candidate", "dashboard-stats"],
+    queryFn: getCandidateDashboardStats,
+    staleTime: 5 * 60 * 1000,
+  });
 
-    async function load() {
-      setLoading(true);
-      try {
-        const [statsData, appsData] = await Promise.all([
-          getCandidateDashboardStats(),
-          getMyApplications(),
-        ]);
-        if (!cancelled) {
-          setStats(statsData);
-          setApplications(appsData);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
+  const {
+    data: applications = [],
+    isLoading: appsLoading,
+    isError: appsError,
+  } = useQuery({
+    queryKey: queryKeys.applications.mine,
+    queryFn: getMyApplications,
+    staleTime: 60 * 1000,
+  });
 
-    load();
-    return () => { cancelled = true; };
-  }, []);
-
+  const loading = statsLoading || appsLoading;
   const pendingAssessments = stats.find((s) => s.label === "Pending Assessments");
   const pendingCount = pendingAssessments ? parseInt(pendingAssessments.value, 10) || 0 : 0;
   const recentApps = applications.slice(0, 4);
+  const activeApplications = applications.filter((app) => app.status !== "rejected").length;
 
   if (loading) return <LoadingState message="Loading dashboard..." />;
 
@@ -54,19 +50,34 @@ export default function CandidateDashboard() {
       </div>
 
       <div className="grid-stats-3 mb-4">
-        {stats.map((s, i) => (
+        <div className="hcard stat-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <div>
+              <div className="stat-label">Active Applications</div>
+              <div className="stat-value">{activeApplications}</div>
+              <div className="stat-change" style={{ color: "var(--success)" }}>
+                <i className="bi bi-arrow-up me-1" aria-hidden="true" />
+                From your submitted applications
+              </div>
+            </div>
+            <div className="stat-icon" style={{ background: "#EDE9FE" }}>
+              <i className="bi bi-file-earmark-text" style={{ color: "#7C3AED" }} aria-hidden="true" />
+            </div>
+          </div>
+        </div>
+        {stats.filter((s) => s.label !== "Active Applications").map((s, i) => (
           <div key={i} className="hcard stat-card">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <div className="stat-label">{s.label}</div>
                 <div className="stat-value">{s.value}</div>
                 <div className="stat-change" style={{ color: s.warning ? "var(--danger)" : "var(--success)" }}>
-                  <i className={`bi ${s.warning ? "bi-clock" : "bi-arrow-up"} me-1`}></i>
+                  <i className={`bi ${s.warning ? "bi-clock" : "bi-arrow-up"} me-1`} aria-hidden="true" />
                   {s.change}
                 </div>
               </div>
               <div className="stat-icon" style={{ background: s.iconBg }}>
-                <i className={`bi ${s.icon}`} style={{ color: s.iconColor }}></i>
+                <i className={`bi ${s.icon}`} style={{ color: s.iconColor }} aria-hidden="true" />
               </div>
             </div>
           </div>
@@ -78,6 +89,7 @@ export default function CandidateDashboard() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
             <div className="section-title" style={{ margin: 0 }}>Recent Applications</div>
             <button
+              type="button"
               onClick={() => navigate("/candidate/applications")}
               style={{ fontSize: 13, color: "var(--primary)", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}
             >
@@ -85,13 +97,24 @@ export default function CandidateDashboard() {
             </button>
           </div>
 
-          {recentApps.length === 0 ? (
+          {appsError ? (
+            <EmptyState
+              icon="bi-exclamation-circle"
+              title="Could not load applications"
+              description="Your recent applications could not be fetched right now."
+              action={
+                <button type="button" className="btn-outline-custom" onClick={() => navigate("/candidate/applications")}>
+                  Open My Applications
+                </button>
+              }
+            />
+          ) : recentApps.length === 0 ? (
             <EmptyState
               icon="bi-file-earmark-text"
               title="No applications yet"
               description="Browse open roles and submit your first application."
               action={
-                <button className="btn-primary-custom" onClick={() => navigate("/candidate/jobs")}>
+                <button type="button" className="btn-primary-custom" onClick={() => navigate("/candidate/jobs")}>
                   Browse Jobs
                 </button>
               }
@@ -113,26 +136,21 @@ export default function CandidateDashboard() {
                     src={app.logo}
                     alt={app.company}
                     style={{ width: 40, height: 40, borderRadius: 10, objectFit: "cover", border: "1px solid var(--border)" }}
-                    onError={(e) => { e.target.style.display = "none"; }}
+                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&background=EDE9FE&color=7C3AED&size=40`; }}
                   />
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{app.jobTitle}</div>
                     <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                       {app.company} · Applied {app.appliedAt}
                     </div>
-                    <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}>
-                      <span className="match-pill">
-                        <i className="bi bi-stars"></i>{app.matchScore}% Match Score
-                      </span>
-                      <div style={{ flex: 1, maxWidth: 80 }}>
-                        <div className="match-bar">
-                          <div className="match-bar-fill" style={{ width: `${app.matchScore}%` }}></div>
-                        </div>
+                    {app.jobWorkplace && (
+                      <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+                        {app.jobWorkplace}{app.jobLocation ? ` · ${app.jobLocation}` : ""}
                       </div>
-                    </div>
+                    )}
                   </div>
                   <StatusBadge status={app.status} />
-                  <i className="bi bi-chevron-right text-muted"></i>
+                  <i className="bi bi-chevron-right text-muted" aria-hidden="true" />
                 </div>
               ))}
             </div>
@@ -159,13 +177,14 @@ export default function CandidateDashboard() {
                 width: 56, height: 56, background: "#D1FAE5", borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
               }}>
-                <i className="bi bi-check-circle-fill" style={{ fontSize: 28, color: "#059669" }}></i>
+                <i className="bi bi-check-circle-fill" style={{ fontSize: 28, color: "#059669" }} aria-hidden="true" />
               </div>
               <div style={{ fontWeight: 700, marginBottom: 8 }}>You&apos;re all caught up!</div>
               <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>
                 No pending skill tests or technical assessments require your attention right now.
               </p>
               <button
+                type="button"
                 className="btn-outline-custom"
                 style={{ marginTop: 16, width: "100%" }}
                 onClick={() => navigate("/candidate/assessments")}
@@ -179,7 +198,7 @@ export default function CandidateDashboard() {
                 width: 56, height: 56, background: "#EDE9FE", borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
               }}>
-                <i className="bi bi-clipboard-check" style={{ fontSize: 28, color: "var(--primary)" }}></i>
+                <i className="bi bi-clipboard-check" style={{ fontSize: 28, color: "var(--primary)" }} aria-hidden="true" />
               </div>
               <div style={{ fontWeight: 700, marginBottom: 8 }}>
                 {pendingCount} assessment{pendingCount !== 1 ? "s" : ""} pending
@@ -188,6 +207,7 @@ export default function CandidateDashboard() {
                 Complete your pending assessments to stay on track.
               </p>
               <button
+                type="button"
                 className="btn-primary-custom"
                 style={{ marginTop: 16, width: "100%" }}
                 onClick={() => navigate("/candidate/assessments")}
