@@ -1,11 +1,17 @@
 import apiClient from "./apiClient";
+import { getApiErrorMessage } from "./apiErrors";
 
 /**
  * Fetch all categories.
  */
 export async function getCategories() {
-  const { data } = await apiClient.get("/categories");
-  return data.categories || [];
+  try {
+    const { data } = await apiClient.get("/categories");
+    return data.categories ?? [];
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
 }
 
 /**
@@ -33,4 +39,3 @@ export async function deleteCategory(id) {
   const { data } = await apiClient.delete(`/categories/${id}`);
   return data;
 }
-

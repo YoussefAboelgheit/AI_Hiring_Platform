@@ -1,4 +1,25 @@
 import apiClient from "./apiClient";
+import { getApiErrorMessage } from "./apiErrors";
+
+function mapFormToJobPayload(form) {
+  const payload = {
+    category: form.category,
+    title: form.title.trim(),
+    description: form.description.trim(),
+    workplace: form.workplace,
+    jobType: form.jobType,
+    skills: form.skills,
+    status: form.status || "Drafted",
+    requirements: form.requirements?.trim() ?? "",
+    location: form.location?.trim() ?? "",
+  };
+
+  if (form.applicationEnd) {
+    payload.applicationEnd = form.applicationEnd;
+  }
+
+  return payload;
+}
 
 export async function getJobs(filters = {}) {
   const { data } = await apiClient.get("/jobs", { params: filters });
@@ -10,9 +31,15 @@ export async function getJobById(id) {
   return data.job || null;
 }
 
-export async function createJob(payload) {
-  const { data } = await apiClient.post("/jobs", payload);
-  return data.job;
+export async function createJob(form) {
+  try {
+    const payload = mapFormToJobPayload(form);
+    const { data } = await apiClient.post("/jobs", payload);
+    return data.job ?? data;
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
 }
 
 export async function updateJob(id, payload) {
@@ -33,4 +60,3 @@ export async function getJobDescriptionBullets() {
     "Write clean, well-documented, and testable code with high quality standards."
   ];
 }
-
