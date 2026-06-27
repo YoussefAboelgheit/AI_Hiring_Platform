@@ -1,14 +1,12 @@
+// Backend/controllers/user.controller.js
 import User from "../models/user.js";
-import Job from "../models/job.js";
-import JobApplication, { JOB_DELETED_APPLICATION_STATUS } from "../models/jobApplication.js";
 import HTTPError from "../util/httpError.js";
-import { uploadToSupabase, deleteFromSupabase } from "../util/supabaseClient.js";
-
-function createJobSnapshot(job) {
-  const jobObject = typeof job.toObject === "function" ? job.toObject() : job;
-  const { __v, ...snapshot } = jobObject;
-  return snapshot;
-}
+import {
+  uploadToSupabase,
+  deleteFromSupabase,
+} from "../util/supabaseClient.js";
+import ParsedResume from "../models/parsedResume.js";
+import { parseResumeWithAI } from "../services/ai/resumeParserService.js";
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -35,7 +33,6 @@ export const getAllUsers = async (req, res, next) => {
   }
 };
 
-
 export const getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -47,30 +44,39 @@ export const getUserById = async (req, res, next) => {
   }
 };
 
-
 export const createUser = async (req, res, next) => {
   try {
     const { name, email, password, role, bio } = req.body;
 
     const userRole = role || "candidate";
 
-    let companyLogoUrl  = "";
+    let companyLogoUrl = "";
     let profileImageUrl = "";
-    let cvUrl           = "";
+    let cvUrl = "";
+    let uploadedCvFile = null;
 
     if (userRole === "hr") {
       if (req.files?.company_logo?.[0]) {
         const file = req.files.company_logo[0];
-        companyLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
+        companyLogoUrl = await uploadToSupabase(
+          file.buffer,
+          file.mimetype,
+          "logos",
+        );
       }
     } else if (userRole === "candidate") {
       if (req.files?.profile_image?.[0]) {
-        const imgFile   = req.files.profile_image[0];
-        profileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
+        const imgFile = req.files.profile_image[0];
+        profileImageUrl = await uploadToSupabase(
+          imgFile.buffer,
+          imgFile.mimetype,
+          "avatars",
+        );
       }
       if (req.files?.CV?.[0]) {
         const cvFile = req.files.CV[0];
-        cvUrl        = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
+        uploadedCvFile = cvFile;
+        cvUrl = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
       }
     }
 
@@ -78,16 +84,43 @@ export const createUser = async (req, res, next) => {
       name,
       email,
       password,
-      role:          userRole,
+      role: userRole,
       bio,
-      company_logo:  companyLogoUrl,
+      company_logo: companyLogoUrl,
       profile_image: profileImageUrl,
-      CV:            cvUrl,
-      isVerified:    true, // admin-created users skip email verification
+      CV: cvUrl,
+      isVerified: true, // admin-created users skip email verification
     });
 
     const userObj = user.toObject();
     delete userObj.password;
+
+    // Attempt to parse uploaded CV and save parsed resume, but do not block user creation on failure.
+    if (uploadedCvFile) {
+      (async () => {
+        try {
+          const parsedData = await parseResumeWithAI(
+            uploadedCvFile.buffer,
+            uploadedCvFile.mimetype,
+          );
+          const parsed = await ParsedResume.create({
+            originalFileName: uploadedCvFile.originalname,
+            contentType: uploadedCvFile.mimetype,
+            size: uploadedCvFile.size,
+            parsedData,
+          });
+          // link parsed resume to user
+          await User.findByIdAndUpdate(user._id, {
+            parsedResumeId: parsed._id,
+          });
+        } catch (err) {
+          console.error(
+            "CV parsing failed for user creation:",
+            err.message || err,
+          );
+        }
+      })();
+    }
 
     return res.status(201).json({
       message: "User created successfully",
@@ -98,13 +131,14 @@ export const createUser = async (req, res, next) => {
   }
 };
 
-
 export const updateUser = async (req, res, next) => {
   try {
     const targetId = req.params.id;
 
     if (req.user.role !== "admin" && req.user._id.toString() !== targetId) {
-      return next(new HTTPError(403, "You are not authorized to update this user"));
+      return next(
+        new HTTPError(403, "You are not authorized to update this user"),
+      );
     }
 
     const targetUser = await User.findById(targetId);
@@ -112,11 +146,16 @@ export const updateUser = async (req, res, next) => {
 
     const { name, email, bio } = req.body;
     const updateData = { name, email, bio };
+    let newCvFile = null;
 
     if (targetUser.role === "hr") {
       if (req.files?.company_logo?.[0]) {
-        const file        = req.files.company_logo[0];
-        const newLogoUrl  = await uploadToSupabase(file.buffer, file.mimetype, "logos");
+        const file = req.files.company_logo[0];
+        const newLogoUrl = await uploadToSupabase(
+          file.buffer,
+          file.mimetype,
+          "logos",
+        );
         updateData.company_logo = newLogoUrl;
         if (targetUser.company_logo) {
           await deleteFromSupabase(targetUser.company_logo);
@@ -124,17 +163,26 @@ export const updateUser = async (req, res, next) => {
       }
     } else if (targetUser.role === "candidate") {
       if (req.files?.profile_image?.[0]) {
-        const imgFile           = req.files.profile_image[0];
-        const newProfileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
+        const imgFile = req.files.profile_image[0];
+        const newProfileImageUrl = await uploadToSupabase(
+          imgFile.buffer,
+          imgFile.mimetype,
+          "avatars",
+        );
         updateData.profile_image = newProfileImageUrl;
         if (targetUser.profile_image) {
           await deleteFromSupabase(targetUser.profile_image);
         }
       }
       if (req.files?.CV?.[0]) {
-        const cvFile   = req.files.CV[0];
-        const newCvUrl = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
-        updateData.CV  = newCvUrl;
+        const cvFile = req.files.CV[0];
+        newCvFile = cvFile;
+        const newCvUrl = await uploadToSupabase(
+          cvFile.buffer,
+          cvFile.mimetype,
+          "cvs",
+        );
+        updateData.CV = newCvUrl;
         if (targetUser.CV) {
           await deleteFromSupabase(targetUser.CV);
         }
@@ -142,21 +190,52 @@ export const updateUser = async (req, res, next) => {
     }
 
     if (req.body.role) {
-  if (req.user.role !== "admin") {
-    return next(new HTTPError(403, "You cannot update your role. Please contact an admin."));
-  }
-  updateData.role = req.body.role;
-}
+      if (req.user.role !== "admin") {
+        return next(
+          new HTTPError(
+            403,
+            "You cannot update your role. Please contact an admin.",
+          ),
+        );
+      }
+      updateData.role = req.body.role;
+    }
 
     Object.keys(updateData).forEach(
-      (key) => updateData[key] === undefined && delete updateData[key]
+      (key) => updateData[key] === undefined && delete updateData[key],
     );
 
-    const user = await User.findByIdAndUpdate(
-      targetId,
-      updateData,
-      { new: true, runValidators: true }
-    ).select("-password");
+    const user = await User.findByIdAndUpdate(targetId, updateData, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
+
+    // If a new CV file was uploaded, parse it and link the parsed resume to the user (non-blocking on errors)
+    if (newCvFile) {
+      (async () => {
+        try {
+          const parsedData = await parseResumeWithAI(
+            newCvFile.buffer,
+            newCvFile.mimetype,
+          );
+          const parsed = await ParsedResume.create({
+            originalFileName: newCvFile.originalname,
+            contentType: newCvFile.mimetype,
+            size: newCvFile.size,
+            parsedData,
+            user: user._id,
+          });
+          await User.findByIdAndUpdate(user._id, {
+            parsedResumeId: parsed._id,
+          });
+        } catch (err) {
+          console.error(
+            "CV parsing failed for user update:",
+            err.message || err,
+          );
+        }
+      })();
+    }
 
     return res.status(200).json({
       message: "User updated successfully",
@@ -167,45 +246,24 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
-
 export const deleteUser = async (req, res, next) => {
   try {
     const targetId = req.params.id;
 
     // only admin or the user themselves can delete
     if (req.user.role !== "admin" && req.user._id.toString() !== targetId) {
-      return next(new HTTPError(403, "You are not authorized to delete this user"));
+      return next(
+        new HTTPError(403, "You are not authorized to delete this user"),
+      );
     }
 
     const user = await User.findById(targetId);
     if (!user) return next(new HTTPError(404, "User not found"));
 
     // delete files from Supabase
-    if (user.company_logo)  await deleteFromSupabase(user.company_logo);
+    if (user.company_logo) await deleteFromSupabase(user.company_logo);
     if (user.profile_image) await deleteFromSupabase(user.profile_image);
-    if (user.CV)            await deleteFromSupabase(user.CV);
-
-    if (user.role === "hr") {
-      const jobs = await Job.find({ recruiter: user._id })
-        .populate({ path: "recruiter", select: "name email role company_logo profile_image" })
-        .populate({ path: "category", select: "name" });
-      const jobIds = jobs.map((job) => job._id);
-
-      if (jobIds.length > 0) {
-        await Promise.all(
-          jobs.map((job) =>
-            JobApplication.updateMany(
-              { job: job._id },
-              {
-                status: JOB_DELETED_APPLICATION_STATUS,
-                jobSnapshot: createJobSnapshot(job),
-              }
-            )
-          )
-        );
-        await Job.deleteMany({ _id: { $in: jobIds } });
-      }
-    }
+    if (user.CV) await deleteFromSupabase(user.CV);
 
     await User.findByIdAndDelete(targetId);
 

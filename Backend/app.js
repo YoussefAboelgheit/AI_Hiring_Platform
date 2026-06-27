@@ -15,6 +15,8 @@ import jobRouter from "./routes/job.router.js";
 import userRouter from "./routes/user.router.js";
 import categoryRouter from "./routes/category.router.js";
 import cvRouter from "./routes/cv.router.js";
+//@desc import embeddings
+import embeddingsRouter from "./routes/embeddings.router.js";
 
 const app = express();
 
@@ -70,6 +72,8 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/jobs", jobRouter);
 app.use("/api/cv", cvRouter);
+//@desc embeddings
+app.use("/api/embeddings", embeddingsRouter);
 
 //categories
 app.use("/api/categories", categoryRouter);
