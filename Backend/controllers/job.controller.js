@@ -147,6 +147,72 @@ export const getMyApplicationById = async (req, res, next) => {
   }
 };
 
+export const getJobApplicationsForHr = async (req, res, next) => {
+  try {
+    const job = await Job.findById(req.params.id)
+      .populate(recruiterPopulate)
+      .populate(categoryPopulate);
+
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+    if (job.recruiter._id.toString() !== req.user._id.toString()) {
+      return next(new HTTPError(403, "You can only view applications for jobs you created"));
+    }
+
+    const applications = await JobApplication.find({ job: job._id })
+      .populate({ path: "candidate", select: "name email role profile_image CV bio" })
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      job,
+      total: applications.length,
+      applications,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMyJobsWithApplications = async (req, res, next) => {
+  try {
+    const jobs = await Job.find({ recruiter: req.user._id })
+      .populate(recruiterPopulate)
+      .populate(categoryPopulate)
+      .sort({ createdAt: -1 });
+
+    const jobIds = jobs.map((job) => job._id);
+    const applications = await JobApplication.find({ job: { $in: jobIds } })
+      .populate({ path: "candidate", select: "name email role profile_image CV bio" })
+      .sort({ createdAt: -1 });
+
+    const applicationsByJob = applications.reduce((groupedApplications, application) => {
+      const jobId = application.job.toString();
+      if (!groupedApplications[jobId]) groupedApplications[jobId] = [];
+      groupedApplications[jobId].push(application);
+      return groupedApplications;
+    }, {});
+
+    const jobsWithApplications = jobs.map((job) => {
+      const jobObject = job.toObject();
+      const jobApplications = applicationsByJob[job._id.toString()] || [];
+
+      return {
+        ...jobObject,
+        applicationsCount: jobApplications.length,
+        applications: jobApplications,
+      };
+    });
+
+    return res.status(200).json({
+      totalJobs: jobs.length,
+      totalApplications: applications.length,
+      jobs: jobsWithApplications,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const updateJob = async (req, res, next) => {
   try {
     Object.assign(req.job, pickJobFields(req.body));
