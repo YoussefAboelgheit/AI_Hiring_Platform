@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
-const parsedResumeSchema = new mongoose.Schema(
+const parsedJobSchema = new mongoose.Schema(
   {
-    originalFileName: {
+    originalSource: {
       type: String,
-      required: [true, "Original file name is required"],
+      required: [true, "Original source is required"],
     },
     contentType: {
       type: String,
@@ -16,12 +16,12 @@ const parsedResumeSchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      enum: ["upload", "user-cv"],
+      enum: ["upload", "job-posting"],
       default: "upload",
     },
     parsedData: {
       type: mongoose.Schema.Types.Mixed,
-      required: [true, "Parsed resume data is required"],
+      required: [true, "Parsed job data is required"],
     },
     isValid: {
       type: Boolean,
@@ -35,22 +35,9 @@ const parsedResumeSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
-    embeddingId: {
-      type: String,
-      default: null,
-    },
-    embeddingStatus: {
-      type: String,
-      enum: ["pending", "ready", "failed"],
-      default: "pending",
-    },
-    lastEmbeddedAt: {
-      type: Date,
-      default: null,
-    },
-    user: {
+    job: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Job",
     },
   },
   {
@@ -58,4 +45,4 @@ const parsedResumeSchema = new mongoose.Schema(
   },
 );
 
-export default mongoose.model("ParsedResume", parsedResumeSchema);
+export default mongoose.model("ParsedJob", parsedJobSchema);

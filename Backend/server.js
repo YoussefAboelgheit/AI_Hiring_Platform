@@ -8,6 +8,9 @@ import connectDB from "./config/DB.js";
 const PORT = process.env.PORT || 3001;
 
 await connectDB();
+import dns from "node:dns";
+
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 app.listen(PORT, () => {
   console.log(`Server is running at http://localhost:${PORT}`);

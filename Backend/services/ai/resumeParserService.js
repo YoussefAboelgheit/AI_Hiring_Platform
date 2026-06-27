@@ -239,7 +239,6 @@ export const parseResumeWithAI = async (buffer, mimeType) => {
 
   const prompt = buildResumePrompt(text);
 
-  // 🔥 ONLY CHANGE: Gemini instead of OpenAI
   const rawResult = await callGemini(prompt);
 
   const { data, errors } = validateParsedResume(rawResult);

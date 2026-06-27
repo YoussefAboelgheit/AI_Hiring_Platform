@@ -10,6 +10,7 @@ import {
   getMyJobsWithApplications,
   getMyApplicationById,
   getMyAppliedJobs,
+  getJobEnrichment,
   updateJob,
 } from "../controllers/job.controller.js";
 import authMW from "../middlewares/authMW.js";
@@ -62,6 +63,7 @@ router.post(
   validateResults,
   applyToJob
 );
+router.get("/:id/enrichment", idParamValidator, validateResults, getJobEnrichment);
 router.get("/:id", idParamValidator, validateResults, getJobById);
 
 router.post("/", authMW, authorize("hr"), createJobValidator, validateResults, createJob);
