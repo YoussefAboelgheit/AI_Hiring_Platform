@@ -49,7 +49,10 @@ POST /api/jobs
 PATCH /api/jobs/:id
 DELETE /api/jobs/:id
   Requires Authorization: Bearer <hr-access-token>
-  Only the HR user stored in job.recruiter can update or delete the job.
+  Only the HR user stored in job.recruiter can update the job.
+  The HR user stored in job.recruiter or an admin can delete the job.
+  When a job is deleted, related job applications are kept with status "Job has been deleted".
+  Candidate application responses still include the deleted job details from a saved snapshot.
 
 GET endpoints
   Public. No token required.
@@ -534,6 +537,15 @@ DELETE http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002
 Authorization: Bearer <same-creator-hr-access-token>
 ```
 
+Admin can also delete a job:
+
+```http
+DELETE http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002
+Authorization: Bearer <admin-access-token>
+```
+
+Deleting a job does not delete its applications. Related applications are kept, their status becomes `Job has been deleted`, and candidate application responses still include the deleted job details.
+
 ### Apply To Job With New CV
 
 ```http
@@ -561,4 +573,5 @@ Authorization: Bearer <candidate-access-token>
 workplace: Onsite, Hybrid, Remote
 jobType: Intern, Full Time, Part Time
 status: Open, Closed, Drafted
+application status: Pending, Reviewed, Accepted, Rejected, Deleted, Job has been deleted
 ```

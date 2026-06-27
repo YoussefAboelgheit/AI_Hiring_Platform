@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+export const JOB_DELETED_APPLICATION_STATUS = "Job has been deleted";
+
 const jobApplicationSchema = new mongoose.Schema(
   {
     job: {
@@ -16,11 +18,15 @@ const jobApplicationSchema = new mongoose.Schema(
       type: String,
       required: [true, "CV is required"],
     },
+    jobSnapshot: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
     status: {
       type: String,
       enum: {
-        values: ["Pending", "Reviewed", "Accepted", "Rejected"],
-        message: "Status must be Pending, Reviewed, Accepted, or Rejected",
+        values: ["Pending", "Reviewed", "Accepted", "Rejected", "Deleted", JOB_DELETED_APPLICATION_STATUS],
+        message: "Status must be Pending, Reviewed, Accepted, Rejected, Deleted, or Job has been deleted",
       },
       default: "Pending",
     },

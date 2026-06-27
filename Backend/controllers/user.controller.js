@@ -1,7 +1,14 @@
 import User from "../models/user.js";
+import Job from "../models/job.js";
+import JobApplication, { JOB_DELETED_APPLICATION_STATUS } from "../models/jobApplication.js";
 import HTTPError from "../util/httpError.js";
 import { uploadToSupabase, deleteFromSupabase } from "../util/supabaseClient.js";
 
+function createJobSnapshot(job) {
+  const jobObject = typeof job.toObject === "function" ? job.toObject() : job;
+  const { __v, ...snapshot } = jobObject;
+  return snapshot;
+}
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -177,6 +184,28 @@ export const deleteUser = async (req, res, next) => {
     if (user.company_logo)  await deleteFromSupabase(user.company_logo);
     if (user.profile_image) await deleteFromSupabase(user.profile_image);
     if (user.CV)            await deleteFromSupabase(user.CV);
+
+    if (user.role === "hr") {
+      const jobs = await Job.find({ recruiter: user._id })
+        .populate({ path: "recruiter", select: "name email role company_logo profile_image" })
+        .populate({ path: "category", select: "name" });
+      const jobIds = jobs.map((job) => job._id);
+
+      if (jobIds.length > 0) {
+        await Promise.all(
+          jobs.map((job) =>
+            JobApplication.updateMany(
+              { job: job._id },
+              {
+                status: JOB_DELETED_APPLICATION_STATUS,
+                jobSnapshot: createJobSnapshot(job),
+              }
+            )
+          )
+        );
+        await Job.deleteMany({ _id: { $in: jobIds } });
+      }
+    }
 
     await User.findByIdAndDelete(targetId);
 

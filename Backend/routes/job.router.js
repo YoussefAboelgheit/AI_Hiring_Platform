@@ -78,7 +78,7 @@ router.patch(
 router.delete(
   "/:id",
   authMW,
-  authorize("hr"),
+  authorize("hr", "admin"),
   idParamValidator,
   validateResults,
   jobOwnershipMW,
