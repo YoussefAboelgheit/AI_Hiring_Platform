@@ -1,6 +1,6 @@
 import Category from "../models/category.js";
 import Job from "../models/job.js";
-import JobApplication from "../models/jobApplication.js";
+import JobApplication, { JOB_DELETED_APPLICATION_STATUS } from "../models/jobApplication.js";
 import APIFeatures from "../util/apiFeatures.js";
 import HTTPError from "../util/httpError.js";
 import { uploadToSupabase } from "../util/supabaseClient.js";
@@ -37,6 +37,25 @@ function pickJobFields(body) {
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function createJobSnapshot(job) {
+  const jobObject = typeof job.toObject === "function" ? job.toObject() : job;
+  const { __v, ...snapshot } = jobObject;
+  return snapshot;
+}
+
+function serializeApplicationForCandidate(application) {
+  const applicationObject = typeof application.toObject === "function"
+    ? application.toObject()
+    : application;
+
+  if (!applicationObject.job && applicationObject.jobSnapshot) {
+    applicationObject.job = applicationObject.jobSnapshot;
+  }
+
+  delete applicationObject.jobSnapshot;
+  return applicationObject;
 }
 
 export const createJob = async (req, res, next) => {
@@ -121,7 +140,9 @@ export const getMyAppliedJobs = async (req, res, next) => {
       })
       .sort({ createdAt: -1 });
 
-    return res.status(200).json({ applications });
+    return res.status(200).json({
+      applications: applications.map(serializeApplicationForCandidate),
+    });
   } catch (err) {
     next(err);
   }
@@ -141,7 +162,9 @@ export const getMyApplicationById = async (req, res, next) => {
 
     if (!application) return next(new HTTPError(404, "Application not found"));
 
-    return res.status(200).json({ application });
+    return res.status(200).json({
+      application: serializeApplicationForCandidate(application),
+    });
   } catch (err) {
     next(err);
   }
@@ -233,6 +256,18 @@ export const updateJob = async (req, res, next) => {
 
 export const deleteJob = async (req, res, next) => {
   try {
+    const job = await Job.findById(req.job._id)
+      .populate(recruiterPopulate)
+      .populate(categoryPopulate);
+
+    await JobApplication.updateMany(
+      { job: req.job._id },
+      {
+        status: JOB_DELETED_APPLICATION_STATUS,
+        jobSnapshot: createJobSnapshot(job || req.job),
+      }
+    );
+
     await req.job.deleteOne();
 
     return res.status(200).json({ message: "Job deleted successfully" });
@@ -272,6 +307,7 @@ export const applyToJob = async (req, res, next) => {
       job: job._id,
       candidate: req.user._id,
       CV: cvUrl,
+      jobSnapshot: createJobSnapshot(job),
     });
 
     const populatedApplication = await JobApplication.findById(application._id)
@@ -280,7 +316,7 @@ export const applyToJob = async (req, res, next) => {
 
     return res.status(201).json({
       message: "Application submitted successfully",
-      application: populatedApplication,
+      application: serializeApplicationForCandidate(populatedApplication),
     });
   } catch (err) {
     next(err);

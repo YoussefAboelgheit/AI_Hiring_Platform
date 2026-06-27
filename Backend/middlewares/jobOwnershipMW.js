@@ -6,7 +6,7 @@ export default async (req, res, next) => {
     const job = await Job.findById(req.params.id);
     if (!job) return next(new HTTPError(404, "Job not found"));
 
-    if (job.recruiter.toString() !== req.user._id.toString()) {
+    if (req.user.role !== "admin" && job.recruiter.toString() !== req.user._id.toString()) {
       return next(new HTTPError(403, "You can only modify jobs you created"));
     }
 
