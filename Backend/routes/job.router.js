@@ -5,7 +5,9 @@ import {
   deleteJob,
   getAllJobs,
   getJobById,
+  getJobApplicationsForHr,
   getJobsByCategory,
+  getMyJobsWithApplications,
   getMyApplicationById,
   getMyAppliedJobs,
   updateJob,
@@ -29,12 +31,26 @@ router.get("/", getAllJobs);
 router.get("/category/:category", categoryNameParamValidator, validateResults, getJobsByCategory);
 router.get("/applied/me", authMW, authorize("candidate"), getMyAppliedJobs);
 router.get(
+  "/hr/my-jobs/applications",
+  authMW,
+  authorize("hr"),
+  getMyJobsWithApplications
+);
+router.get(
   "/applications/:id",
   authMW,
   authorize("candidate"),
   idParamValidator,
   validateResults,
   getMyApplicationById
+);
+router.get(
+  "/:id/applications",
+  authMW,
+  authorize("hr"),
+  idParamValidator,
+  validateResults,
+  getJobApplicationsForHr
 );
 router.post(
   "/:id/apply",

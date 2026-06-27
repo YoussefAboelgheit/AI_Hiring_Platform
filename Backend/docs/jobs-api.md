@@ -31,7 +31,9 @@ GET    /api/jobs
 GET    /api/jobs/:id
 GET    /api/jobs/category/:category
 GET    /api/jobs/applied/me
-GET    /api/jobs/applications/:id
+GET    /api/jobs/applications/:id //For Candidate
+GET    /api/jobs/hr/my-jobs/applications //For HR/Company
+GET    /api/jobs/:id/applications //For HR/Company
 POST   /api/jobs/:id/apply
 PATCH  /api/jobs/:id
 DELETE /api/jobs/:id
@@ -65,6 +67,14 @@ GET /api/jobs/applied/me
 GET /api/jobs/applications/:id
   Requires Authorization: Bearer <candidate-access-token>
   Returns one application by application ID for the logged-in candidate.
+
+GET /api/jobs/:id/applications
+  Requires Authorization: Bearer <hr-access-token>
+  Returns all applications for a job only if the logged-in HR created that job.
+
+GET /api/jobs/hr/my-jobs/applications
+  Requires Authorization: Bearer <hr-access-token>
+  Returns all jobs created by the logged-in HR with each job's applications.
 ```
 
 ## Postman Examples
@@ -399,6 +409,106 @@ Response:
     "createdAt": "2026-06-26T10:00:00.000Z",
     "updatedAt": "2026-06-26T10:00:00.000Z"
   }
+}
+```
+
+### Get Applications For My Job
+
+Use the job `_id`. Only the HR who created the job can access this endpoint.
+
+```http
+GET http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/applications
+Authorization: Bearer <same-creator-hr-access-token>
+```
+
+Response:
+
+```json
+{
+  "job": {
+    "_id": "665fc28a8e7b2a3a11000002",
+    "title": "Frontend Developer",
+    "status": "Open",
+    "recruiter": {
+      "_id": "665fc28a8e7b2a3a11000003",
+      "name": "Acme HR",
+      "email": "hr@acme.com",
+      "role": "hr"
+    },
+    "category": {
+      "_id": "665fc28a8e7b2a3a11000001",
+      "name": "Engineering"
+    }
+  },
+  "total": 1,
+  "applications": [
+    {
+      "_id": "665fc28a8e7b2a3a11000004",
+      "candidate": {
+        "_id": "665fc28a8e7b2a3a11000005",
+        "name": "Candidate User",
+        "email": "candidate@example.com",
+        "role": "candidate",
+        "CV": "https://example.com/profile-cv.pdf"
+      },
+      "CV": "https://example.com/application-cv.pdf",
+      "status": "Pending",
+      "createdAt": "2026-06-26T10:00:00.000Z",
+      "updatedAt": "2026-06-26T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+### Get My Jobs With Applications
+
+Returns every job created by the logged-in HR, with applications grouped under each job.
+
+```http
+GET http://localhost:3000/api/jobs/hr/my-jobs/applications
+Authorization: Bearer <hr-access-token>
+```
+
+Response:
+
+```json
+{
+  "totalJobs": 1,
+  "totalApplications": 1,
+  "jobs": [
+    {
+      "_id": "665fc28a8e7b2a3a11000002",
+      "title": "Frontend Developer",
+      "status": "Open",
+      "recruiter": {
+        "_id": "665fc28a8e7b2a3a11000003",
+        "name": "Acme HR",
+        "email": "hr@acme.com",
+        "role": "hr"
+      },
+      "category": {
+        "_id": "665fc28a8e7b2a3a11000001",
+        "name": "Engineering"
+      },
+      "applicationsCount": 1,
+      "applications": [
+        {
+          "_id": "665fc28a8e7b2a3a11000004",
+          "candidate": {
+            "_id": "665fc28a8e7b2a3a11000005",
+            "name": "Candidate User",
+            "email": "candidate@example.com",
+            "role": "candidate",
+            "CV": "https://example.com/profile-cv.pdf"
+          },
+          "CV": "https://example.com/application-cv.pdf",
+          "status": "Pending",
+          "createdAt": "2026-06-26T10:00:00.000Z",
+          "updatedAt": "2026-06-26T10:00:00.000Z"
+        }
+      ]
+    }
+  ]
 }
 ```
 
