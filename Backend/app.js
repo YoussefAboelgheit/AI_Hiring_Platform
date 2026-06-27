@@ -14,11 +14,9 @@ import authRouter from "./routes/auth.router.js";
 import jobRouter from "./routes/job.router.js";
 import userRouter from "./routes/user.router.js";
 import categoryRouter from "./routes/category.router.js";
-
-
+import cvRouter from "./routes/cv.router.js";
 
 const app = express();
-
 
 //@desc Swagger documentation by abanoub please don't delete
 const __filename = fileURLToPath(import.meta.url);
@@ -29,13 +27,16 @@ const resolvedSwaggerFilePath = existsSync(swaggerFilePath)
   ? swaggerFilePath
   : fallbackSwaggerFilePath;
 const swaggerDocument = YAML.parse(
-  readFileSync(resolvedSwaggerFilePath, "utf8")
+  readFileSync(resolvedSwaggerFilePath, "utf8"),
 );
-//************************************************************* 
+//*************************************************************
 app.use((req, res, next) => {
   const origin = process.env.CLIENT_URL || "http://localhost:5173";
   res.header("Access-Control-Allow-Origin", origin);
-  res.header("Access-Control-Allow-Methods", "GET,POST,PATCH,PUT,DELETE,OPTIONS");
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PATCH,PUT,DELETE,OPTIONS",
+  );
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.header("Access-Control-Allow-Credentials", "true");
 
@@ -62,19 +63,18 @@ app.use(
   swaggerUi.setup(swaggerDocument, {
     explorer: true,
     customSiteTitle: "AI Hiring Platform API Docs",
-  })
+  }),
 );
 
 app.use("/api/auth", authRouter);
 app.use("/api/users", userRouter);
 app.use("/api/jobs", jobRouter);
+app.use("/api/cv", cvRouter);
 
 //categories
 app.use("/api/categories", categoryRouter);
 
 app.use(notFoundMW);
 app.use(errorHandlingMW);
-
-
 
 export default app;
