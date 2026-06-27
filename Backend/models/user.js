@@ -1,6 +1,6 @@
+// Backend/models/user.js
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-
 
 const userSchema = new mongoose.Schema(
   {
@@ -64,10 +64,16 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    parsedResumeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ParsedResume",
+      default: null,
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 userSchema.pre("save", async function () {
