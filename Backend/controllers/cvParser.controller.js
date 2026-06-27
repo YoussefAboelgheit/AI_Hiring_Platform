@@ -6,6 +6,7 @@ import {
   callGemini,
   validateParsedResume,
 } from "../services/ai/resumeParserService.js";
+import { enrichParsedResume } from "../services/resumeEnrichment.service.js";
 
 export const parseCv = async (req, res, next) => {
   try {
@@ -49,7 +50,12 @@ export const parseCv = async (req, res, next) => {
       parsedData,
       isValid: true,
       validationErrors: [],
+      embeddingStatus: "pending",
     });
+
+    enrichParsedResume(parsedResume).catch((err) =>
+      console.error("Resume embedding failed:", err?.message || err),
+    );
 
     return res.status(201).json({
       message: "CV parsed successfully",

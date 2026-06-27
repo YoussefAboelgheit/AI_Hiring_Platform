@@ -75,6 +75,23 @@ const jobSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    parsedJob: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    embeddingId: {
+      type: String,
+      default: null,
+    },
+    embeddingStatus: {
+      type: String,
+      enum: ["pending", "ready", "failed"],
+      default: "pending",
+    },
+    lastEmbeddedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

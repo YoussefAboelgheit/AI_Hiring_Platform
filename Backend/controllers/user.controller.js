@@ -7,6 +7,7 @@ import {
 } from "../util/supabaseClient.js";
 import ParsedResume from "../models/parsedResume.js";
 import { parseResumeWithAI } from "../services/ai/resumeParserService.js";
+import { enrichParsedResume } from "../services/resumeEnrichment.service.js";
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -108,11 +109,16 @@ export const createUser = async (req, res, next) => {
             contentType: uploadedCvFile.mimetype,
             size: uploadedCvFile.size,
             parsedData,
+            user: user._id,
+            embeddingStatus: "pending",
           });
           // link parsed resume to user
           await User.findByIdAndUpdate(user._id, {
             parsedResumeId: parsed._id,
           });
+          enrichParsedResume(parsed).catch((err) =>
+            console.error("Resume embedding failed:", err?.message || err),
+          );
         } catch (err) {
           console.error(
             "CV parsing failed for user creation:",
@@ -224,10 +230,14 @@ export const updateUser = async (req, res, next) => {
             size: newCvFile.size,
             parsedData,
             user: user._id,
+            embeddingStatus: "pending",
           });
           await User.findByIdAndUpdate(user._id, {
             parsedResumeId: parsed._id,
           });
+          enrichParsedResume(parsed).catch((err) =>
+            console.error("Resume embedding failed:", err?.message || err),
+          );
         } catch (err) {
           console.error(
             "CV parsing failed for user update:",
