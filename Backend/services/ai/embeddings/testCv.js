@@ -1,5 +1,6 @@
 import { generateEmbedding } from "./generatEmbeddingsServic.js";
 
+
 const cvs = [
   "Node.js developer with Express and PostgreSQL experience",
   "React frontend developer with UI/UX skills",
