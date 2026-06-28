@@ -1,9 +1,12 @@
 import Category from "../models/category.js";
 import Job from "../models/job.js";
-import JobApplication, { JOB_DELETED_APPLICATION_STATUS } from "../models/jobApplication.js";
+import JobApplication, {
+  JOB_DELETED_APPLICATION_STATUS,
+} from "../models/jobApplication.js";
 import APIFeatures from "../util/apiFeatures.js";
 import HTTPError from "../util/httpError.js";
 import { uploadToSupabase } from "../util/supabaseClient.js";
+import { enrichJob } from "../services/ai/embeddingsService.js";
 
 const recruiterPopulate = {
   path: "recruiter",
@@ -46,9 +49,10 @@ function createJobSnapshot(job) {
 }
 
 function serializeApplicationForCandidate(application) {
-  const applicationObject = typeof application.toObject === "function"
-    ? application.toObject()
-    : application;
+  const applicationObject =
+    typeof application.toObject === "function"
+      ? application.toObject()
+      : application;
 
   if (!applicationObject.job && applicationObject.jobSnapshot) {
     applicationObject.job = applicationObject.jobSnapshot;
@@ -63,7 +67,12 @@ export const createJob = async (req, res, next) => {
     const job = await Job.create({
       ...pickJobFields(req.body),
       recruiter: req.user._id,
+      embeddingStatus: "pending",
     });
+
+    void enrichJob(job).catch((err) =>
+      console.error("Auto job enrichment failed:", err?.message || err),
+    );
 
     const populatedJob = await Job.findById(job._id)
       .populate(recruiterPopulate)
@@ -114,13 +123,17 @@ export const getJobsByCategory = async (req, res, next) => {
   try {
     const categoryName = req.params.category;
     const categoryRegex = new RegExp(`^${escapeRegExp(categoryName)}$`, "i");
-    const categories = await Category.find({ name: categoryRegex }).select("_id");
+    const categories = await Category.find({ name: categoryRegex }).select(
+      "_id",
+    );
 
     if (categories.length === 0) {
       return res.status(200).json({ jobs: [] });
     }
 
-    const jobs = await Job.find({ category: { $in: categories.map((category) => category._id) } })
+    const jobs = await Job.find({
+      category: { $in: categories.map((category) => category._id) },
+    })
       .populate(recruiterPopulate)
       .populate(categoryPopulate)
       .sort({ createdAt: -1 });
@@ -158,7 +171,10 @@ export const getMyApplicationById = async (req, res, next) => {
         path: "job",
         populate: [recruiterPopulate, categoryPopulate],
       })
-      .populate({ path: "candidate", select: "name email role profile_image CV" });
+      .populate({
+        path: "candidate",
+        select: "name email role profile_image CV",
+      });
 
     if (!application) return next(new HTTPError(404, "Application not found"));
 
@@ -179,11 +195,19 @@ export const getJobApplicationsForHr = async (req, res, next) => {
     if (!job) return next(new HTTPError(404, "Job not found"));
 
     if (job.recruiter._id.toString() !== req.user._id.toString()) {
-      return next(new HTTPError(403, "You can only view applications for jobs you created"));
+      return next(
+        new HTTPError(
+          403,
+          "You can only view applications for jobs you created",
+        ),
+      );
     }
 
     const applications = await JobApplication.find({ job: job._id })
-      .populate({ path: "candidate", select: "name email role profile_image CV bio" })
+      .populate({
+        path: "candidate",
+        select: "name email role profile_image CV bio",
+      })
       .sort({ createdAt: -1 });
 
     return res.status(200).json({
@@ -205,15 +229,21 @@ export const getMyJobsWithApplications = async (req, res, next) => {
 
     const jobIds = jobs.map((job) => job._id);
     const applications = await JobApplication.find({ job: { $in: jobIds } })
-      .populate({ path: "candidate", select: "name email role profile_image CV bio" })
+      .populate({
+        path: "candidate",
+        select: "name email role profile_image CV bio",
+      })
       .sort({ createdAt: -1 });
 
-    const applicationsByJob = applications.reduce((groupedApplications, application) => {
-      const jobId = application.job.toString();
-      if (!groupedApplications[jobId]) groupedApplications[jobId] = [];
-      groupedApplications[jobId].push(application);
-      return groupedApplications;
-    }, {});
+    const applicationsByJob = applications.reduce(
+      (groupedApplications, application) => {
+        const jobId = application.job.toString();
+        if (!groupedApplications[jobId]) groupedApplications[jobId] = [];
+        groupedApplications[jobId].push(application);
+        return groupedApplications;
+      },
+      {},
+    );
 
     const jobsWithApplications = jobs.map((job) => {
       const jobObject = job.toObject();
@@ -239,7 +269,12 @@ export const getMyJobsWithApplications = async (req, res, next) => {
 export const updateJob = async (req, res, next) => {
   try {
     Object.assign(req.job, pickJobFields(req.body));
+    req.job.embeddingStatus = "pending";
     await req.job.save();
+
+    void enrichJob(req.job).catch((err) =>
+      console.error("Auto job enrichment failed:", err?.message || err),
+    );
 
     const job = await Job.findById(req.job._id)
       .populate(recruiterPopulate)
@@ -265,7 +300,7 @@ export const deleteJob = async (req, res, next) => {
       {
         status: JOB_DELETED_APPLICATION_STATUS,
         jobSnapshot: createJobSnapshot(job || req.job),
-      }
+      },
     );
 
     await req.job.deleteOne();
@@ -300,7 +335,11 @@ export const applyToJob = async (req, res, next) => {
 
     const uploadedCV = req.files?.CV?.[0];
     const cvUrl = uploadedCV
-      ? await uploadToSupabase(uploadedCV.buffer, uploadedCV.mimetype, "applications/cvs")
+      ? await uploadToSupabase(
+          uploadedCV.buffer,
+          uploadedCV.mimetype,
+          "applications/cvs",
+        )
       : req.user.CV;
 
     const application = await JobApplication.create({
@@ -311,8 +350,14 @@ export const applyToJob = async (req, res, next) => {
     });
 
     const populatedApplication = await JobApplication.findById(application._id)
-      .populate({ path: "job", select: "title status workplace jobType location applicationEnd" })
-      .populate({ path: "candidate", select: "name email role profile_image CV" });
+      .populate({
+        path: "job",
+        select: "title status workplace jobType location applicationEnd",
+      })
+      .populate({
+        path: "candidate",
+        select: "name email role profile_image CV",
+      });
 
     return res.status(201).json({
       message: "Application submitted successfully",
