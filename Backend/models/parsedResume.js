@@ -35,7 +35,15 @@ const parsedResumeSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    embedding: {
+      type: [Number],
+      default: [],
+    },
     embeddingId: {
+      type: String,
+      default: null,
+    },
+    embeddingProvider: {
       type: String,
       default: null,
     },

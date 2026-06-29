@@ -5,7 +5,7 @@ import {
   buildResumePrompt,
   callGemini,
   validateParsedResume,
-} from "../services/ai/resumeParserService.js";
+} from "../services/ai/parsing/resumeParserService.js";
 import { enrichParsedResume } from "../services/resumeEnrichment.service.js";
 
 export const parseCv = async (req, res, next) => {

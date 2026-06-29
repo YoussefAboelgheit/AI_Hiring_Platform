@@ -6,7 +6,7 @@ import {
   deleteFromSupabase,
 } from "../util/supabaseClient.js";
 import ParsedResume from "../models/parsedResume.js";
-import { parseResumeWithAI } from "../services/ai/resumeParserService.js";
+import { parseResumeWithAI } from "../services/ai/parsing/resumeParserService.js";
 import { enrichParsedResume } from "../services/resumeEnrichment.service.js";
 
 export const getAllUsers = async (req, res, next) => {

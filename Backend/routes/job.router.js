@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   applyToJob,
+  analyzeTopJobCandidates,
   createJob,
   deleteJob,
   getAllJobs,
@@ -11,6 +12,8 @@ import {
   getMyApplicationById,
   getMyAppliedJobs,
   getJobEnrichment,
+  rebuildApplicationMatch,
+  rebuildJobEnrichment,
   updateJob,
 } from "../controllers/job.controller.js";
 import authMW from "../middlewares/authMW.js";
@@ -52,6 +55,30 @@ router.get(
   idParamValidator,
   validateResults,
   getJobApplicationsForHr
+);
+router.post(
+  "/:id/enrichment/rebuild",
+  authMW,
+  authorize("hr", "admin"),
+  idParamValidator,
+  validateResults,
+  rebuildJobEnrichment
+);
+router.get(
+  "/:id/applications/top-analysis",
+  authMW,
+  authorize("hr", "admin"),
+  idParamValidator,
+  validateResults,
+  analyzeTopJobCandidates
+);
+router.post(
+  "/applications/:id/rebuild-match",
+  authMW,
+  authorize("hr", "admin"),
+  idParamValidator,
+  validateResults,
+  rebuildApplicationMatch
 );
 router.post(
   "/:id/apply",

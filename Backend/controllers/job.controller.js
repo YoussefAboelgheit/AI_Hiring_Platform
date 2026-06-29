@@ -6,7 +6,11 @@ import JobApplication, {
 import APIFeatures from "../util/apiFeatures.js";
 import HTTPError from "../util/httpError.js";
 import { uploadToSupabase } from "../util/supabaseClient.js";
-import { enrichJob } from "../services/ai/embeddingsService.js";
+import { analyzeTopCandidatesForJob } from "../services/candidateAnalysis.service.js";
+import { calculateApplicationMatch } from "../services/jobApplicationMatching.service.js";
+import {
+  enrichJob,
+} from "../services/jobEnrichment.service.js";
 
 const recruiterPopulate = {
   path: "recruiter",
@@ -62,6 +66,15 @@ function serializeApplicationForCandidate(application) {
   return applicationObject;
 }
 
+function sortApplicationsByMatch(applications) {
+  return applications.sort((a, b) => {
+    const scoreA = typeof a.matchScore === "number" ? a.matchScore : -1;
+    const scoreB = typeof b.matchScore === "number" ? b.matchScore : -1;
+    if (scoreB !== scoreA) return scoreB - scoreA;
+    return new Date(a.createdAt) - new Date(b.createdAt);
+  });
+}
+
 export const createJob = async (req, res, next) => {
   try {
     const job = await Job.create({
@@ -78,12 +91,10 @@ export const createJob = async (req, res, next) => {
       .populate(recruiterPopulate)
       .populate(categoryPopulate);
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Job created successfully",
       job: populatedJob,
     });
-
-    void enrichJob(job);
   } catch (err) {
     next(err);
   }
@@ -127,16 +138,21 @@ export const getJobById = async (req, res, next) => {
 export const getJobEnrichment = async (req, res, next) => {
   try {
     const job = await Job.findById(req.params.id).select(
-      "parsedJob embeddingId embeddingStatus lastEmbeddedAt",
+      "parsedJob embedding embeddingId embeddingProvider embeddingStatus embeddingVersion lastEmbeddedAt isEdited editedAt",
     );
 
     if (!job) return next(new HTTPError(404, "Job not found"));
 
     return res.status(200).json({
       parsedJob: job.parsedJob || {},
+      embeddingLength: job.embedding?.length || 0,
       embeddingId: job.embeddingId,
+      embeddingProvider: job.embeddingProvider,
       embeddingStatus: job.embeddingStatus,
+      embeddingVersion: job.embeddingVersion,
       lastEmbeddedAt: job.lastEmbeddedAt,
+      isEdited: job.isEdited,
+      editedAt: job.editedAt,
     });
   } catch (err) {
     next(err);
@@ -232,12 +248,13 @@ export const getJobApplicationsForHr = async (req, res, next) => {
         path: "candidate",
         select: "name email role profile_image CV bio",
       })
-      .sort({ createdAt: -1 });
+      .populate("parsedResume")
+      .sort({ matchScore: -1, createdAt: 1 });
 
     return res.status(200).json({
       job,
       total: applications.length,
-      applications,
+      applications: sortApplicationsByMatch(applications),
     });
   } catch (err) {
     next(err);
@@ -257,7 +274,8 @@ export const getMyJobsWithApplications = async (req, res, next) => {
         path: "candidate",
         select: "name email role profile_image CV bio",
       })
-      .sort({ createdAt: -1 });
+      .populate("parsedResume")
+      .sort({ matchScore: -1, createdAt: 1 });
 
     const applicationsByJob = applications.reduce(
       (groupedApplications, application) => {
@@ -276,7 +294,7 @@ export const getMyJobsWithApplications = async (req, res, next) => {
       return {
         ...jobObject,
         applicationsCount: jobApplications.length,
-        applications: jobApplications,
+        applications: sortApplicationsByMatch(jobApplications),
       };
     });
 
@@ -294,9 +312,27 @@ export const updateJob = async (req, res, next) => {
   try {
     Object.assign(req.job, pickJobFields(req.body));
     req.job.embeddingStatus = "pending";
+    req.job.isEdited = true;
+    req.job.editedAt = new Date();
     await req.job.save();
 
-    void enrichJob(req.job).catch((err) =>
+    await JobApplication.updateMany(
+      { job: req.job._id },
+      {
+        matchingStatus: "pending",
+        matchingError: "",
+        matchedAgainstJobVersion: null,
+        aiEvaluation: {
+          strengths: [],
+          weaknesses: [],
+          summary: "",
+          recommendation: "",
+          generatedAt: null,
+        },
+      },
+    );
+
+    void enrichJob(req.job, { recalculateApplications: true }).catch((err) =>
       console.error("Auto job enrichment failed:", err?.message || err),
     );
 
@@ -304,12 +340,10 @@ export const updateJob = async (req, res, next) => {
       .populate(recruiterPopulate)
       .populate(categoryPopulate);
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Job updated successfully",
       job,
     });
-
-    void enrichJob(req.job);
   } catch (err) {
     next(err);
   }
@@ -373,7 +407,10 @@ export const applyToJob = async (req, res, next) => {
       candidate: req.user._id,
       CV: cvUrl,
       jobSnapshot: createJobSnapshot(job),
+      matchingStatus: "pending",
     });
+
+    await calculateApplicationMatch(application._id, { uploadedCV });
 
     const populatedApplication = await JobApplication.findById(application._id)
       .populate({
@@ -383,11 +420,81 @@ export const applyToJob = async (req, res, next) => {
       .populate({
         path: "candidate",
         select: "name email role profile_image CV",
-      });
+      })
+      .populate("parsedResume");
 
     return res.status(201).json({
       message: "Application submitted successfully",
       application: serializeApplicationForCandidate(populatedApplication),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const rebuildJobEnrichment = async (req, res, next) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+    if (req.user.role !== "admin" && job.recruiter.toString() !== req.user._id.toString()) {
+      return next(new HTTPError(403, "You can only rebuild matching for jobs you created"));
+    }
+
+    await Job.findByIdAndUpdate(job._id, { embeddingStatus: "pending" });
+    await enrichJob(job, { recalculateApplications: true });
+
+    const updatedJob = await Job.findById(job._id)
+      .populate(recruiterPopulate)
+      .populate(categoryPopulate);
+
+    return res.status(200).json({
+      message: "Job enrichment and application matching rebuilt successfully",
+      job: updatedJob,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const rebuildApplicationMatch = async (req, res, next) => {
+  try {
+    const application = await JobApplication.findById(req.params.id).populate("job");
+    if (!application) return next(new HTTPError(404, "Application not found"));
+
+    if (
+      req.user.role !== "admin" &&
+      application.job?.recruiter?.toString() !== req.user._id.toString()
+    ) {
+      return next(new HTTPError(403, "You can only rebuild applications for jobs you created"));
+    }
+
+    const updatedApplication = await calculateApplicationMatch(application._id);
+
+    return res.status(200).json({
+      message: "Application match rebuilt successfully",
+      application: updatedApplication,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const analyzeTopJobCandidates = async (req, res, next) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+    if (req.user.role !== "admin" && job.recruiter.toString() !== req.user._id.toString()) {
+      return next(new HTTPError(403, "You can only analyze candidates for jobs you created"));
+    }
+
+    const applications = await analyzeTopCandidatesForJob(job._id, 3);
+
+    return res.status(200).json({
+      job: job._id,
+      total: applications.length,
+      applications,
     });
   } catch (err) {
     next(err);

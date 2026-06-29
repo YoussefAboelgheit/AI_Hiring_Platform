@@ -35,7 +35,7 @@ const cvs = [
   },
   {
     id: "cv2",
-    text: "React frontend developer with UI/UX skills, Microservices,js",
+    text: "React frontend developer with UI/UX skills, Microservices,js,",
   },
   {
     id: "cv3",

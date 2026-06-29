@@ -34,6 +34,9 @@ GET    /api/jobs/applied/me
 GET    /api/jobs/applications/:id //For Candidate
 GET    /api/jobs/hr/my-jobs/applications //For HR/Company
 GET    /api/jobs/:id/applications //For HR/Company
+GET    /api/jobs/:id/applications/top-analysis //For HR/Company
+POST   /api/jobs/:id/enrichment/rebuild //For HR/Company
+POST   /api/jobs/applications/:id/rebuild-match //For HR/Company
 POST   /api/jobs/:id/apply
 PATCH  /api/jobs/:id
 DELETE /api/jobs/:id
@@ -78,6 +81,56 @@ GET /api/jobs/:id/applications
 GET /api/jobs/hr/my-jobs/applications
   Requires Authorization: Bearer <hr-access-token>
   Returns all jobs created by the logged-in HR with each job's applications.
+
+GET /api/jobs/:id/applications/top-analysis
+  Requires Authorization: Bearer <hr-access-token>
+  Returns AI strengths/weaknesses for the top 3 matched applications.
+
+POST /api/jobs/:id/enrichment/rebuild
+  Requires Authorization: Bearer <hr-access-token>
+  Re-parses the job, regenerates the job embedding, and recalculates application match scores.
+
+POST /api/jobs/applications/:id/rebuild-match
+  Requires Authorization: Bearer <hr-access-token>
+  Recalculates one application match score.
+```
+
+## AI Matching Flow
+
+When a candidate applies:
+
+```text
+CV file/profile CV
+  -> stored in Supabase Storage as before
+  -> parsed into JSON
+  -> resume embedding generated and stored in MongoDB
+  -> job embedding loaded/generated from MongoDB
+  -> matchScore saved on JobApplication
+```
+
+When HR edits a job:
+
+```text
+Job is marked isEdited=true and editedAt=<date>
+Job parsing/embedding is rebuilt
+Existing applications are marked matchingStatus=pending
+Application match scores are recalculated against the new job embedding
+```
+
+Embedding configuration:
+
+```env
+EMBEDDING_PROVIDER=ollama
+OLLAMA_EMBED_URL=http://localhost:11434/api/embed
+OLLAMA_EMBED_MODEL=nomic-embed-text
+```
+
+If using OpenAI embeddings instead:
+
+```env
+EMBEDDING_PROVIDER=openai
+OPENAI_API_KEY=your_key
+OPENAI_EMBEDDING_MODEL=text-embedding-3-small
 ```
 
 ## Postman Examples
@@ -456,6 +509,9 @@ Response:
       },
       "CV": "https://example.com/application-cv.pdf",
       "status": "Pending",
+      "matchScore": 88.73,
+      "matchingStatus": "completed",
+      "matchedAgainstJobVersion": 2,
       "createdAt": "2026-06-26T10:00:00.000Z",
       "updatedAt": "2026-06-26T10:00:00.000Z"
     }
@@ -506,10 +562,56 @@ Response:
           },
           "CV": "https://example.com/application-cv.pdf",
           "status": "Pending",
+          "matchScore": 88.73,
+          "matchingStatus": "completed",
+          "matchedAgainstJobVersion": 2,
           "createdAt": "2026-06-26T10:00:00.000Z",
           "updatedAt": "2026-06-26T10:00:00.000Z"
         }
       ]
+    }
+  ]
+}
+```
+
+### Rebuild Job Matching
+
+```http
+POST http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/enrichment/rebuild
+Authorization: Bearer <same-creator-hr-access-token>
+```
+
+### Rebuild One Application Match
+
+```http
+POST http://localhost:3000/api/jobs/applications/665fc28a8e7b2a3a11000004/rebuild-match
+Authorization: Bearer <same-creator-hr-access-token>
+```
+
+### Analyze Top 3 Candidates
+
+```http
+GET http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/applications/top-analysis
+Authorization: Bearer <same-creator-hr-access-token>
+```
+
+Response:
+
+```json
+{
+  "job": "665fc28a8e7b2a3a11000002",
+  "total": 3,
+  "applications": [
+    {
+      "_id": "665fc28a8e7b2a3a11000004",
+      "matchScore": 88.73,
+      "aiEvaluation": {
+        "strengths": ["Strong React experience"],
+        "weaknesses": ["Limited backend exposure"],
+        "summary": "Good frontend fit for this role.",
+        "recommendation": "Shortlist for screening.",
+        "generatedAt": "2026-06-29T10:00:00.000Z"
+      }
     }
   ]
 }
