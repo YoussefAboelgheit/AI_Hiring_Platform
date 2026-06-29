@@ -6,7 +6,7 @@ import JobApplication, {
 import APIFeatures from "../util/apiFeatures.js";
 import HTTPError from "../util/httpError.js";
 import { uploadToSupabase } from "../util/supabaseClient.js";
-import { enrichJob } from "../services/jobEnrichment.service.js";
+import { enrichJob } from "../services/ai/embeddingsService.js";
 
 const recruiterPopulate = {
   path: "recruiter",
@@ -67,7 +67,12 @@ export const createJob = async (req, res, next) => {
     const job = await Job.create({
       ...pickJobFields(req.body),
       recruiter: req.user._id,
+      embeddingStatus: "pending",
     });
+
+    void enrichJob(job).catch((err) =>
+      console.error("Auto job enrichment failed:", err?.message || err),
+    );
 
     const populatedJob = await Job.findById(job._id)
       .populate(recruiterPopulate)
@@ -288,7 +293,12 @@ export const getMyJobsWithApplications = async (req, res, next) => {
 export const updateJob = async (req, res, next) => {
   try {
     Object.assign(req.job, pickJobFields(req.body));
+    req.job.embeddingStatus = "pending";
     await req.job.save();
+
+    void enrichJob(req.job).catch((err) =>
+      console.error("Auto job enrichment failed:", err?.message || err),
+    );
 
     const job = await Job.findById(req.job._id)
       .populate(recruiterPopulate)

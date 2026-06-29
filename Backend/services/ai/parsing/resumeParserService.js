@@ -1,13 +1,15 @@
+import "dotenv/config";
+
 import pdfParse from "pdf-parse";
 import mammoth from "mammoth";
-import HTTPError from "../../util/httpError.js";
+import HTTPError from "../../../util/httpError.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 /* =========================================================
    GEMINI INIT
 ========================================================= */
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 /* =========================================================
    1. DOCUMENT EXTRACTION (UNCHANGED)
@@ -103,10 +105,49 @@ ${text}
    3. GEMINI CALL (REPLACEMENT FOR OPENAI)
 ========================================================= */
 
+// export const callGemini = async (prompt) => {
+//   if (!process.env.GEMINI_API_KEY) {
+//     throw new HTTPError(500, "Gemini API key is not configured");
+//   }
+
+//   const model = genAI.getGenerativeModel({
+//     model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+//   });
+
+//   try {
+//     const result = await model.generateContent({
+//       contents: [
+//         {
+//           role: "user",
+//           parts: [{ text: prompt }],
+//         },
+//       ],
+//       generationConfig: {
+//         temperature: 0,
+//         responseMimeType: "application/json", // Gemini  FORCE JSON
+//       },
+//     });
+
+//     const response = await result.response;
+//     const text = response.text();
+
+//     if (!text) {
+//       throw new HTTPError(500, "Empty response from Gemini");
+//     }
+
+//     return JSON.parse(text);
+//   } catch (err) {
+//     throw new HTTPError(500, `Gemini request failed: ${err.message}`);
+//   }
+// };
+
+
 export const callGemini = async (prompt) => {
   if (!process.env.GEMINI_API_KEY) {
     throw new HTTPError(500, "Gemini API key is not configured");
   }
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
   const model = genAI.getGenerativeModel({
     model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
@@ -122,11 +163,12 @@ export const callGemini = async (prompt) => {
       ],
       generationConfig: {
         temperature: 0,
-        responseMimeType: "application/json", // Gemini  FORCE JSON
+        responseMimeType: "application/json",
       },
     });
 
     const response = await result.response;
+
     const text = response.text();
 
     if (!text) {
@@ -138,7 +180,6 @@ export const callGemini = async (prompt) => {
     throw new HTTPError(500, `Gemini request failed: ${err.message}`);
   }
 };
-
 /* =========================================================
    4. NORMALIZATION (UNCHANGED)
 ========================================================= */
@@ -239,6 +280,7 @@ export const parseResumeWithAI = async (buffer, mimeType) => {
 
   const prompt = buildResumePrompt(text);
 
+  // ONLY CHANGE: Gemini instead of OpenAI
   const rawResult = await callGemini(prompt);
 
   const { data, errors } = validateParsedResume(rawResult);

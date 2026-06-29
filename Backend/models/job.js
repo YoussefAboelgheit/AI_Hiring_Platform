@@ -18,7 +18,7 @@ const jobSchema = new mongoose.Schema(
       ref: "Category",
       required: [true, "Category is required"],
     },
-    
+
     title: {
       type: String,
       required: [true, "Title is required"],
@@ -77,7 +77,7 @@ const jobSchema = new mongoose.Schema(
     },
     parsedJob: {
       type: mongoose.Schema.Types.Mixed,
-      default: {},
+      default: null,
     },
     embeddingId: {
       type: String,
