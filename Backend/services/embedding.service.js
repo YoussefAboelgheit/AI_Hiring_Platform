@@ -1,11 +1,39 @@
 import HTTPError from "../util/httpError.js";
 import ParsedJob from "../models/parsedJob.js";
 import ParsedResume from "../models/parsedResume.js";
-import { upsertJobEmbedding } from "./vector.service.js";
 
+const EMBEDDING_PROVIDER = process.env.EMBEDDING_PROVIDER || "ollama";
+const OLLAMA_EMBED_URL =
+  process.env.OLLAMA_EMBED_URL || "http://localhost:11434/api/embed";
+const OLLAMA_EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL || "nomic-embed-text";
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_EMBEDDING_MODEL =
-  process.env.OPENAI_EMBEDDING_MODEL || "gemini-embedding-001";
+const OPENAI_EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
+const DEFAULT_EMBEDDING_TIMEOUT_MS = 30000;
+
+const toPositiveInteger = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const getEmbeddingTimeoutMs = () =>
+  toPositiveInteger(process.env.EMBEDDING_TIMEOUT_MS, DEFAULT_EMBEDDING_TIMEOUT_MS);
+
+const fetchWithTimeout = async (url, options = {}) => {
+  const timeoutMs = getEmbeddingTimeoutMs();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new HTTPError(504, `Embedding request timed out after ${timeoutMs}ms.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 const normalizeString = (value) =>
   typeof value === "string" && value.trim().length ? value.trim() : null;
@@ -57,14 +85,42 @@ const buildJobEmbeddingText = (parsedJob) => {
   return lines.filter(Boolean).join("\n\n");
 };
 
+export const getEmbeddingProvider = () => EMBEDDING_PROVIDER;
+
 const ensureEnv = () => {
+  if (EMBEDDING_PROVIDER === "ollama") return;
+
   if (!OPENAI_KEY) {
     throw new HTTPError(500, "OPENAI_API_KEY is not configured.");
   }
 };
 
+const createOllamaEmbedding = async (input) => {
+  const response = await fetchWithTimeout(OLLAMA_EMBED_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ model: OLLAMA_EMBED_MODEL, input }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new HTTPError(500, `Ollama embedding failed: ${text}`);
+  }
+
+  const body = await response.json();
+  const embedding = body.embedding || body.embeddings?.[0] || body.data?.[0]?.embedding || body.data?.[0];
+
+  if (!Array.isArray(embedding) || embedding.length === 0) {
+    throw new HTTPError(500, "Ollama response missing embedding vector.");
+  }
+
+  return embedding;
+};
+
 const createOpenAIEmbedding = async (input) => {
-  const response = await fetch("https://api.openai.com/v1/embeddings", {
+  const response = await fetchWithTimeout("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -87,6 +143,10 @@ const createOpenAIEmbedding = async (input) => {
 };
 
 const createEmbedding = async (input) => {
+  if (EMBEDDING_PROVIDER === "ollama") {
+    return await createOllamaEmbedding(input);
+  }
+
   return await createOpenAIEmbedding(input);
 };
 
@@ -159,14 +219,15 @@ export const generateEmbeddingsForParsedJob = async (parsedJobId) => {
   }
 
   const embedding = await generateJobEmbedding(parsedJob.parsedData);
-  const jobId = parsedJob.job?.toString() || parsedJobId.toString();
-
-  const vectorRow = await upsertJobEmbedding(jobId, embedding, {
-    title: parsedJob.parsedData?.title || null,
-    category: parsedJob.parsedData?.category || null,
+  await ParsedJob.findByIdAndUpdate(parsedJobId, {
+    embeddingRefs: [],
   });
 
-  return vectorRow;
+  return {
+    parsedJobId: parsedJob._id,
+    embedding,
+    embeddingProvider: EMBEDDING_PROVIDER,
+  };
 };
 
 export const generateEmbeddingsForParsedResume = async (parsedResumeId) => {
@@ -176,23 +237,41 @@ export const generateEmbeddingsForParsedResume = async (parsedResumeId) => {
   }
 
   const embedding = await generateResumeEmbedding(parsedResume.parsedData);
-  const resumeId = parsedResume._id.toString();
-
-  const vectorRow = await upsertJobEmbedding(resumeId, embedding, {
-    title:
-      parsedResume.parsedData?.summary ||
-      parsedResume.parsedData?.fullName ||
-      null,
-    category: "resume",
-    documentType: "resume",
-    userId: parsedResume.user?.toString?.() ?? null,
-  });
 
   await ParsedResume.findByIdAndUpdate(parsedResumeId, {
-    embeddingId: vectorRow?.id?.toString?.() ?? null,
+    embedding,
+    embeddingProvider: EMBEDDING_PROVIDER,
+    embeddingId: null,
     embeddingStatus: "ready",
     lastEmbeddedAt: new Date(),
   });
 
-  return vectorRow;
+  return {
+    parsedResumeId: parsedResume._id,
+    embedding,
+    embeddingProvider: EMBEDDING_PROVIDER,
+  };
 };
+
+export const cosineSimilarity = (a, b) => {
+  if (!Array.isArray(a) || !Array.isArray(b)) return 0;
+
+  const len = Math.min(a.length, b.length);
+  if (len === 0) return 0;
+
+  let dot = 0;
+  let magA = 0;
+  let magB = 0;
+
+  for (let i = 0; i < len; i += 1) {
+    dot += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
+  }
+
+  const denom = Math.sqrt(magA) * Math.sqrt(magB);
+  return denom === 0 ? 0 : dot / denom;
+};
+
+export const similarityToScore = (similarity) =>
+  Math.max(0, Math.min(100, Math.round(((similarity + 1) / 2) * 10000) / 100));

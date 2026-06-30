@@ -18,9 +18,55 @@ const jobApplicationSchema = new mongoose.Schema(
       type: String,
       required: [true, "CV is required"],
     },
+    parsedResume: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ParsedResume",
+      default: null,
+    },
     jobSnapshot: {
       type: mongoose.Schema.Types.Mixed,
       default: null,
+    },
+    matchScore: {
+      type: Number,
+      default: null,
+      min: 0,
+      max: 100,
+    },
+    matchingStatus: {
+      type: String,
+      enum: ["pending", "completed", "failed", "skipped"],
+      default: "pending",
+    },
+    matchingError: {
+      type: String,
+      default: "",
+    },
+    matchedAgainstJobVersion: {
+      type: Number,
+      default: null,
+    },
+    aiEvaluation: {
+      strengths: {
+        type: [String],
+        default: [],
+      },
+      weaknesses: {
+        type: [String],
+        default: [],
+      },
+      summary: {
+        type: String,
+        default: "",
+      },
+      recommendation: {
+        type: String,
+        default: "",
+      },
+      generatedAt: {
+        type: Date,
+        default: null,
+      },
     },
     status: {
       type: String,
