@@ -95,7 +95,6 @@ const validateParsedJob = (parsed) => {
 
   if (
     !normalized.title &&
-    !normalized.description &&
     !normalized.requiredSkills.length
   ) {
     errors.push(
@@ -121,6 +120,38 @@ const resolveCategoryName = async (job) => {
   return String(job.category);
 };
 
+const splitTextToList = (value) =>
+  normalizeString(value)
+    ? value
+        .split(/\r?\n|\.|,|;/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
+const parseJobWithoutAI = (job, categoryName) =>
+  ensureSchema({
+    title: job.title,
+    category: categoryName || job.category,
+    employmentType: job.jobType,
+    experience: job.requirements,
+    education: null,
+    requiredSkills: job.skills,
+    preferredSkills: [],
+    responsibilities: [
+      ...splitTextToList(job.description),
+      ...splitTextToList(job.requirements),
+    ],
+    benefits: [],
+    location: job.location,
+    salary: job.salary,
+    keywords: [
+      job.title,
+      job.workplace,
+      job.jobType,
+      ...(Array.isArray(job.skills) ? job.skills : []),
+    ],
+  });
+
 /**
  * Parse a saved job into normalized structured JSON using the LLM.
  * @param {Object} job - Mongoose job document or plain object
@@ -128,9 +159,25 @@ const resolveCategoryName = async (job) => {
  */
 export const parseJobWithAI = async (job) => {
   const categoryName = await resolveCategoryName(job);
+  if (process.env.JOB_PARSER_PROVIDER !== "gemini") {
+    return parseJobWithoutAI(job, categoryName);
+  }
+
   const prompt = buildJobPrompt(job, categoryName);
-  const rawText = await callGemini(prompt);
-  const parsedObject = parseJson(rawText);
+  let parsedObject;
+
+  try {
+    const rawText = await callGemini(prompt);
+    parsedObject = parseJson(rawText);
+  } catch (err) {
+    if (process.env.JOB_PARSER_FALLBACK_ON_AI_FAILURE === "false") {
+      throw err;
+    }
+
+    console.warn("Gemini job parsing failed; using local job parser fallback:", err.message);
+    parsedObject = parseJobWithoutAI(job, categoryName);
+  }
+
   const { data, errors } = validateParsedJob(parsedObject);
 
   if (errors.length > 0) {

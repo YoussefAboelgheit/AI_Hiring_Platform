@@ -16,6 +16,11 @@ import {
 export const enrichJob = async (job, options = {}) => {
   try {
     const parsedJob = await parseJobWithAI(job);
+    await Job.findByIdAndUpdate(job._id, {
+      parsedJob,
+      embeddingStatus: "pending",
+    });
+
     const embedding = await generateJobEmbedding(parsedJob);
 
     const freshJob = await Job.findById(job._id).select("embeddingVersion");
@@ -41,6 +46,10 @@ export const enrichJob = async (job, options = {}) => {
       embeddingStatus: "failed",
       lastEmbeddedAt: new Date(),
     });
+
+    if (options.throwOnError) {
+      throw error;
+    }
   }
 };
 

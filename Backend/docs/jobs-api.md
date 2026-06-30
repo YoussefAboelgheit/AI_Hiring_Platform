@@ -32,11 +32,12 @@ GET    /api/jobs/:id
 GET    /api/jobs/category/:category
 GET    /api/jobs/applied/me
 GET    /api/jobs/applications/:id //For Candidate
+POST   /api/jobs/applications/:id/retry //For Candidate
 GET    /api/jobs/hr/my-jobs/applications //For HR/Company
 GET    /api/jobs/:id/applications //For HR/Company
 GET    /api/jobs/:id/applications/top-analysis //For HR/Company
 POST   /api/jobs/:id/enrichment/rebuild //For HR/Company
-POST   /api/jobs/applications/:id/rebuild-match //For HR/Company
+POST   /api/jobs/:id/applications/rebuild-match //For HR/Company
 POST   /api/jobs/:id/apply
 PATCH  /api/jobs/:id
 DELETE /api/jobs/:id
@@ -90,9 +91,15 @@ POST /api/jobs/:id/enrichment/rebuild
   Requires Authorization: Bearer <hr-access-token>
   Re-parses the job, regenerates the job embedding, and recalculates application match scores.
 
-POST /api/jobs/applications/:id/rebuild-match
+POST /api/jobs/:id/applications/rebuild-match
   Requires Authorization: Bearer <hr-access-token>
-  Recalculates one application match score.
+  Recalculates all application match scores for that job using the existing parsed CV data.
+  Use it as a manual repair endpoint if matching results did not refresh after rebuilding the job.
+
+POST /api/jobs/applications/:id/retry
+  Requires Authorization: Bearer <candidate-access-token>
+  Retries parsing/matching for a failed application.
+  Optional form-data field: CV. If omitted, the existing application CV URL is downloaded and parsed again.
 ```
 
 ## AI Matching Flow
@@ -123,6 +130,9 @@ Embedding configuration:
 EMBEDDING_PROVIDER=ollama
 OLLAMA_EMBED_URL=http://localhost:11434/api/embed
 OLLAMA_EMBED_MODEL=nomic-embed-text
+JOB_PARSER_PROVIDER=local
+GEMINI_TIMEOUT_MS=30000
+EMBEDDING_TIMEOUT_MS=30000
 ```
 
 If using OpenAI embeddings instead:
@@ -468,6 +478,31 @@ Response:
 }
 ```
 
+### Retry Failed Application Parsing/Matching
+
+Use this if Gemini or embedding generation failed after the application was created.
+
+Retry using the already stored application CV:
+
+```http
+POST http://localhost:3000/api/jobs/applications/665fc28a8e7b2a3a11000004/retry
+Authorization: Bearer <candidate-access-token>
+```
+
+Retry with a new CV upload:
+
+```http
+POST http://localhost:3000/api/jobs/applications/665fc28a8e7b2a3a11000004/retry
+Authorization: Bearer <candidate-access-token>
+Content-Type: multipart/form-data
+```
+
+```text
+CV: selected-file.pdf
+```
+
+You can also call `POST /api/jobs/:id/apply` again after a failed application. The backend will retry instead of returning duplicate-application error.
+
 ### Get Applications For My Job
 
 Use the job `_id`. Only the HR who created the job can access this endpoint.
@@ -581,10 +616,12 @@ POST http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/enrichment/rebuild
 Authorization: Bearer <same-creator-hr-access-token>
 ```
 
-### Rebuild One Application Match
+### Rebuild All Application Matches For Job
+
+Uses the existing parsed resumes/embeddings and the latest job embedding. It does not upload or re-parse CV files.
 
 ```http
-POST http://localhost:3000/api/jobs/applications/665fc28a8e7b2a3a11000004/rebuild-match
+POST http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/applications/rebuild-match
 Authorization: Bearer <same-creator-hr-access-token>
 ```
 

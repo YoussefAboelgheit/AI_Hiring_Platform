@@ -46,10 +46,24 @@ const createParsedResumeFromFile = async ({ file, userId, source }) => {
   return await ParsedResume.findById(parsedResume._id);
 };
 
-const getParsedResumeForApplication = async ({ user, uploadedCV }) => {
+const getParsedResumeForApplication = async ({ application, user, uploadedCV }) => {
   if (uploadedCV) {
     return await createParsedResumeFromFile({
       file: uploadedCV,
+      userId: user._id,
+      source: "upload",
+    });
+  }
+
+  if (application.CV && application.CV !== user.CV) {
+    const buffer = await downloadFileBuffer(application.CV);
+    return await createParsedResumeFromFile({
+      file: {
+        buffer,
+        mimetype: inferMimeTypeFromUrl(application.CV),
+        originalname: "application-cv",
+        size: buffer.length,
+      },
       userId: user._id,
       source: "upload",
     });
@@ -117,6 +131,7 @@ export const calculateApplicationMatch = async (applicationId, options = {}) => 
     if (!user) throw new HTTPError(404, "Candidate not found");
 
     const parsedResume = await getParsedResumeForApplication({
+      application,
       user,
       uploadedCV: options.uploadedCV,
     });

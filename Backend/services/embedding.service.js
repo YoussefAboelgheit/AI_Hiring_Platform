@@ -8,6 +8,32 @@ const OLLAMA_EMBED_URL =
 const OLLAMA_EMBED_MODEL = process.env.OLLAMA_EMBED_MODEL || "nomic-embed-text";
 const OPENAI_KEY = process.env.OPENAI_API_KEY;
 const OPENAI_EMBEDDING_MODEL = process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small";
+const DEFAULT_EMBEDDING_TIMEOUT_MS = 30000;
+
+const toPositiveInteger = (value, fallback) => {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const getEmbeddingTimeoutMs = () =>
+  toPositiveInteger(process.env.EMBEDDING_TIMEOUT_MS, DEFAULT_EMBEDDING_TIMEOUT_MS);
+
+const fetchWithTimeout = async (url, options = {}) => {
+  const timeoutMs = getEmbeddingTimeoutMs();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new HTTPError(504, `Embedding request timed out after ${timeoutMs}ms.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
 
 const normalizeString = (value) =>
   typeof value === "string" && value.trim().length ? value.trim() : null;
@@ -70,7 +96,7 @@ const ensureEnv = () => {
 };
 
 const createOllamaEmbedding = async (input) => {
-  const response = await fetch(OLLAMA_EMBED_URL, {
+  const response = await fetchWithTimeout(OLLAMA_EMBED_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -94,7 +120,7 @@ const createOllamaEmbedding = async (input) => {
 };
 
 const createOpenAIEmbedding = async (input) => {
-  const response = await fetch("https://api.openai.com/v1/embeddings", {
+  const response = await fetchWithTimeout("https://api.openai.com/v1/embeddings", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
