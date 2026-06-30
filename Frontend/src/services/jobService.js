@@ -1,6 +1,7 @@
 import apiClient from "./apiClient";
 import { getApiErrorMessage } from "./apiErrors";
 import { CANDIDATE_JOBS_PAGE_SIZE } from "../constants/jobEnums";
+import { getAdminAccessToken } from "./storage/adminStorage";
 
 function cleanParams(params) {
   return Object.fromEntries(
@@ -87,13 +88,16 @@ export async function createJob(form) {
 }
 
 export async function updateJob(id, payload) {
-  const { data } = await apiClient.patch(`/jobs/${id}`, payload);
+  const adminToken = getAdminAccessToken();
+  const headers = adminToken ? { Authorization: `Bearer ${adminToken}` } : {};
+  const { data } = await apiClient.patch(`/jobs/${id}`, payload, { headers });
   return data.job;
 }
 
 export async function deleteJob(id) {
-  const { data } = await apiClient.delete(`/jobs/${id}`);
-  return data;
+  const adminToken = getAdminAccessToken();
+  const headers = adminToken ? { Authorization: `Bearer ${adminToken}` } : {};
+  const { data } = await apiClient.delete(`/jobs/${id}`, { headers });
 }
 
 export async function getJobDescriptionBullets() {

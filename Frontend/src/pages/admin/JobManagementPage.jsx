@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getJobs, deleteJob } from "../../services/jobService";
+import { getJobs, deleteJob, updateJob } from "../../services/jobService";
+
 import LoadingState from "../../components/common/LoadingState";
 import toast from "react-hot-toast";
 
@@ -35,6 +36,16 @@ export default function JobManagementPage() {
     }
   };
 
+  const handleStatusChange = async (id, status) => {
+    try {
+      await updateJob(id, { status });
+      toast.success("Job status updated");
+      setJobs((prev) => prev.map((j) => (j._id === id ? { ...j, status } : j)));
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || "Update failed");
+    }
+  };
+
   if (loading) return <LoadingState message="Loading jobs..." />;
 
   return (
@@ -51,6 +62,7 @@ export default function JobManagementPage() {
                 <th>Title</th>
                 <th>Company</th>
                 <th>Category</th>
+                <th>Status</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -58,8 +70,20 @@ export default function JobManagementPage() {
               {jobs.map((job) => (
                 <tr key={job._id}>
                   <td>{job.title}</td>
-  <td>{job.recruiter?.company_logo ? (<img src={job.recruiter.company_logo} alt="Company logo" style={{ width: "45px", height: "45px", objectFit: "cover" }} className="rounded shadow-sm" />) : null}</td>
+                  <td>{job.recruiter?.company_logo ? (<img src={job.recruiter.company_logo} alt="Company logo" style={{ width: "45px", height: "45px", objectFit: "cover" }} className="rounded shadow-sm" />) : null}</td>
                   <td>{job.category?.name || "Uncategorized"}</td>
+                  <td>
+                    <select
+                      value={job.status || "Open"}
+                      onChange={(e) => handleStatusChange(job._id, e.target.value)}
+                      className="form-select form-select-sm"
+                      style={{ width: "120px" }}
+                    >
+                      <option value="Open">Open</option>
+                      <option value="Closed">Closed</option>
+                      <option value="Drafted">Drafted</option>
+                    </select>
+                  </td>
                   <td>
                     <button
                       className="btn btn-sm btn-danger"
@@ -72,7 +96,7 @@ export default function JobManagementPage() {
               ))}
               {jobs.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center" }}>
+                  <td colSpan={5} style={{ textAlign: "center" }}>
                     No jobs found.
                   </td>
                 </tr>

@@ -7,9 +7,11 @@ import LoadingState from "../../components/common/LoadingState";
 import toast from "react-hot-toast";
 
 const statusStyles = {
-  active: { label: "ACTIVE", bg: "#D1FAE5", color: "#065F46" },
-  draft: { label: "DRAFT", bg: "#F3F4F6", color: "#374151" },
-  closed: { label: "CLOSED", bg: "#FEE2E2", color: "#991B1B" },
+  Open: { label: "Open", bg: "#D1FAE5", color: "#065F46" },
+  Closed: { label: "Closed", bg: "#FEE2E2", color: "#991B1B" },
+  Drafted: { label: "Drafted", bg: "#F3F4F6", color: "#374151" },
+  // fallback for any other values
+  default: { label: "Unknown", bg: "#E5E7EB", color: "#374151" },
 };
 
 export default function MyJobsPage() {
@@ -78,17 +80,25 @@ export default function MyJobsPage() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {data.jobs.map((job) => {
-          const st = statusStyles[job.status];
-          return (
-            <div key={job.id} className="hcard job-list-card">
-              <div style={{ width: 48, height: 48, background: "var(--body-bg)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <i className={`bi ${job.icon}`} style={{ fontSize: 22, color: "var(--text-muted)" }} aria-hidden="true" />
+        const now = new Date();
+        const deadline = job.applicationEnd ? new Date(job.applicationEnd) : null;
+        // Determine badge style: expired if deadline passed, otherwise use statusStyles mapping
+        let st = statusStyles[job.status] || statusStyles.default;
+        if (deadline && deadline < now) {
+          st = { label: "Expired", bg: "#FEE2E2", color: "#991B1B" };
+        } else if (job.status === "Closed") {
+          st = { label: "Closed", bg: "#FEE2E2", color: "#991B1B" };
+        }
+        return (
+          <div key={job.id} className="hcard job-list-card">
+            <div style={{ width: 48, height: 48, background: "var(--body-bg)", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <i className={`bi ${job.icon}`} style={{ fontSize: 22, color: "var(--text-muted)" }} aria-hidden="true" />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                <span style={{ fontWeight: 800, fontSize: 16 }}>{job.title}</span>
+                <span style={{ background: st.bg, color: st.color, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>{st.label}</span>
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                  <span style={{ fontWeight: 800, fontSize: 16 }}>{job.title}</span>
-                  <span style={{ background: st.bg, color: st.color, fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>{st.label}</span>
-                </div>
                 <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{job.category} · {job.location} · {job.type}</div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <span className="skill-tag">{job.applicants} Applicants</span>
@@ -118,7 +128,9 @@ export default function MyJobsPage() {
                   </>
                 ) : (
                   <>
-                    <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/applications")}>View Details</button>
+                    <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }} onClick={() => navigate('/recruiter/applications', { state: { jobId: job._id } })}>
+                      View Details
+                    </button>
                     <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => navigate(`/recruiter/jobs/edit/${job._id}`)}>Edit Posting</button>
                     <button type="button" className="btn-outline-custom" style={{ fontSize: 13, color: "#991B1B" }} onClick={() => handleDelete(job._id, job.title)} disabled={deleting === job._id}>{deleting === job._id ? "Deleting..." : "Delete"}</button>
                   </>

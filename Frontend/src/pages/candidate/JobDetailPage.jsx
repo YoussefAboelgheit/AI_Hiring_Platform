@@ -102,11 +102,15 @@ export default function JobDetailPage() {
                 <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{job.title}</h1>
                 <div style={{ fontSize: 14, color: "var(--text-muted)" }}>{job.company}</div>
               </div>
-              {job.status === "Open" && (
-                <span style={{ background: "#D1FAE5", color: "#065F46", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 20 }}>
-                  Hiring
-                </span>
-              )}
+              {
+  job.status === "Open" && !isDeadlinePast ? (
+    <span style={{ background: "#D1FAE5", color: "#065F46", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 20 }}>Open</span>
+  ) : isDeadlinePast ? (
+    <span style={{ background: "#FEE2E2", color: "#991B1B", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 20 }}>Expired</span>
+  ) : job.status === "Closed" ? (
+    <span style={{ background: "#FEE2E2", color: "#991B1B", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 20 }}>Closed</span>
+  ) : null
+}
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 20 }}>
               {job.location && (

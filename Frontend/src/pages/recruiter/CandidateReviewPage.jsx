@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getCandidateReview } from "../../services/recruiterService";
 import LoadingState from "../../components/common/LoadingState";
 import BackButton from "../../components/common/BackButton";
+import StatusBadge from "../../components/common/StatusBadge";
 
 export default function CandidateReviewPage() {
   const navigate = useNavigate();
@@ -12,14 +13,17 @@ export default function CandidateReviewPage() {
 
   useEffect(() => {
     getCandidateReview(id)
-      .then(setData)
+      .then((data) => {
+        console.log("REAL BACKEND DATA:", data);
+        setData(data);
+      })
       .finally(() => setLoading(false));
   }, [id]);
 
   if (loading) return <LoadingState message="Loading candidate..." />;
   if (!data) return null;
 
-  const { applicant, name, title, location, tags, cvSummary, skills, education, projects, certifications, aiMatchScore, cvScore, assessmentScore, aiInsight } = data;
+  const { applicant, name, title, location, tags, cvSummary, cvUrl, skills, education, projects, certifications, aiMatchScore, cvScore, assessmentScore, aiInsight } = data;
 
   return (
     <>
@@ -29,22 +33,20 @@ export default function CandidateReviewPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="hcard" style={{ padding: 24 }}>
             <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-              <img src={applicant.avatar} alt="" style={{ width: 72, height: 72, borderRadius: 16, objectFit: "cover" }} />
+              <img src={applicant.avatar || `https://ui-avatars.com/api/?name=${applicant.name?.[0] || 'U'}`} alt="" style={{ width: 72, height: 72, borderRadius: 16, objectFit: "cover" }} />
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-                  <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{name}</h2>
+                  <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>{applicant.name}</h2>
                   <span style={{ background: "#D1FAE5", color: "#065F46", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, display: "flex", alignItems: "center", gap: 4 }}>
                     <i className="bi bi-patch-check-fill"></i> AI Verified
                   </span>
                 </div>
-                <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>
-                  {title} · {location}
-                </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 4 }}>{applicant.email}</div>
+                <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>{title} · {location}</div>
+                <StatusBadge status={applicant.status} />
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
                   {tags.map((t) => (
-                    <span key={t} style={{ background: "var(--body-bg)", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: 20, fontSize: 12 }}>
-                      {t}
-                    </span>
+                    <span key={t} style={{ background: "var(--body-bg)", border: "1px solid var(--border)", padding: "4px 10px", borderRadius: 20, fontSize: 12 }}>{t}</span>
                   ))}
                 </div>
               </div>
@@ -52,11 +54,14 @@ export default function CandidateReviewPage() {
           </div>
 
           <div className="hcard" style={{ padding: 24 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 15 }}>
               <i className="bi bi-file-earmark-text" style={{ color: "var(--primary)" }}></i>
               <div style={{ fontWeight: 700 }}>CV Summary</div>
             </div>
             <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.8, marginBottom: 20 }}>{cvSummary}</p>
+            {cvUrl && (
+              <a href={cvUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginBottom: 20, color: "var(--primary)", fontWeight: 600 }}>View CV Document</a>
+            )}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
               <div>
                 <div style={{ fontWeight: 700, color: "var(--primary)", marginBottom: 10, fontSize: 13 }}>Skills</div>
@@ -154,7 +159,7 @@ export default function CandidateReviewPage() {
             </button>
             <button
               type="button"
-              style={{ width: "100%", background: "#fff", color: "var(--danger)", border: "1.5px solid #FEE2E2", borderRadius: 10, padding: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              style={{ width: "100%", background: "#fff", color: "var(--danger)", border: "1.5px solid #FEE2E2", borderRadius: 10, padding: 12, fontWeight: 200, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             >
               <i className="bi bi-x"></i> Reject Application
             </button>
@@ -165,9 +170,7 @@ export default function CandidateReviewPage() {
               <i className="bi bi-lightbulb" style={{ color: "var(--primary)" }}></i>
               <span style={{ fontWeight: 700, fontSize: 13, color: "var(--primary)" }}>HireAI Insights</span>
             </div>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, fontStyle: "italic", lineHeight: 1.6 }}>
-              &ldquo;{aiInsight}&rdquo;
-            </p>
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, fontStyle: "italic", lineHeight: 1.6 }}>&ldquo;{aiInsight}&rdquo;</p>
           </div>
         </div>
       </div>
