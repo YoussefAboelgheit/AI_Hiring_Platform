@@ -503,125 +503,6 @@ export const applyToJob = async (req, res, next) => {
   }
 };
 
-export const rebuildJobEnrichment = async (req, res, next) => {
-  try {
-    const job = await Job.findById(req.params.id);
-    if (!job) return next(new HTTPError(404, "Job not found"));
-
-    if (req.user.role !== "admin" && job.recruiter.toString() !== req.user._id.toString()) {
-      return next(new HTTPError(403, "You can only rebuild matching for jobs you created"));
-    }
-
-    await Job.findByIdAndUpdate(job._id, { embeddingStatus: "pending" });
-    await enrichJob(job, { recalculateApplications: true, throwOnError: true });
-
-    const updatedJob = await Job.findById(job._id)
-      .populate(recruiterPopulate)
-      .populate(categoryPopulate);
-
-    return res.status(200).json({
-      message: "Job enrichment and application matching rebuilt successfully",
-      job: sanitizeJob(updatedJob),
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const rebuildApplicationMatch = async (req, res, next) => {
-  try {
-    const job = await Job.findById(req.params.id);
-    if (!job) return next(new HTTPError(404, "Job not found"));
-
-    if (req.user.role !== "admin" && job.recruiter.toString() !== req.user._id.toString()) {
-      return next(new HTTPError(403, "You can only rebuild applications for jobs you created"));
-    }
-
-    await recalculateJobApplicationMatches(job._id);
-
-    const refreshedApplications = await JobApplication.find({ job: job._id })
-      .populate({
-        path: "candidate",
-        select: "name email role profile_image CV bio",
-      })
-      .populate("parsedResume")
-      .sort({ matchScore: -1, createdAt: 1 });
-
-    return res.status(200).json({
-      message: "Job application matches rebuilt successfully",
-      total: refreshedApplications.length,
-      rebuilt: refreshedApplications.filter(
-        (application) => application.matchingStatus === "completed",
-      ).length,
-      failed: refreshedApplications.filter(
-        (application) => application.matchingStatus === "failed",
-      ).length,
-      applications: sortApplicationsByMatch(refreshedApplications).map(sanitizeApplication),
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-export const retryMyApplicationMatch = async (req, res, next) => {
-  try {
-    const application = await JobApplication.findOne({
-      _id: req.params.id,
-      candidate: req.user._id,
-    });
-
-    if (!application) return next(new HTTPError(404, "Application not found"));
-
-    if (application.matchingStatus !== "failed") {
-      return next(new HTTPError(400, "Only failed application matching can be retried"));
-    }
-
-    const uploadedCV = req.files?.CV?.[0];
-    const retryUpdate = {
-      matchingStatus: "pending",
-      matchingError: "",
-      parsedResume: null,
-      matchScore: null,
-      matchedAgainstJobVersion: null,
-      aiEvaluation: {
-        strengths: [],
-        weaknesses: [],
-        summary: "",
-        recommendation: "",
-        generatedAt: null,
-      },
-    };
-
-    if (uploadedCV) {
-      retryUpdate.CV = await uploadToSupabase(
-        uploadedCV.buffer,
-        uploadedCV.mimetype,
-        "applications/cvs",
-      );
-    }
-
-    await JobApplication.findByIdAndUpdate(application._id, retryUpdate);
-    await calculateApplicationMatch(application._id, { uploadedCV });
-
-    const retriedApplication = await JobApplication.findById(application._id)
-      .populate({
-        path: "job",
-        populate: [recruiterPopulate, categoryPopulate],
-      })
-      .populate({
-        path: "candidate",
-        select: "name email role profile_image CV",
-      })
-      .populate("parsedResume");
-
-    return res.status(200).json({
-      message: "Application parsing and matching retried successfully",
-      application: serializeApplicationForCandidate(retriedApplication),
-    });
-  } catch (err) {
-    next(err);
-  }
-};
 
 export const analyzeTopJobCandidates = async (req, res, next) => {
   try {
@@ -646,6 +527,56 @@ export const analyzeTopJobCandidates = async (req, res, next) => {
         return applicationObject;
       }),
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// status change (Admin)
+export const adminUpdateJobStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+
+    const job = await Job.findById(req.params.id);
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+    job.status = status;
+    await job.save();
+
+    const populatedJob = await Job.findById(job._id)
+      .populate(recruiterPopulate)
+      .populate(categoryPopulate);
+
+    return res.status(200).json({
+      message: "Job status updated successfully",
+      job: sanitizeJob(populatedJob),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// delete any job by admin
+export const adminDeleteJob = async (req, res, next) => {
+  try {
+    const job = await Job.findById(req.params.id)
+      .populate(recruiterPopulate)
+      .populate(categoryPopulate);
+
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+    await JobApplication.updateMany(
+      { job: job._id },
+      {
+        status: JOB_DELETED_APPLICATION_STATUS,
+        jobSnapshot: createJobSnapshot(job),
+      },
+    );
+
+    await job.deleteOne();
+
+    return res.status(200).json({ message: "Job deleted successfully by admin" });
   } catch (err) {
     next(err);
   }

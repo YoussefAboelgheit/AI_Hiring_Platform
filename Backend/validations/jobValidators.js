@@ -181,3 +181,11 @@ export const applyToJobValidator = [
       return true;
     }),
 ];
+
+//job status
+
+export const updateJobStatusValidator = [
+  body("status")
+    .notEmpty().withMessage("Status is required")
+    .isIn(JOB_STATUSES).withMessage("Status must be Open, Closed, or Drafted"),
+];
