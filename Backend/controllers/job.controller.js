@@ -383,3 +383,41 @@ export const applyToJob = async (req, res, next) => {
     next(err);
   }
 };
+
+// status change (Admin)
+
+export const adminUpdateJobStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+
+    const job = await Job.findById(req.params.id);
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+    job.status = status;
+    await job.save();
+
+    const populatedJob = await Job.findById(job._id)
+      .populate(recruiterPopulate)
+      .populate(categoryPopulate);
+
+    return res.status(200).json({
+      message: "Job status updated successfully",
+      job: populatedJob,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+//delet any job by admin
+export const adminDeleteJob = async (req, res, next) => {
+  try {
+    const job = await Job.findById(req.params.id);
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+    await job.deleteOne();
+
+    return res.status(200).json({ message: "Job deleted successfully by admin" });
+  } catch (err) {
+    next(err);
+  }
+};
