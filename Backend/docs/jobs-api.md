@@ -36,8 +36,7 @@ POST   /api/jobs/applications/:id/retry //For Candidate
 GET    /api/jobs/hr/my-jobs/applications //For HR/Company
 GET    /api/jobs/:id/applications //For HR/Company
 GET    /api/jobs/:id/applications/top-analysis //For HR/Company
-POST   /api/jobs/:id/enrichment/rebuild //For HR/Company
-POST   /api/jobs/:id/applications/rebuild-match //For HR/Company
+GET    /api/jobs/:jobId/applications/:applicationId/analysis //For HR/Company
 POST   /api/jobs/:id/apply
 PATCH  /api/jobs/:id
 DELETE /api/jobs/:id
@@ -87,14 +86,10 @@ GET /api/jobs/:id/applications/top-analysis
   Requires Authorization: Bearer <hr-access-token>
   Returns AI strengths/weaknesses for the top 3 matched applications.
 
-POST /api/jobs/:id/enrichment/rebuild
+GET /api/jobs/:jobId/applications/:applicationId/analysis
   Requires Authorization: Bearer <hr-access-token>
-  Re-parses the job, regenerates the job embedding, and recalculates application match scores.
-
-POST /api/jobs/:id/applications/rebuild-match
-  Requires Authorization: Bearer <hr-access-token>
-  Recalculates all application match scores for that job using the existing parsed CV data.
-  Use it as a manual repair endpoint if matching results did not refresh after rebuilding the job.
+  Returns AI strengths/weaknesses for one specific application on a job.
+  The HR must be the creator of that job.
 
 POST /api/jobs/applications/:id/retry
   Requires Authorization: Bearer <candidate-access-token>
@@ -609,22 +604,6 @@ Response:
 }
 ```
 
-### Rebuild Job Matching
-
-```http
-POST http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/enrichment/rebuild
-Authorization: Bearer <same-creator-hr-access-token>
-```
-
-### Rebuild All Application Matches For Job
-
-Uses the existing parsed resumes/embeddings and the latest job embedding. It does not upload or re-parse CV files.
-
-```http
-POST http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/applications/rebuild-match
-Authorization: Bearer <same-creator-hr-access-token>
-```
-
 ### Analyze Top 3 Candidates
 
 ```http
@@ -651,6 +630,37 @@ Response:
       }
     }
   ]
+}
+```
+
+### Analyze One Application
+
+Use the job ID and the job application ID. This verifies that the application belongs to that job and that the logged-in HR owns the job.
+
+```http
+GET http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/applications/665fc28a8e7b2a3a11000004/analysis
+Authorization: Bearer <same-creator-hr-access-token>
+```
+
+Response:
+
+```json
+{
+  "job": {
+    "_id": "665fc28a8e7b2a3a11000002",
+    "title": "Frontend Developer"
+  },
+  "application": {
+    "_id": "665fc28a8e7b2a3a11000004",
+    "matchScore": 88.73,
+    "aiEvaluation": {
+      "strengths": ["Strong React experience"],
+      "weaknesses": ["Limited backend exposure"],
+      "summary": "Good frontend fit for this role.",
+      "recommendation": "Shortlist for screening.",
+      "generatedAt": "2026-06-29T10:00:00.000Z"
+    }
+  }
 }
 ```
 
