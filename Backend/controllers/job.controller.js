@@ -9,9 +9,8 @@ import { uploadToSupabase } from "../util/supabaseClient.js";
 import { analyzeTopCandidatesForJob } from "../services/candidateAnalysis.service.js";
 import { calculateApplicationMatch } from "../services/jobApplicationMatching.service.js";
 import {
-  enrichJob,
   publishJob,
-  recalculateJobApplicationMatches,
+  publishExpiredDraftJobs,
 } from "../services/jobEnrichment.service.js";
 
 const recruiterPopulate = {
@@ -31,7 +30,6 @@ const allowedJobFields = [
   "workplace",
   "jobType",
   "skills",
-  "status",
   "requirements",
   "location",
   "applicationEnd",
@@ -133,6 +131,12 @@ export const createJob = async (req, res, next) => {
       embeddingStatus: "pending",
     });
 
+    setTimeout(() => {
+      publishExpiredDraftJobs({ jobId: job._id }).catch((err) =>
+        console.error("Scheduled job publishing failed:", err?.message || err),
+      );
+    }, Math.max(0, job.editableUntil.getTime() - Date.now()));
+
     const populatedJob = await Job.findById(job._id)
       .populate(recruiterPopulate)
       .populate(categoryPopulate);
@@ -148,6 +152,8 @@ export const createJob = async (req, res, next) => {
 
 export const getAllJobs = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs();
+
     let baseFilter = { isPublished: true, status: "ACTIVE" };
 
     if (req.user?.role === "admin") {
@@ -174,6 +180,8 @@ export const getAllJobs = async (req, res, next) => {
 
 export const getJobById = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs({ jobId: req.params.id });
+
     const job = await Job.findById(req.params.id)
       .populate(recruiterPopulate)
       .populate(categoryPopulate);
@@ -200,6 +208,8 @@ export const getJobById = async (req, res, next) => {
 //@route GET /api/jobs/:id/enrichment
 export const getJobEnrichment = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs({ jobId: req.params.id });
+
     const job = await Job.findById(req.params.id).select(
       "parsedJob embeddingId embeddingProvider embeddingStatus embeddingVersion lastEmbeddedAt isEdited editedAt",
     );
@@ -223,6 +233,8 @@ export const getJobEnrichment = async (req, res, next) => {
 
 export const getJobsByCategory = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs();
+
     const categoryName = req.params.category;
     const categoryRegex = new RegExp(`^${escapeRegExp(categoryName)}$`, "i");
     const categories = await Category.find({ name: categoryRegex }).select(
@@ -314,6 +326,8 @@ export const getMyApplicationById = async (req, res, next) => {
 
 export const getJobApplicationsForHr = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs({ jobId: req.params.id });
+
     const job = await Job.findById(req.params.id)
       .populate(recruiterPopulate)
       .populate(categoryPopulate);
@@ -349,6 +363,8 @@ export const getJobApplicationsForHr = async (req, res, next) => {
 
 export const getMyJobsWithApplications = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs();
+
     const jobs = await Job.find({ recruiter: req.user._id })
       .populate(recruiterPopulate)
       .populate(categoryPopulate)
@@ -396,18 +412,20 @@ export const getMyJobsWithApplications = async (req, res, next) => {
 
 export const updateJob = async (req, res, next) => {
   try {
-    if (req.job.status === "DRAFT") {
-      if (req.job.editableUntil && new Date() > req.job.editableUntil) {
-        await publishJob(req.job);
-        return next(
-          new HTTPError(
-            400,
-            "The 5-minute draft editing period has expired. The job has been published.",
-          ),
-        );
-      }
+    if (req.job.status === "DRAFT" && req.job.editableUntil && new Date() > req.job.editableUntil) {
+      await publishJob(req.job);
+      return next(
+        new HTTPError(
+          400,
+          "The 5-minute draft editing period has expired. The job has been published.",
+        ),
+      );
+    }
 
+    if (req.job.status === "DRAFT") {
       Object.assign(req.job, pickJobFields(req.body));
+      req.job.isEdited = true;
+      req.job.editedAt = new Date();
       await req.job.save();
 
       const job = await Job.findById(req.job._id)
@@ -420,24 +438,12 @@ export const updateJob = async (req, res, next) => {
       });
     }
 
-    Object.assign(req.job, pickJobFields(req.body));
-    req.job.embeddingStatus = "pending";
-    req.job.isEdited = true;
-    req.job.editedAt = new Date();
-    await req.job.save();
-
-    void enrichJob(req.job, { recalculateApplications: true }).catch((err) =>
-      console.error("Auto job enrichment failed:", err?.message || err),
+    return next(
+      new HTTPError(
+        403,
+        "Published jobs cannot be edited by HR.",
+      ),
     );
-
-    const job = await Job.findById(req.job._id)
-      .populate(recruiterPopulate)
-      .populate(categoryPopulate);
-
-    return res.status(200).json({
-      message: "Job updated successfully",
-      job: sanitizeJob(job),
-    });
   } catch (err) {
     next(err);
   }
@@ -467,6 +473,8 @@ export const deleteJob = async (req, res, next) => {
 
 export const applyToJob = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs({ jobId: req.params.id });
+
     const job = await Job.findById(req.params.id);
     if (!job) return next(new HTTPError(404, "Job not found"));
 
@@ -580,6 +588,8 @@ export const applyToJob = async (req, res, next) => {
 
 export const analyzeTopJobCandidates = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs({ jobId: req.params.id });
+
     const job = await Job.findById(req.params.id);
     if (!job) return next(new HTTPError(404, "Job not found"));
 

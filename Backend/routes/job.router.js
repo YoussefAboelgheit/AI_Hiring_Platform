@@ -89,13 +89,6 @@ router.get(
   validateResults,
   getJobApplicationsForHr
 );
-router.post(
-  "/:id/enrichment/rebuild",
-  authMW,
-  authorize("hr", "admin"),
-  idParamValidator,
-  validateResults
-);
 router.get(
   "/:id/applications/top-analysis",
   authMW,
@@ -103,13 +96,6 @@ router.get(
   idParamValidator,
   validateResults,
   analyzeTopJobCandidates
-);
-router.post(
-  "/:id/applications/rebuild-match",
-  authMW,
-  authorize("hr", "admin"),
-  idParamValidator,
-  validateResults
 );
 router.post(
   "/:id/apply",

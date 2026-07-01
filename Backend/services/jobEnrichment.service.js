@@ -113,11 +113,13 @@ export const parseAndStoreJob = async (job) => {
 
 export const publishJob = async (job) => {
   try {
+    const freshJob = await Job.findById(job._id);
+    if (!freshJob || freshJob.status !== "DRAFT") return;
+
     const parsedJob = await parseJobWithAI(job);
     const embedding = await generateJobEmbedding(parsedJob);
 
-    const freshJob = await Job.findById(job._id).select("embeddingVersion");
-    const embeddingVersion = (freshJob?.embeddingVersion || 0) + 1;
+    const embeddingVersion = (freshJob.embeddingVersion || 0) + 1;
 
     await Job.findByIdAndUpdate(job._id, {
       parsedJob,
@@ -144,4 +146,16 @@ export const publishJob = async (job) => {
       editableUntil: null,
     });
   }
+};
+
+export const publishExpiredDraftJobs = async ({ jobId } = {}) => {
+  const filter = {
+    status: "DRAFT",
+    editableUntil: { $ne: null, $lte: new Date() },
+  };
+
+  if (jobId) filter._id = jobId;
+
+  const jobs = await Job.find(filter);
+  await Promise.all(jobs.map((job) => publishJob(job)));
 };

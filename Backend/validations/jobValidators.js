@@ -96,11 +96,6 @@ export const createJobValidator = [
     .notEmpty()
     .withMessage("Skill cannot be empty"),
 
-  body("status")
-    .optional()
-    .isIn(JOB_STATUSES)
-    .withMessage("Status must be Open, Closed, Drafted, DRAFT, or ACTIVE"),
-
   optionalString("requirements", "Requirements"),
   optionalString("location", "Location"),
 
@@ -150,10 +145,6 @@ export const updateJobValidator = [
     .isString().withMessage("Each skill must be a string")
     .trim()
     .notEmpty().withMessage("Skill cannot be empty"),
-
-  body("status")
-    .optional()
-    .isIn(JOB_STATUSES).withMessage("Status must be Open, Closed, Drafted, DRAFT, or ACTIVE"),
 
   optionalString("requirements", "Requirements"),
   optionalString("location", "Location"),
