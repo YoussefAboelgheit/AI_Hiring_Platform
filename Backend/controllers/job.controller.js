@@ -124,7 +124,7 @@ export const createJob = async (req, res, next) => {
     const job = await Job.create({
       ...pickJobFields(req.body),
       recruiter: req.user._id,
-      status: "DRAFT",
+      status: "Drafted",
       isPublished: false,
       acceptApplications: false,
       editableUntil: new Date(Date.now() + 5 * 60 * 1000),
@@ -154,12 +154,12 @@ export const getAllJobs = async (req, res, next) => {
   try {
     await publishExpiredDraftJobs();
 
-    let baseFilter = { isPublished: true, status: "ACTIVE" };
+    let baseFilter = { isPublished: true, status: "Open" };
 
     if (req.user?.role === "admin") {
       baseFilter = {};
-    } else if (req.user?.role === "hr" && req.query.status === "DRAFT") {
-      baseFilter = { recruiter: req.user._id, status: "DRAFT" };
+    } else if (req.user?.role === "hr" && req.query.status === "Drafted") {
+      baseFilter = { recruiter: req.user._id, status: "Drafted" };
     }
 
     const features = new APIFeatures(Job.find(baseFilter), req.query)
@@ -193,7 +193,7 @@ export const getJobById = async (req, res, next) => {
       (req.user.role === "admin" ||
         job.recruiter._id.toString() === req.user._id.toString());
 
-    if (!isOwner && (!job.isPublished || job.status !== "ACTIVE")) {
+    if (!isOwner && (!job.isPublished || job.status !== "Open")) {
       return next(new HTTPError(404, "Job not found"));
     }
 
@@ -248,7 +248,7 @@ export const getJobsByCategory = async (req, res, next) => {
     let baseFilter = {
       category: { $in: categories.map((c) => c._id) },
       isPublished: true,
-      status: "ACTIVE",
+      status: "Open",
     };
 
     if (req.user?.role === "admin") {
@@ -260,12 +260,12 @@ export const getJobsByCategory = async (req, res, next) => {
         category: { $in: categories.map((c) => c._id) },
       };
 
-      if (req.query.status === "DRAFT") {
+      if (req.query.status === "Drafted") {
         hrFilter.recruiter = req.user._id;
-        hrFilter.status = "DRAFT";
+        hrFilter.status = "Drafted";
       } else {
         hrFilter.isPublished = true;
-        hrFilter.status = "ACTIVE";
+        hrFilter.status = "Open";
       }
 
       baseFilter = hrFilter;
@@ -412,7 +412,7 @@ export const getMyJobsWithApplications = async (req, res, next) => {
 
 export const updateJob = async (req, res, next) => {
   try {
-    if (req.job.status === "DRAFT" && req.job.editableUntil && new Date() > req.job.editableUntil) {
+    if (req.job.status === "Drafted" && req.job.editableUntil && new Date() > req.job.editableUntil) {
       await publishJob(req.job);
       return next(
         new HTTPError(
@@ -422,7 +422,7 @@ export const updateJob = async (req, res, next) => {
       );
     }
 
-    if (req.job.status === "DRAFT") {
+    if (req.job.status === "Drafted") {
       Object.assign(req.job, pickJobFields(req.body));
       req.job.isEdited = true;
       req.job.editedAt = new Date();
@@ -484,7 +484,7 @@ export const applyToJob = async (req, res, next) => {
       );
     }
 
-    if (job.status !== "Open" && job.status !== "ACTIVE") {
+    if (job.status !== "Open") {
       return next(new HTTPError(400, "You can only apply to open jobs"));
     }
 

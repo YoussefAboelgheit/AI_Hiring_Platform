@@ -178,5 +178,5 @@ export const applyToJobValidator = [
 export const updateJobStatusValidator = [
   body("status")
     .notEmpty().withMessage("Status is required")
-    .isIn(JOB_STATUSES).withMessage("Status must be Open, Closed, Drafted, DRAFT, or ACTIVE"),
+    .isIn(JOB_STATUSES).withMessage("Status must be Open, Closed, or Drafted"),
 ];

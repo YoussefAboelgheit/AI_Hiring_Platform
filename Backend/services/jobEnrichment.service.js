@@ -114,7 +114,7 @@ export const parseAndStoreJob = async (job) => {
 export const publishJob = async (job) => {
   try {
     const freshJob = await Job.findById(job._id);
-    if (!freshJob || freshJob.status !== "DRAFT") return;
+    if (!freshJob || freshJob.status !== "Drafted") return;
 
     const parsedJob = await parseJobWithAI(job);
     const embedding = await generateJobEmbedding(parsedJob);
@@ -129,7 +129,7 @@ export const publishJob = async (job) => {
       embeddingStatus: "ready",
       embeddingVersion,
       lastEmbeddedAt: new Date(),
-      status: "ACTIVE",
+      status: "Open",
       isPublished: true,
       acceptApplications: true,
       editableUntil: null,
@@ -140,7 +140,7 @@ export const publishJob = async (job) => {
     await Job.findByIdAndUpdate(job._id, {
       embeddingStatus: "failed",
       lastEmbeddedAt: new Date(),
-      status: "ACTIVE",
+      status: "Open",
       isPublished: true,
       acceptApplications: true,
       editableUntil: null,
@@ -150,7 +150,7 @@ export const publishJob = async (job) => {
 
 export const publishExpiredDraftJobs = async ({ jobId } = {}) => {
   const filter = {
-    status: "DRAFT",
+    status: "Drafted",
     editableUntil: { $ne: null, $lte: new Date() },
   };
 
