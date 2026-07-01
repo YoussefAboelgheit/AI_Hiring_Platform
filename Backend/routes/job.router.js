@@ -12,9 +12,6 @@ import {
   getMyApplicationById,
   getMyAppliedJobs,
   getJobEnrichment,
-  rebuildApplicationMatch,
-  rebuildJobEnrichment,
-  retryMyApplicationMatch,
   updateJob,
   adminUpdateJobStatus,   // admin
   adminDeleteJob, // admin
@@ -81,8 +78,7 @@ router.post(
   authorize("candidate"),
   uploadCV,
   idParamValidator,
-  validateResults,
-  retryMyApplicationMatch
+  validateResults
 );
 router.get(
   "/:id/applications",
@@ -97,8 +93,7 @@ router.post(
   authMW,
   authorize("hr", "admin"),
   idParamValidator,
-  validateResults,
-  rebuildJobEnrichment
+  validateResults
 );
 router.get(
   "/:id/applications/top-analysis",
@@ -113,8 +108,7 @@ router.post(
   authMW,
   authorize("hr", "admin"),
   idParamValidator,
-  validateResults,
-  rebuildApplicationMatch
+  validateResults
 );
 router.post(
   "/:id/apply",
