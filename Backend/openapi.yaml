@@ -18,15 +18,18 @@ paths:
       tags:
         - Jobs
       summary: Get all jobs
-      description: Public endpoint. Supports filtering, regex search, sorting, pagination, and field limiting.
+      description: |
+        Public endpoint. Returns only published ACTIVE jobs for applicants.
+        HR users can retrieve their own DRAFT jobs by passing `?status=DRAFT`.
+        Supports filtering, regex search, sorting, pagination, and field limiting.
       parameters:
         - name: status
           in: query
           description: Filter jobs by status.
           schema:
             type: string
-            enum: [Open, Closed, Drafted]
-          example: Open
+            enum: [Open, Closed, Drafted, DRAFT, ACTIVE]
+          example: ACTIVE
         - name: workplace
           in: query
           description: Filter jobs by workplace.
@@ -179,8 +182,12 @@ paths:
     post:
       tags:
         - Jobs
-      summary: Create a job
-      description: Requires an HR access token.
+      summary: Create a job draft
+      description: |
+        Requires an HR access token.
+        Creates a job as a DRAFT. The job is hidden from applicants and does not accept applications.
+        AI processing (parsing + embedding) is delayed until the 5-minute draft period expires.
+        The job can be edited unlimited times during the draft period.
       security:
         - bearerAuth: []
       requestBody:
@@ -196,13 +203,12 @@ paths:
               workplace: Remote
               jobType: Full Time
               skills: [React, JavaScript, CSS]
-              status: Open
               requirements: 2+ years of frontend experience.
               location: Cairo, Egypt
               applicationEnd: 2026-08-31
       responses:
         "201":
-          description: Job created successfully.
+          description: Job draft created successfully.
           content:
             application/json:
               schema:
@@ -212,6 +218,33 @@ paths:
                     type: string
                   job:
                     $ref: "#/components/schemas/Job"
+              example:
+                message: "Job created successfully."
+                job:
+                  _id: 665fc28a8e7b2a3a11000002
+                  recruiter:
+                    _id: 665fc28a8e7b2a3a11000003
+                    name: Acme HR
+                    email: hr@acme.com
+                    role: hr
+                  category:
+                    _id: 665fc28a8e7b2a3a11000001
+                    name: Engineering
+                  title: Frontend Developer
+                  description: Build responsive web interfaces.
+                  workplace: Remote
+                  jobType: Full Time
+                  skills: [React, JavaScript, CSS]
+                  status: DRAFT
+                  requirements: 2+ years of frontend experience.
+                  location: Cairo, Egypt
+                  applicationEnd: 2026-08-31T00:00:00.000Z
+                  editableUntil: 2026-06-24T10:05:00.000Z
+                  isPublished: false
+                  acceptApplications: false
+                  embeddingStatus: pending
+                  createdAt: 2026-06-24T10:00:00.000Z
+                  updatedAt: 2026-06-24T10:00:00.000Z
         "401":
           description: Missing or invalid token.
         "403":
@@ -222,6 +255,9 @@ paths:
       tags:
         - Jobs
       summary: Get job by ID
+      description: |
+        Returns the full job details. Draft jobs are only visible to the owning HR or admin.
+        Applicants and unauthenticated users receive 404 for draft jobs.
       parameters:
         - $ref: "#/components/parameters/JobId"
       responses:
@@ -235,12 +271,17 @@ paths:
                   job:
                     $ref: "#/components/schemas/Job"
         "404":
-          description: Job not found.
+          description: Job not found or access denied for draft jobs.
     patch:
       tags:
         - Jobs
       summary: Update a job
-      description: Requires an HR access token. Only the creator HR can update the job.
+      description: |
+        Requires an HR access token. Only the creator HR can update the job.
+        If the job is in DRAFT status, updates are allowed only within the 5-minute draft window.
+        After the draft window expires, the job is automatically published (parsed + embedded)
+        and further updates follow the standard ACTIVE job update logic.
+        Draft updates do NOT trigger AI processing.
       security:
         - bearerAuth: []
       parameters:
@@ -252,11 +293,22 @@ paths:
             schema:
               $ref: "#/components/schemas/UpdateJobInput"
             example:
-              status: Closed
-              applicationEnd: 2026-07-15
+              title: Senior Frontend Developer
+              requirements: 5+ years of frontend experience.
       responses:
         "200":
           description: Job updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  job:
+                    $ref: "#/components/schemas/Job"
+        "400":
+          description: The 5-minute draft editing period has expired. The job has been published.
         "401":
           description: Missing or invalid token.
         "403":
@@ -390,7 +442,7 @@ components:
             type: string
         status:
           type: string
-          enum: [Open, Closed, Drafted]
+          enum: [Open, Closed, Drafted, DRAFT, ACTIVE]
         requirements:
           type: string
         location:
@@ -399,6 +451,21 @@ components:
           type: string
           format: date-time
           nullable: true
+        editableUntil:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when the 5-minute draft editing window expires.
+        isPublished:
+          type: boolean
+          description: Whether the job is publicly visible.
+        acceptApplications:
+          type: boolean
+          description: Whether the job currently accepts applications.
+        embeddingStatus:
+          type: string
+          enum: [pending, ready, failed]
+          description: Status of the AI embedding generation.
         createdAt:
           type: string
           format: date-time
@@ -433,10 +500,6 @@ components:
           minItems: 1
           items:
             type: string
-        status:
-          type: string
-          enum: [Open, Closed, Drafted]
-          default: Drafted
         requirements:
           type: string
         location:
@@ -445,6 +508,7 @@ components:
           type: string
           format: date
           nullable: true
+      description: Creates a job as DRAFT. Status is always set to DRAFT regardless of input.
 
     UpdateJobInput:
       type: object
@@ -467,9 +531,6 @@ components:
           minItems: 1
           items:
             type: string
-        status:
-          type: string
-          enum: [Open, Closed, Drafted]
         requirements:
           type: string
         location:

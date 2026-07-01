@@ -19,6 +19,7 @@ import {
 import authMW from "../middlewares/authMW.js";
 import { authorize } from "../middlewares/authorizeMW.js";
 import jobOwnershipMW from "../middlewares/jobOwnershipMW.js";
+import optionalAuthMW from "../middlewares/optionalAuthMW.js";
 import { uploadCV } from "../middlewares/uploadMW.js";
 import { idParamValidator } from "../validations/paramValidators.js";
 import {
@@ -55,8 +56,8 @@ router.delete(
 
 //hr
 
-router.get("/", getAllJobs);
-router.get("/category/:category", categoryNameParamValidator, validateResults, getJobsByCategory);
+router.get("/", optionalAuthMW, getAllJobs);
+router.get("/category/:category", optionalAuthMW, categoryNameParamValidator, validateResults, getJobsByCategory);
 router.get("/applied/me", authMW, authorize("candidate"), getMyAppliedJobs);
 router.get(
   "/hr/my-jobs/applications",
@@ -120,8 +121,8 @@ router.post(
   validateResults,
   applyToJob
 );
-router.get("/:id/enrichment", idParamValidator, validateResults, getJobEnrichment);
-router.get("/:id", idParamValidator, validateResults, getJobById);
+router.get("/:id/enrichment", optionalAuthMW, idParamValidator, validateResults, getJobEnrichment);
+router.get("/:id", optionalAuthMW, idParamValidator, validateResults, getJobById);
 
 router.post("/", authMW, authorize("hr"), createJobValidator, validateResults, createJob);
 router.patch(

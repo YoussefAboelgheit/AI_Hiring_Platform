@@ -110,3 +110,38 @@ export const parseAndStoreJob = async (job) => {
   });
   return parsedJob;
 };
+
+export const publishJob = async (job) => {
+  try {
+    const parsedJob = await parseJobWithAI(job);
+    const embedding = await generateJobEmbedding(parsedJob);
+
+    const freshJob = await Job.findById(job._id).select("embeddingVersion");
+    const embeddingVersion = (freshJob?.embeddingVersion || 0) + 1;
+
+    await Job.findByIdAndUpdate(job._id, {
+      parsedJob,
+      embedding,
+      embeddingId: null,
+      embeddingProvider: getEmbeddingProvider(),
+      embeddingStatus: "ready",
+      embeddingVersion,
+      lastEmbeddedAt: new Date(),
+      status: "ACTIVE",
+      isPublished: true,
+      acceptApplications: true,
+      editableUntil: null,
+    });
+  } catch (error) {
+    console.error("Job publishing pipeline failed:", error?.message ?? error);
+
+    await Job.findByIdAndUpdate(job._id, {
+      embeddingStatus: "failed",
+      lastEmbeddedAt: new Date(),
+      status: "ACTIVE",
+      isPublished: true,
+      acceptApplications: true,
+      editableUntil: null,
+    });
+  }
+};

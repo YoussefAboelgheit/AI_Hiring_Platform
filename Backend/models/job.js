@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 export const WORKPLACES = ["Onsite", "Hybrid", "Remote"];
 export const JOB_TYPES = ["Intern", "Full Time", "Part Time"];
-export const JOB_STATUSES = ["Open", "Closed", "Drafted"];
+export const JOB_STATUSES = ["Open", "Closed", "Drafted", "DRAFT", "ACTIVE"];
 
 const jobSchema = new mongoose.Schema(
   {
@@ -57,9 +57,21 @@ const jobSchema = new mongoose.Schema(
       type: String,
       enum: {
         values: JOB_STATUSES,
-        message: "Status must be Open, Closed, or Drafted",
+        message: "Status must be Open, Closed, Drafted, DRAFT, or ACTIVE",
       },
-      default: "Drafted",
+      default: "DRAFT",
+    },
+    editableUntil: {
+      type: Date,
+      default: null,
+    },
+    isPublished: {
+      type: Boolean,
+      default: false,
+    },
+    acceptApplications: {
+      type: Boolean,
+      default: false,
     },
     requirements: {
       type: String,
