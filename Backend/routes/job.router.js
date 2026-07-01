@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   applyToJob,
+  analyzeJobApplicationForHr,
   analyzeTopJobCandidates,
   createJob,
   deleteJob,
@@ -12,6 +13,7 @@ import {
   getMyApplicationById,
   getMyAppliedJobs,
   getJobEnrichment,
+  retryMyApplicationMatch,
   updateJob,
   adminUpdateJobStatus,   // admin
   adminDeleteJob, // admin
@@ -20,7 +22,10 @@ import authMW from "../middlewares/authMW.js";
 import { authorize } from "../middlewares/authorizeMW.js";
 import jobOwnershipMW from "../middlewares/jobOwnershipMW.js";
 import { uploadCV } from "../middlewares/uploadMW.js";
-import { idParamValidator } from "../validations/paramValidators.js";
+import {
+  idParamValidator,
+  jobApplicationParamsValidator,
+} from "../validations/paramValidators.js";
 import {
   applyToJobValidator,
   categoryNameParamValidator,
@@ -78,7 +83,16 @@ router.post(
   authorize("candidate"),
   uploadCV,
   idParamValidator,
-  validateResults
+  validateResults,
+  retryMyApplicationMatch
+);
+router.get(
+  "/:jobId/applications/:applicationId/analysis",
+  authMW,
+  authorize("hr", "admin"),
+  jobApplicationParamsValidator,
+  validateResults,
+  analyzeJobApplicationForHr
 );
 router.get(
   "/:id/applications",
@@ -88,13 +102,6 @@ router.get(
   validateResults,
   getJobApplicationsForHr
 );
-router.post(
-  "/:id/enrichment/rebuild",
-  authMW,
-  authorize("hr", "admin"),
-  idParamValidator,
-  validateResults
-);
 router.get(
   "/:id/applications/top-analysis",
   authMW,
@@ -102,13 +109,6 @@ router.get(
   idParamValidator,
   validateResults,
   analyzeTopJobCandidates
-);
-router.post(
-  "/:id/applications/rebuild-match",
-  authMW,
-  authorize("hr", "admin"),
-  idParamValidator,
-  validateResults
 );
 router.post(
   "/:id/apply",

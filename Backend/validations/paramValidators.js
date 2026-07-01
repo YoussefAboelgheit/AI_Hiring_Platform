@@ -20,6 +20,15 @@ export const idParamValidator = [
     .isMongoId().withMessage("Invalid ID format - must be a valid MongoDB ObjectId"),
 ];
 
+export const jobApplicationParamsValidator = [
+  param("jobId")
+    .notEmpty().withMessage("jobId param is required")
+    .isMongoId().withMessage("Invalid jobId format - must be a valid MongoDB ObjectId"),
+  param("applicationId")
+    .notEmpty().withMessage("applicationId param is required")
+    .isMongoId().withMessage("Invalid applicationId format - must be a valid MongoDB ObjectId"),
+];
+
 
 export const courseIdParamValidator = [
   param("courseId")

@@ -55,6 +55,50 @@ Match score:
 ${application.matchScore}
 `;
 
+const analyzeApplication = async ({ job, application }) => {
+  if (
+    application.aiEvaluation?.generatedAt &&
+    application.aiEvaluation?.summary
+  ) {
+    return application;
+  }
+
+  const prompt = buildCandidateAnalysisPrompt({ job, application });
+  const rawText = await callGemini(prompt);
+  const analysis = normalizeAnalysis(parseJson(rawText));
+
+  return await JobApplication.findByIdAndUpdate(
+    application._id,
+    { aiEvaluation: analysis },
+    { new: true },
+  )
+    .populate({ path: "candidate", select: "name email role profile_image CV bio" })
+    .populate("parsedResume");
+};
+
+export const analyzeJobApplication = async ({ jobId, applicationId }) => {
+  const job = await Job.findById(jobId);
+  if (!job) throw new HTTPError(404, "Job not found");
+
+  const application = await JobApplication.findOne({
+    _id: applicationId,
+    job: jobId,
+    matchingStatus: "completed",
+    matchScore: { $ne: null },
+  })
+    .populate({ path: "candidate", select: "name email role profile_image CV bio" })
+    .populate("parsedResume");
+
+  if (!application) {
+    throw new HTTPError(
+      404,
+      "Completed application match not found for this job",
+    );
+  }
+
+  return await analyzeApplication({ job, application });
+};
+
 export const analyzeTopCandidatesForJob = async (jobId, limit = 3) => {
   const job = await Job.findById(jobId);
   if (!job) throw new HTTPError(404, "Job not found");
@@ -72,27 +116,7 @@ export const analyzeTopCandidatesForJob = async (jobId, limit = 3) => {
   const analyzedApplications = [];
 
   for (const application of applications) {
-    if (
-      application.aiEvaluation?.generatedAt &&
-      application.aiEvaluation?.summary
-    ) {
-      analyzedApplications.push(application);
-      continue;
-    }
-
-    const prompt = buildCandidateAnalysisPrompt({ job, application });
-    const rawText = await callGemini(prompt);
-    const analysis = normalizeAnalysis(parseJson(rawText));
-
-    const updatedApplication = await JobApplication.findByIdAndUpdate(
-      application._id,
-      { aiEvaluation: analysis },
-      { new: true },
-    )
-      .populate({ path: "candidate", select: "name email role profile_image CV bio" })
-      .populate("parsedResume");
-
-    analyzedApplications.push(updatedApplication);
+    analyzedApplications.push(await analyzeApplication({ job, application }));
   }
 
   return analyzedApplications;
