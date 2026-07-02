@@ -61,6 +61,18 @@ const jobSchema = new mongoose.Schema(
       },
       default: "Drafted",
     },
+    editableUntil: {
+      type: Date,
+      default: null,
+    },
+    isPublished: {
+      type: Boolean,
+      default: false,
+    },
+    acceptApplications: {
+      type: Boolean,
+      default: false,
+    },
     requirements: {
       type: String,
       trim: true,

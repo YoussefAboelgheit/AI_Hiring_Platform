@@ -48,11 +48,15 @@ DELETE /api/jobs/:id
 POST /api/jobs
   Requires Authorization: Bearer <hr-access-token>
   Only users with role "hr" can create jobs.
+  New jobs are created as DRAFT for 5 minutes.
+  Draft jobs are not published and cannot receive applications.
+  After 5 minutes, they are automatically published as ACTIVE.
 
 PATCH /api/jobs/:id
 DELETE /api/jobs/:id
   Requires Authorization: Bearer <hr-access-token>
-  Only the HR user stored in job.recruiter can update the job.
+  Only the HR user stored in job.recruiter can update the job during the 5-minute draft period.
+  After publishing, the HR can no longer edit the job.
   The HR user stored in job.recruiter or an admin can delete the job.
   When a job is deleted, related job applications are kept with status "Job has been deleted".
   Candidate application responses still include the deleted job details from a saved snapshot.
@@ -87,13 +91,12 @@ GET /api/jobs/:id/applications/top-analysis
   Returns AI strengths/weaknesses for the top 3 matched applications.
 
 GET /api/jobs/:jobId/applications/:applicationId/analysis
-  Requires Authorization: Bearer <hr-access-token>
-  Returns AI strengths/weaknesses for one specific application on a job.
   The HR must be the creator of that job.
+
+
 
 POST /api/jobs/applications/:id/retry
   Requires Authorization: Bearer <candidate-access-token>
-  Retries parsing/matching for a failed application.
   Optional form-data field: CV. If omitted, the existing application CV URL is downloaded and parsed again.
 ```
 
@@ -110,13 +113,14 @@ CV file/profile CV
   -> matchScore saved on JobApplication
 ```
 
-When HR edits a job:
+When HR creates/edits a job:
 
 ```text
-Job is marked isEdited=true and editedAt=<date>
-Job parsing/embedding is rebuilt
-Existing applications are marked matchingStatus=pending
-Application match scores are recalculated against the new job embedding
+Job is created as DRAFT for 5 minutes
+Draft jobs are hidden from public job listings and cannot receive applications
+Draft edits mark isEdited=true and editedAt=<date>
+After 5 minutes, the job is published as ACTIVE and can receive applications
+Published jobs cannot be edited by HR
 ```
 
 Embedding configuration:

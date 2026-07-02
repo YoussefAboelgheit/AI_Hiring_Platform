@@ -12,7 +12,8 @@ import {
 } from "../services/candidateAnalysis.service.js";
 import { calculateApplicationMatch } from "../services/jobApplicationMatching.service.js";
 import {
-  enrichJob,
+  publishJob,
+  publishExpiredDraftJobs,
 } from "../services/jobEnrichment.service.js";
 
 const recruiterPopulate = {
@@ -32,7 +33,6 @@ const allowedJobFields = [
   "workplace",
   "jobType",
   "skills",
-  "status",
   "requirements",
   "location",
   "applicationEnd",
@@ -127,17 +127,25 @@ export const createJob = async (req, res, next) => {
     const job = await Job.create({
       ...pickJobFields(req.body),
       recruiter: req.user._id,
+      status: "Drafted",
+      isPublished: false,
+      acceptApplications: false,
+      editableUntil: new Date(Date.now() + 5 * 60 * 1000),
       embeddingStatus: "pending",
     });
 
-    await enrichJob(job);
+    setTimeout(() => {
+      publishExpiredDraftJobs({ jobId: job._id }).catch((err) =>
+        console.error("Scheduled job publishing failed:", err?.message || err),
+      );
+    }, Math.max(0, job.editableUntil.getTime() - Date.now()));
 
     const populatedJob = await Job.findById(job._id)
       .populate(recruiterPopulate)
       .populate(categoryPopulate);
 
     return res.status(201).json({
-      message: "Job created successfully",
+      message: "Job created successfully.",
       job: sanitizeJob(populatedJob),
     });
   } catch (err) {
@@ -147,7 +155,19 @@ export const createJob = async (req, res, next) => {
 
 export const getAllJobs = async (req, res, next) => {
   try {
-    const features = new APIFeatures(Job.find(), req.query)
+    await publishExpiredDraftJobs();
+
+    let baseFilter = { status: "Open" };
+
+    if (req.user?.role === "admin") {
+      baseFilter = {};
+    } else     if (req.user?.role === "hr" && req.query.status === "Drafted") {
+      baseFilter = { recruiter: req.user._id, status: "Drafted" };
+    } else if (req.user?.role === "hr" && req.query.status === "Open") {
+      baseFilter = { recruiter: req.user._id, status: "Open" };
+    }
+
+    const features = new APIFeatures(Job.find(baseFilter), req.query)
       .filter()
       .search(["title", "description", "requirements", "location", "skills"])
       .sort()
@@ -165,11 +185,22 @@ export const getAllJobs = async (req, res, next) => {
 
 export const getJobById = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs({ jobId: req.params.id });
+
     const job = await Job.findById(req.params.id)
       .populate(recruiterPopulate)
       .populate(categoryPopulate);
 
     if (!job) return next(new HTTPError(404, "Job not found"));
+
+    const isOwner =
+      req.user &&
+      (req.user.role === "admin" ||
+        job.recruiter._id.toString() === req.user._id.toString());
+
+    if (!isOwner && job.status !== "Open") {
+      return next(new HTTPError(404, "Job not found"));
+    }
 
     return res.status(200).json({ job: sanitizeJob(job) });
   } catch (err) {
@@ -182,6 +213,8 @@ export const getJobById = async (req, res, next) => {
 //@route GET /api/jobs/:id/enrichment
 export const getJobEnrichment = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs({ jobId: req.params.id });
+
     const job = await Job.findById(req.params.id).select(
       "parsedJob embeddingId embeddingProvider embeddingStatus embeddingVersion lastEmbeddedAt isEdited editedAt",
     );
@@ -205,6 +238,8 @@ export const getJobEnrichment = async (req, res, next) => {
 
 export const getJobsByCategory = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs();
+
     const categoryName = req.params.category;
     const categoryRegex = new RegExp(`^${escapeRegExp(categoryName)}$`, "i");
     const categories = await Category.find({ name: categoryRegex }).select(
@@ -215,9 +250,31 @@ export const getJobsByCategory = async (req, res, next) => {
       return res.status(200).json({ jobs: [] });
     }
 
-    const jobs = await Job.find({
-      category: { $in: categories.map((category) => category._id) },
-    })
+    let baseFilter = {
+      category: { $in: categories.map((c) => c._id) },
+      status: "Open",
+    };
+
+    if (req.user?.role === "admin") {
+      baseFilter = {
+        category: { $in: categories.map((c) => c._id) },
+      };
+    } else if (req.user?.role === "hr") {
+      const hrFilter = {
+        category: { $in: categories.map((c) => c._id) },
+        recruiter: req.user._id,
+      };
+
+      if (req.query.status === "Drafted") {
+        hrFilter.status = "Drafted";
+      } else {
+        hrFilter.status = "Open";
+      }
+
+      baseFilter = hrFilter;
+    }
+
+    const jobs = await Job.find(baseFilter)
       .populate(recruiterPopulate)
       .populate(categoryPopulate)
       .sort({ createdAt: -1 });
@@ -272,6 +329,8 @@ export const getMyApplicationById = async (req, res, next) => {
 
 export const getJobApplicationsForHr = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs({ jobId: req.params.id });
+
     const job = await Job.findById(req.params.id)
       .populate(recruiterPopulate)
       .populate(categoryPopulate);
@@ -307,6 +366,8 @@ export const getJobApplicationsForHr = async (req, res, next) => {
 
 export const getMyJobsWithApplications = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs();
+
     const jobs = await Job.find({ recruiter: req.user._id })
       .populate(recruiterPopulate)
       .populate(categoryPopulate)
@@ -354,24 +415,38 @@ export const getMyJobsWithApplications = async (req, res, next) => {
 
 export const updateJob = async (req, res, next) => {
   try {
-    Object.assign(req.job, pickJobFields(req.body));
-    req.job.embeddingStatus = "pending";
-    req.job.isEdited = true;
-    req.job.editedAt = new Date();
-    await req.job.save();
+    if (req.job.status === "Drafted" && req.job.editableUntil && new Date() > req.job.editableUntil) {
+      await publishJob(req.job);
+      return next(
+        new HTTPError(
+          400,
+          "The 5-minute draft editing period has expired. The job has been published.",
+        ),
+      );
+    }
 
-    void enrichJob(req.job, { recalculateApplications: true }).catch((err) =>
-      console.error("Auto job enrichment failed:", err?.message || err),
+    if (req.job.status === "Drafted") {
+      Object.assign(req.job, pickJobFields(req.body));
+      req.job.isEdited = true;
+      req.job.editedAt = new Date();
+      await req.job.save();
+
+      const job = await Job.findById(req.job._id)
+        .populate(recruiterPopulate)
+        .populate(categoryPopulate);
+
+      return res.status(200).json({
+        message: "Job draft updated successfully.",
+        job: sanitizeJob(job),
+      });
+    }
+
+    return next(
+      new HTTPError(
+        403,
+        "Published jobs cannot be edited by HR.",
+      ),
     );
-
-    const job = await Job.findById(req.job._id)
-      .populate(recruiterPopulate)
-      .populate(categoryPopulate);
-
-    return res.status(200).json({
-      message: "Job updated successfully",
-      job: sanitizeJob(job),
-    });
   } catch (err) {
     next(err);
   }
@@ -401,8 +476,16 @@ export const deleteJob = async (req, res, next) => {
 
 export const applyToJob = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs({ jobId: req.params.id });
+
     const job = await Job.findById(req.params.id);
     if (!job) return next(new HTTPError(404, "Job not found"));
+
+    if (job.acceptApplications === false) {
+      return next(
+        new HTTPError(409, "This job is not accepting applications yet."),
+      );
+    }
 
     if (job.status !== "Open") {
       return next(new HTTPError(400, "You can only apply to open jobs"));
@@ -508,6 +591,8 @@ export const applyToJob = async (req, res, next) => {
 
 export const analyzeTopJobCandidates = async (req, res, next) => {
   try {
+    await publishExpiredDraftJobs({ jobId: req.params.id });
+
     const job = await Job.findById(req.params.id);
     if (!job) return next(new HTTPError(404, "Job not found"));
 
