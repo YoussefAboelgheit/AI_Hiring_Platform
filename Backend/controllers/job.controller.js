@@ -154,12 +154,14 @@ export const getAllJobs = async (req, res, next) => {
   try {
     await publishExpiredDraftJobs();
 
-    let baseFilter = { isPublished: true, status: "Open" };
+    let baseFilter = { status: "Open" };
 
     if (req.user?.role === "admin") {
       baseFilter = {};
-    } else if (req.user?.role === "hr" && req.query.status === "Drafted") {
+    } else     if (req.user?.role === "hr" && req.query.status === "Drafted") {
       baseFilter = { recruiter: req.user._id, status: "Drafted" };
+    } else if (req.user?.role === "hr" && req.query.status === "Open") {
+      baseFilter = { recruiter: req.user._id, status: "Open" };
     }
 
     const features = new APIFeatures(Job.find(baseFilter), req.query)
@@ -193,7 +195,7 @@ export const getJobById = async (req, res, next) => {
       (req.user.role === "admin" ||
         job.recruiter._id.toString() === req.user._id.toString());
 
-    if (!isOwner && (!job.isPublished || job.status !== "Open")) {
+    if (!isOwner && job.status !== "Open") {
       return next(new HTTPError(404, "Job not found"));
     }
 
@@ -247,7 +249,6 @@ export const getJobsByCategory = async (req, res, next) => {
 
     let baseFilter = {
       category: { $in: categories.map((c) => c._id) },
-      isPublished: true,
       status: "Open",
     };
 
@@ -258,13 +259,12 @@ export const getJobsByCategory = async (req, res, next) => {
     } else if (req.user?.role === "hr") {
       const hrFilter = {
         category: { $in: categories.map((c) => c._id) },
+        recruiter: req.user._id,
       };
 
       if (req.query.status === "Drafted") {
-        hrFilter.recruiter = req.user._id;
         hrFilter.status = "Drafted";
       } else {
-        hrFilter.isPublished = true;
         hrFilter.status = "Open";
       }
 
@@ -478,7 +478,7 @@ export const applyToJob = async (req, res, next) => {
     const job = await Job.findById(req.params.id);
     if (!job) return next(new HTTPError(404, "Job not found"));
 
-    if (!job.acceptApplications) {
+    if (job.acceptApplications === false) {
       return next(
         new HTTPError(409, "This job is not accepting applications yet."),
       );
