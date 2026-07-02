@@ -6,7 +6,10 @@ import JobApplication, {
 import APIFeatures from "../util/apiFeatures.js";
 import HTTPError from "../util/httpError.js";
 import { uploadToSupabase } from "../util/supabaseClient.js";
-import { analyzeTopCandidatesForJob } from "../services/candidateAnalysis.service.js";
+import {
+  analyzeJobApplication,
+  analyzeTopCandidatesForJob,
+} from "../services/candidateAnalysis.service.js";
 import { calculateApplicationMatch } from "../services/jobApplicationMatching.service.js";
 import {
   publishJob,
@@ -610,6 +613,95 @@ export const analyzeTopJobCandidates = async (req, res, next) => {
         delete applicationObject.job;
         return applicationObject;
       }),
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const analyzeJobApplicationForHr = async (req, res, next) => {
+  try {
+    const job = await Job.findById(req.params.jobId)
+      .populate(recruiterPopulate)
+      .populate(categoryPopulate);
+
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+    if (req.user.role !== "admin" && job.recruiter._id.toString() !== req.user._id.toString()) {
+      return next(new HTTPError(403, "You can only analyze applications for jobs you created"));
+    }
+
+    const application = await analyzeJobApplication({
+      jobId: job._id,
+      applicationId: req.params.applicationId,
+    });
+
+    const applicationObject = sanitizeApplication(application);
+    delete applicationObject.job;
+
+    return res.status(200).json({
+      job: sanitizeJob(job),
+      application: applicationObject,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const retryMyApplicationMatch = async (req, res, next) => {
+  try {
+    const application = await JobApplication.findOne({
+      _id: req.params.id,
+      candidate: req.user._id,
+    });
+
+    if (!application) return next(new HTTPError(404, "Application not found"));
+
+    if (application.matchingStatus !== "failed") {
+      return next(new HTTPError(400, "Only failed application matching can be retried"));
+    }
+
+    const uploadedCV = req.files?.CV?.[0];
+    const retryUpdate = {
+      matchingStatus: "pending",
+      matchingError: "",
+      parsedResume: null,
+      matchScore: null,
+      matchedAgainstJobVersion: null,
+      aiEvaluation: {
+        strengths: [],
+        weaknesses: [],
+        summary: "",
+        recommendation: "",
+        generatedAt: null,
+      },
+    };
+
+    if (uploadedCV) {
+      retryUpdate.CV = await uploadToSupabase(
+        uploadedCV.buffer,
+        uploadedCV.mimetype,
+        "applications/cvs",
+      );
+    }
+
+    await JobApplication.findByIdAndUpdate(application._id, retryUpdate);
+    await calculateApplicationMatch(application._id, { uploadedCV });
+
+    const retriedApplication = await JobApplication.findById(application._id)
+      .populate({
+        path: "job",
+        populate: [recruiterPopulate, categoryPopulate],
+      })
+      .populate({
+        path: "candidate",
+        select: "name email role profile_image CV",
+      })
+      .populate("parsedResume");
+
+    return res.status(200).json({
+      message: "Application parsing and matching retried successfully",
+      application: serializeApplicationForCandidate(retriedApplication),
     });
   } catch (err) {
     next(err);

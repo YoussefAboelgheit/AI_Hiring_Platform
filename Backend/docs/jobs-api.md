@@ -36,6 +36,7 @@ POST   /api/jobs/applications/:id/retry //For Candidate
 GET    /api/jobs/hr/my-jobs/applications //For HR/Company
 GET    /api/jobs/:id/applications //For HR/Company
 GET    /api/jobs/:id/applications/top-analysis //For HR/Company
+GET    /api/jobs/:jobId/applications/:applicationId/analysis //For HR/Company
 POST   /api/jobs/:id/apply
 PATCH  /api/jobs/:id
 DELETE /api/jobs/:id
@@ -89,9 +90,13 @@ GET /api/jobs/:id/applications/top-analysis
   Requires Authorization: Bearer <hr-access-token>
   Returns AI strengths/weaknesses for the top 3 matched applications.
 
+GET /api/jobs/:jobId/applications/:applicationId/analysis
+  The HR must be the creator of that job.
+
+
+
 POST /api/jobs/applications/:id/retry
   Requires Authorization: Bearer <candidate-access-token>
-  Retries parsing/matching for a failed application.
   Optional form-data field: CV. If omitted, the existing application CV URL is downloaded and parsed again.
 ```
 
@@ -629,6 +634,37 @@ Response:
       }
     }
   ]
+}
+```
+
+### Analyze One Application
+
+Use the job ID and the job application ID. This verifies that the application belongs to that job and that the logged-in HR owns the job.
+
+```http
+GET http://localhost:3000/api/jobs/665fc28a8e7b2a3a11000002/applications/665fc28a8e7b2a3a11000004/analysis
+Authorization: Bearer <same-creator-hr-access-token>
+```
+
+Response:
+
+```json
+{
+  "job": {
+    "_id": "665fc28a8e7b2a3a11000002",
+    "title": "Frontend Developer"
+  },
+  "application": {
+    "_id": "665fc28a8e7b2a3a11000004",
+    "matchScore": 88.73,
+    "aiEvaluation": {
+      "strengths": ["Strong React experience"],
+      "weaknesses": ["Limited backend exposure"],
+      "summary": "Good frontend fit for this role.",
+      "recommendation": "Shortlist for screening.",
+      "generatedAt": "2026-06-29T10:00:00.000Z"
+    }
+  }
 }
 ```
 

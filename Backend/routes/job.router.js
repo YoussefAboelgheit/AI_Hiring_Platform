@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   applyToJob,
+  analyzeJobApplicationForHr,
   analyzeTopJobCandidates,
   createJob,
   deleteJob,
@@ -12,6 +13,7 @@ import {
   getMyApplicationById,
   getMyAppliedJobs,
   getJobEnrichment,
+  retryMyApplicationMatch,
   updateJob,
   adminUpdateJobStatus,   // admin
   adminDeleteJob, // admin
@@ -21,7 +23,10 @@ import { authorize } from "../middlewares/authorizeMW.js";
 import jobOwnershipMW from "../middlewares/jobOwnershipMW.js";
 import optionalAuthMW from "../middlewares/optionalAuthMW.js";
 import { uploadCV } from "../middlewares/uploadMW.js";
-import { idParamValidator } from "../validations/paramValidators.js";
+import {
+  idParamValidator,
+  jobApplicationParamsValidator,
+} from "../validations/paramValidators.js";
 import {
   applyToJobValidator,
   categoryNameParamValidator,
@@ -79,7 +84,16 @@ router.post(
   authorize("candidate"),
   uploadCV,
   idParamValidator,
-  validateResults
+  validateResults,
+  retryMyApplicationMatch
+);
+router.get(
+  "/:jobId/applications/:applicationId/analysis",
+  authMW,
+  authorize("hr", "admin"),
+  jobApplicationParamsValidator,
+  validateResults,
+  analyzeJobApplicationForHr
 );
 router.get(
   "/:id/applications",
