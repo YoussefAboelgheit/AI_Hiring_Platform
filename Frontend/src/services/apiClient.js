@@ -5,14 +5,12 @@ const baseURL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const apiClient = axios.create({
   baseURL,
-  headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
 
 /** Bare client for refresh — avoids running the 401 retry interceptor on itself. */
 const refreshClient = axios.create({
   baseURL,
-  headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
 
