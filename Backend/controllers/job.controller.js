@@ -15,6 +15,7 @@ import {
   publishJob,
   publishExpiredDraftJobs,
 } from "../services/jobEnrichment.service.js";
+import { generateAssessment } from "../services/ai/assessment/assessment.service.js";
 
 const recruiterPopulate = {
   path: "recruiter",
@@ -65,7 +66,20 @@ function serializeApplicationForCandidate(application) {
     applicationObject.job = applicationObject.jobSnapshot;
   }
 
-  return sanitizeApplication(applicationObject);
+  return sanitizeApplicationForCandidate(applicationObject);
+}
+
+function serializeApplicationForHr(application) {
+  const applicationObject =
+    typeof application.toObject === "function"
+      ? application.toObject()
+      : application;
+
+  if (!applicationObject.job && applicationObject.jobSnapshot) {
+    applicationObject.job = applicationObject.jobSnapshot;
+  }
+
+  return sanitizeApplicationForHr(applicationObject);
 }
 
 function sanitizeJob(job) {
@@ -89,7 +103,7 @@ function sanitizeParsedResume(parsedResume) {
   return parsedResumeObject;
 }
 
-function sanitizeApplication(application) {
+function sanitizeApplicationForHr(application) {
   if (!application) return application;
 
   const applicationObject =
@@ -113,11 +127,41 @@ function sanitizeApplication(application) {
   return applicationObject;
 }
 
+function sanitizeApplicationForCandidate(application) {
+  if (!application) return application;
+
+  const applicationObject =
+    typeof application.toObject === "function"
+      ? application.toObject()
+      : { ...application };
+
+  if (applicationObject.job) {
+    applicationObject.job = sanitizeJob(applicationObject.job);
+  }
+
+  if (applicationObject.jobSnapshot) {
+    applicationObject.jobSnapshot = sanitizeJob(applicationObject.jobSnapshot);
+  }
+
+  if (applicationObject.parsedResume) {
+    applicationObject.parsedResume = sanitizeParsedResume(applicationObject.parsedResume);
+  }
+
+  delete applicationObject.jobSnapshot;
+  delete applicationObject.assessmentScore;
+  delete applicationObject.assessmentStatus;
+  delete applicationObject.aiEvaluation;
+  return applicationObject;
+}
+
 function sortApplicationsByMatch(applications) {
   return applications.sort((a, b) => {
     const scoreA = typeof a.matchScore === "number" ? a.matchScore : -1;
     const scoreB = typeof b.matchScore === "number" ? b.matchScore : -1;
     if (scoreB !== scoreA) return scoreB - scoreA;
+    const asA = typeof a.assessmentScore === "number" ? a.assessmentScore : -1;
+    const asB = typeof b.assessmentScore === "number" ? b.assessmentScore : -1;
+    if (asB !== asA) return asB - asA;
     return new Date(a.createdAt) - new Date(b.createdAt);
   });
 }
@@ -139,6 +183,19 @@ export const createJob = async (req, res, next) => {
         console.error("Scheduled job publishing failed:", err?.message || err),
       );
     }, Math.max(0, job.editableUntil.getTime() - Date.now()));
+
+    const assessmentQuestionCount = req.body.assessmentQuestionCount;
+    if (assessmentQuestionCount) {
+      generateAssessment({
+        jobId: job._id,
+        questionCount: assessmentQuestionCount,
+        difficulty: req.body.assessmentDifficulty || "Auto",
+        topics: req.body.assessmentTopics || "",
+        userId: req.user._id,
+      }).catch((err) =>
+        console.error("Auto-assessment generation failed:", err?.message || err),
+      );
+    }
 
     const populatedJob = await Job.findById(job._id)
       .populate(recruiterPopulate)
@@ -357,7 +414,7 @@ export const getJobApplicationsForHr = async (req, res, next) => {
     return res.status(200).json({
       job: sanitizeJob(job),
       total: applications.length,
-      applications: sortApplicationsByMatch(applications).map(sanitizeApplication),
+      applications: sortApplicationsByMatch(applications).map(sanitizeApplicationForHr),
     });
   } catch (err) {
     next(err);
@@ -399,7 +456,7 @@ export const getMyJobsWithApplications = async (req, res, next) => {
       return {
         ...jobObject,
         applicationsCount: jobApplications.length,
-        applications: sortApplicationsByMatch(jobApplications).map(sanitizeApplication),
+        applications: sortApplicationsByMatch(jobApplications).map(sanitizeApplicationForHr),
       };
     });
 
@@ -603,7 +660,7 @@ export const analyzeTopJobCandidates = async (req, res, next) => {
       job: sanitizeJob(populatedJob),
       total: applications.length,
       applications: applications.map((application) => {
-        const applicationObject = sanitizeApplication(application);
+        const applicationObject = sanitizeApplicationForHr(application);
         delete applicationObject.job;
         return applicationObject;
       }),
@@ -630,7 +687,7 @@ export const analyzeJobApplicationForHr = async (req, res, next) => {
       applicationId: req.params.applicationId,
     });
 
-    const applicationObject = sanitizeApplication(application);
+    const applicationObject = sanitizeApplicationForHr(application);
     delete applicationObject.job;
 
     return res.status(200).json({

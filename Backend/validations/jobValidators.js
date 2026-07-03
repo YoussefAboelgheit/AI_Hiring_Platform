@@ -1,6 +1,7 @@
 import { body, param } from "express-validator";
 import { JOB_STATUSES, JOB_TYPES, WORKPLACES } from "../models/job.js";
 import Category from "../models/category.js";
+import { DIFFICULTY_LEVELS, MIN_QUESTIONS, MAX_QUESTIONS } from "../config/assessment.js";
 
 function getMimeFromBuffer(buffer) {
   const hex = buffer.toString("hex", 0, 12).toLowerCase();
@@ -104,6 +105,23 @@ export const createJobValidator = [
     .isISO8601()
     .withMessage("Application end must be a valid date")
     .toDate(),
+
+  body("assessmentQuestionCount")
+    .optional({ nullable: true })
+    .isInt({ min: MIN_QUESTIONS, max: MAX_QUESTIONS })
+    .withMessage(`Assessment question count must be between ${MIN_QUESTIONS} and ${MAX_QUESTIONS}`)
+    .toInt(),
+
+  body("assessmentDifficulty")
+    .optional({ nullable: true })
+    .isIn(DIFFICULTY_LEVELS)
+    .withMessage(`Difficulty must be one of: ${DIFFICULTY_LEVELS.join(", ")}`),
+
+  body("assessmentTopics")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("Topics must be a string")
+    .trim(),
 ];
 
 export const updateJobValidator = [
