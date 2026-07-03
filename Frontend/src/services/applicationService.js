@@ -32,9 +32,7 @@ export async function applyToJob(jobId, { cvFile } = {}) {
       const formData = new FormData();
       formData.append("CV", cvFile);
 
-      const { data } = await apiClient.post(`/jobs/${jobId}/apply`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const { data } = await apiClient.post(`/jobs/${jobId}/apply`, formData);
       return data;
     }
 

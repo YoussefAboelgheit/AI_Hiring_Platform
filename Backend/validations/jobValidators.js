@@ -158,9 +158,9 @@ export const updateJobValidator = [
 export const applyToJobValidator = [
   body("CV")
     .custom((value, { req }) => {
-      const uploadedCV = req.files?.CV?.[0];
+      const uploadedCV = req.files?.CV?.[0] || req.files?.cv?.[0];
 
-      if (!uploadedCV && !req.user?.CV) {
+      if (!uploadedCV && !req.user?.CV?.trim()) {
         throw new Error("Please upload a CV to apply for this job");
       }
 
