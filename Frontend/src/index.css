@@ -35,7 +35,7 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
   flex-direction: column;
   z-index: 100;
 }
-.sidebar-logo { padding: 20px 16px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo { padding: 16px 16px 8px; border-bottom: 1px solid var(--border); }
 .sidebar-logo .brand-logo-link { width: 100%; }
 .sidebar-logo-icon {
   width: 40px; height: 40px; border-radius: 10px;
@@ -75,18 +75,19 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 .go-pro-box { margin: 12px; padding: 12px; background: var(--body-bg); border-radius: 10px; border: 1px solid var(--border); }
 .go-pro-box .go-pro-label { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; }
 .auth-accent { color: #5EEAD4; }
-.sidebar-nav { padding: 16px 12px; flex: 1; }
+.sidebar-nav { padding: 10px 12px; flex: 1; }
 .sidebar-nav .nav-item { margin-bottom: 4px; }
 .sidebar-nav .nav-link {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 10px;
+    padding: 8px 12px;
+ border-radius: 10px;
   color: var(--text-muted); font-size: 14px; font-weight: 500;
   text-decoration: none; transition: all 0.15s;
 }
 .sidebar-nav .nav-link:hover { background: var(--primary-bg); color: var(--primary); }
 .sidebar-nav .nav-link.active { background: var(--primary-bg); color: var(--primary); font-weight: 600; }
 .sidebar-nav .nav-link i { font-size: 18px; }
-.sidebar-footer { padding: 16px 12px; border-top: 1px solid var(--border); }
+.sidebar-footer { padding: 10px 12px; border-top: 1px solid var(--border); }
 .sidebar-footer .nav-link { color: var(--text-muted); font-size: 14px; }
 
 /* Topbar */
@@ -116,8 +117,16 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 .user-chip .role { font-size: 11px; color: var(--text-muted); }
 
 /* Main layout */
-.main-layout { margin-left: var(--sidebar-width); padding-top: var(--topbar-height); min-height: 100vh; }
-.page-content { padding: 28px 28px; }
+.main-layout { 
+  margin-left: var(--sidebar-width); 
+  padding-top: var(--topbar-height); 
+  min-height: 100vh; 
+  display: flex;        
+  flex-direction: column; 
+}
+.page-content { 
+  padding: 28px 28px; 
+  flex: 1; }
 
 /* Cards */
 .hcard { background: #fff; border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--card-shadow); }

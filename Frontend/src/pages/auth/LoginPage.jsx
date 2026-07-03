@@ -54,8 +54,8 @@ export default function LoginPage() {
 
       <div className="auth-right">
         <div className="auth-form">
-          <BackButton fallbackTo="/" label="Back to Home" className="mb-4" />
-          <div className="mb-3">
+        <BackButton forceTo="/" label="Back to Home" className="mb-4" />   
+       <div className="mb-3">
             <BrandLogo size="sm" linkTo="/" />
           </div>
           <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 6 }}>Welcome back</h1>

@@ -41,8 +41,7 @@ export default function SettingsPage() {
 
   return (
     <>
-      <BackButton fallbackTo={dashboardPath} label="Back to Dashboard" />
-
+     <BackButton forceTo={dashboardPath} label="Back to Dashboard" />
       <div className="page-header-row">
         <div>
           <h1>Settings</h1>

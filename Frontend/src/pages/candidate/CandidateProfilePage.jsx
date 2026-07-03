@@ -22,7 +22,8 @@ export default function CandidateProfilePage() {
   if (error) {
     return (
       <>
-        <BackButton fallbackTo="/candidate/dashboard" label="Back to Dashboard" />
+        {/* Updated Error State Back Button */}
+        <BackButton fallbackTo="/candidate/applications" label="Back to My Applications" />
         <div className="hcard" style={{ padding: 24, color: "#991B1B", background: "#FEE2E2" }}>{error}</div>
       </>
     );
@@ -32,7 +33,8 @@ export default function CandidateProfilePage() {
 
   return (
     <>
-      <BackButton fallbackTo="/candidate/dashboard" label="Back to Dashboard" />
+      {/* Updated Main Back Button */}
+    <BackButton forceTo="/candidate/applications" label="Back to my  Applications" />      
       <div className="page-header-row">
         <div>
           <h1>Candidate Profile</h1>

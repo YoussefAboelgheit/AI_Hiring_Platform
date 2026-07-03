@@ -21,11 +21,10 @@ export default function RecruiterSidebar() {
   const { pathname } = useLocation();
   const { sidebarOpen, closeSidebar } = useAppShell();
 
-  const handleLogout = async () => {
+const handleLogout = async () => {
     await logout();
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
-
   const isActive = (item) => {
     if (item.profileItem) return false;
     if (item.jobsSection) return pathname.startsWith("/recruiter/jobs");
