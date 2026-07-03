@@ -1,8 +1,40 @@
 openapi: 3.0.3
 info:
-  title: AI Hiring Platform - Jobs API
-  version: 1.0.0
-  description: API documentation for job endpoints, including filtering, search, sorting, pagination, and field limiting.
+  title: AI Hiring Platform - Complete API
+  version: 2.0.0
+  description: |
+    ═══════════════════════════════════════════════════
+    HR FLOW: Create Job → Publish → Review Results
+    ═══════════════════════════════════════════════════
+
+    1. CREATE JOB
+       HR creates job → status: Drafted
+       → 5-minute edit window opens
+       → (Optional) Auto-assessment generates in background
+
+    2. REVIEW ASSESSMENT   Key review step
+       GET /api/jobs/{jobId}/assessment
+       → Returns ALL questions, including correctAnswer
+       → HR can view every question, answer, and explanation
+
+    3. EDIT ASSESSMENT (optional, within 5-min window)
+       PUT    /api/jobs/assessment/questions/{questionId}
+              → Edit an existing question
+       DELETE /api/jobs/assessment/questions/{questionId}
+              → Remove a question
+       POST   /api/jobs/assessment/questions/{questionId}/regenerate
+              → Regenerate a question
+
+    4. PUBLISH JOB
+       Trigger: 5-min window expires OR admin manually publishes
+       → Assessment automatically LOCKS (becomes immutable)
+
+    5. CANDIDATE FLOW
+       Candidate applies → starts assessment → submits answers
+
+    6. HR REVIEWS RESULTS
+       GET /api/jobs/{id}/applications
+       → Returns matchScore (CV-based) + assessmentScore (AI-based)
 
 servers:
   - url: http://localhost:3001
@@ -10,139 +42,173 @@ servers:
 
 tags:
   - name: Jobs
-    description: Job listing and management endpoints
+    description: Public and HR job listing, creation, and management endpoints
+  - name: Applications
+    description: Apply to jobs, view applications (candidate + HR views)
+  - name: Analysis
+    description: AI-powered candidate analysis for HR
+  - name: Assessments
+    description: HR assessment management (generate, view, edit questions)
+  - name: Candidate Assessment
+    description: Candidate assessment flow (start, submit)
+  - name: Admin
+    description: Admin-only job management endpoints
+
+x-test-scenario:
+  description: |
+    Complete Postman test flow covering the full HR and Candidate lifecycle:
+    Job creation, Assessment settings & review, Publishing, Applying,
+    Assessment submission, and Score viewing.
+    See info.description for full step-by-step instructions with request bodies.
+  steps:
+    - step: 1
+      role: HR
+      action: Register / Login
+      endpoint: POST /api/auth/register
+    - step: 2
+      role: HR
+      action: Create Job with Auto-Assessment
+      endpoint: POST /api/jobs
+    - step: 3
+      role: HR
+      action: Set Assessment Type & Config (optional)
+      endpoint: PATCH /api/jobs/{jobId}/assessment
+    - step: 4
+      role: HR
+      action: Review Assessment Questions
+      endpoint: GET /api/jobs/{jobId}/assessment
+    - step: 5
+      role: HR
+      action: Edit Questions (optional)
+      endpoint: PUT /api/jobs/assessment/questions/{questionId}
+    - step: 6
+      role: System
+      action: Publish Job (wait 5min or admin override)
+      endpoint: PATCH /api/jobs/admin/{id}/status
+    - step: 7
+      role: Candidate
+      action: Register / Login
+      endpoint: POST /api/auth/register
+    - step: 8
+      role: Candidate
+      action: Apply to Job
+      endpoint: POST /api/jobs/{id}/apply
+    - step: 9
+      role: Candidate
+      action: Start Assessment
+      endpoint: POST /api/jobs/{id}/assessment/start
+    - step: 10
+      role: Candidate
+      action: Submit Assessment
+      endpoint: POST /api/jobs/{id}/assessment/submit
+    - step: 11
+      role: HR
+      action: View Applications with Scores
+      endpoint: GET /api/jobs/{id}/applications
+    - step: 12
+      role: Candidate
+      action: View My Applications (scores hidden)
+      endpoint: GET /api/jobs/applied/me
+    - step: 13
+      role: HR
+      action: View All Jobs with Scores
+      endpoint: GET /api/jobs/hr/my-jobs/applications
+    - step: 14
+      role: HR
+      action: AI Candidate Analysis (optional)
+      endpoint: GET /api/jobs/{id}/applications/top-analysis
 
 paths:
+
+  # ============================================================================
+  # JOBS
+  # ============================================================================
+
   /api/jobs:
     get:
       tags:
         - Jobs
       summary: Get all jobs
       description: |
-        Public endpoint. Returns only published ACTIVE jobs for applicants.
-        HR users can retrieve their own DRAFT jobs by passing `?status=DRAFT`.
+        Public endpoint. Returns only published Open jobs for applicants.
+        HR users can retrieve their own Drafted or Open jobs by passing `?status=Drafted` or `?status=Open`.
+        Admins see all jobs.
         Supports filtering, regex search, sorting, pagination, and field limiting.
       parameters:
         - name: status
           in: query
-          description: Filter jobs by status.
+          description: Filter by job status (HR can filter their own Drafted/Open jobs)
           schema:
             type: string
-            enum: [Open, Closed, Drafted, DRAFT, ACTIVE]
-          example: ACTIVE
+            enum: [Open, Drafted]
+          example: Open
         - name: workplace
           in: query
-          description: Filter jobs by workplace.
+          description: Filter by workplace type
           schema:
             type: string
             enum: [Onsite, Hybrid, Remote]
           example: Remote
         - name: jobType
           in: query
-          description: Filter jobs by job type.
+          description: Filter by job type
           schema:
             type: string
             enum: [Intern, Full Time, Part Time]
           example: Full Time
         - name: location
           in: query
-          description: Filter jobs by exact location value.
           schema:
             type: string
           example: Cairo, Egypt
         - name: category
           in: query
-          description: Filter jobs by category ObjectId.
           schema:
             type: string
           example: 665fc28a8e7b2a3a11000001
         - name: recruiter
           in: query
-          description: Filter jobs by recruiter ObjectId.
           schema:
             type: string
           example: 665fc28a8e7b2a3a11000003
         - name: search
           in: query
-          description: Case-insensitive search across title, description, requirements, location, and skills.
           schema:
             type: string
           example: react
         - name: q
           in: query
-          description: Alternative search parameter.
           schema:
             type: string
           example: react
         - name: keyword
           in: query
-          description: Alternative search parameter.
           schema:
             type: string
           example: react
         - name: sort
           in: query
-          description: Sort fields. Prefix a field with '-' for descending order. Multiple fields are comma-separated.
           schema:
             type: string
-          examples:
-            newest:
-              value: -createdAt
-            titleAsc:
-              value: title
-            multiple:
-              value: status,-createdAt
+          example: "-createdAt"
         - name: page
           in: query
-          description: Page number. Defaults to 1.
           schema:
             type: integer
             minimum: 1
             default: 1
-          example: 1
         - name: limit
           in: query
-          description: Number of results per page. Defaults to 10 and is capped at 50.
           schema:
             type: integer
             minimum: 1
             maximum: 50
             default: 10
-          example: 10
         - name: fields
           in: query
-          description: Comma-separated list of job fields to return.
           schema:
             type: string
-          example: title,description,status,location,applicationEnd
-        - name: applicationEnd[gte]
-          in: query
-          description: Filter jobs with applicationEnd greater than or equal to this date.
-          schema:
-            type: string
-            format: date
-          example: 2026-08-01
-        - name: applicationEnd[lte]
-          in: query
-          description: Filter jobs with applicationEnd less than or equal to this date.
-          schema:
-            type: string
-            format: date
-          example: 2026-12-31
-        - name: createdAt[gte]
-          in: query
-          description: Filter jobs created on or after this date.
-          schema:
-            type: string
-            format: date
-          example: 2026-06-01
-        - name: createdAt[lte]
-          in: query
-          description: Filter jobs created on or before this date.
-          schema:
-            type: string
-            format: date
-          example: 2026-06-30
+          example: title,description,status
       responses:
         "200":
           description: Jobs returned successfully.
@@ -155,39 +221,16 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/Job"
-              example:
-                jobs:
-                  - _id: 665fc28a8e7b2a3a11000002
-                    recruiter:
-                      _id: 665fc28a8e7b2a3a11000003
-                      name: Acme HR
-                      email: hr@acme.com
-                      role: hr
-                      company_logo: https://example.com/logo.png
-                      profile_image: https://example.com/avatar.png
-                    category:
-                      _id: 665fc28a8e7b2a3a11000001
-                      name: Engineering
-                    title: Frontend Developer
-                    description: Build responsive web interfaces for the hiring platform.
-                    workplace: Remote
-                    jobType: Full Time
-                    skills: [React, JavaScript, CSS]
-                    status: Open
-                    requirements: 2+ years of frontend experience.
-                    location: Cairo, Egypt
-                    applicationEnd: 2026-08-31T00:00:00.000Z
-                    createdAt: 2026-06-24T10:00:00.000Z
-                    updatedAt: 2026-06-24T10:00:00.000Z
+
     post:
       tags:
         - Jobs
-      summary: Create a job draft
+      summary: Create a job draft (with optional auto-assessment)
       description: |
-        Requires an HR access token.
-        Creates a job as a DRAFT. The job is hidden from applicants and does not accept applications.
-        AI processing (parsing + embedding) is delayed until the 5-minute draft period expires.
-        The job can be edited unlimited times during the draft period.
+        Requires HR access token.
+        Creates a job as Drafted with a 5-minute editable window.
+        After 5 minutes, the job auto-publishes.
+        If `assessmentQuestionCount` is provided, an AI assessment is auto-generated in the background.
       security:
         - bearerAuth: []
       requestBody:
@@ -198,14 +241,17 @@ paths:
               $ref: "#/components/schemas/CreateJobInput"
             example:
               category: 665fc28a8e7b2a3a11000001
-              title: Frontend Developer
-              description: Build responsive web interfaces for the hiring platform.
+              title: Senior Node.js Developer
+              description: Build and maintain Node.js microservices.
               workplace: Remote
               jobType: Full Time
-              skills: [React, JavaScript, CSS]
-              requirements: 2+ years of frontend experience.
+              skills: [Node.js, MongoDB, Express]
+              requirements: 3+ years of Node.js experience.
               location: Cairo, Egypt
-              applicationEnd: 2026-08-31
+              applicationEnd: 2026-12-31
+              assessmentQuestionCount: 5
+              assessmentDifficulty: Medium
+              assessmentTopics: Node.js, Express, MongoDB
       responses:
         "201":
           description: Job draft created successfully.
@@ -218,142 +264,21 @@ paths:
                     type: string
                   job:
                     $ref: "#/components/schemas/Job"
-              example:
-                message: "Job created successfully."
-                job:
-                  _id: 665fc28a8e7b2a3a11000002
-                  recruiter:
-                    _id: 665fc28a8e7b2a3a11000003
-                    name: Acme HR
-                    email: hr@acme.com
-                    role: hr
-                  category:
-                    _id: 665fc28a8e7b2a3a11000001
-                    name: Engineering
-                  title: Frontend Developer
-                  description: Build responsive web interfaces.
-                  workplace: Remote
-                  jobType: Full Time
-                  skills: [React, JavaScript, CSS]
-                  status: DRAFT
-                  requirements: 2+ years of frontend experience.
-                  location: Cairo, Egypt
-                  applicationEnd: 2026-08-31T00:00:00.000Z
-                  editableUntil: 2026-06-24T10:05:00.000Z
-                  isPublished: false
-                  acceptApplications: false
-                  embeddingStatus: pending
-                  createdAt: 2026-06-24T10:00:00.000Z
-                  updatedAt: 2026-06-24T10:00:00.000Z
         "401":
           description: Missing or invalid token.
         "403":
           description: User is not allowed to create jobs.
-
-  /api/jobs/{id}:
-    get:
-      tags:
-        - Jobs
-      summary: Get job by ID
-      description: |
-        Returns the full job details. Draft jobs are only visible to the owning HR or admin.
-        Applicants and unauthenticated users receive 404 for draft jobs.
-      parameters:
-        - $ref: "#/components/parameters/JobId"
-      responses:
-        "200":
-          description: Job returned successfully.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  job:
-                    $ref: "#/components/schemas/Job"
-        "404":
-          description: Job not found or access denied for draft jobs.
-    patch:
-      tags:
-        - Jobs
-      summary: Update a job
-      description: |
-        Requires an HR access token. Only the creator HR can update the job.
-        If the job is in DRAFT status, updates are allowed only within the 5-minute draft window.
-        After the draft window expires, the job is automatically published (parsed + embedded)
-        and further updates follow the standard ACTIVE job update logic.
-        Draft updates do NOT trigger AI processing.
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/JobId"
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateJobInput"
-            example:
-              title: Senior Frontend Developer
-              requirements: 5+ years of frontend experience.
-      responses:
-        "200":
-          description: Job updated successfully.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  job:
-                    $ref: "#/components/schemas/Job"
-        "400":
-          description: The 5-minute draft editing period has expired. The job has been published.
-        "401":
-          description: Missing or invalid token.
-        "403":
-          description: User is not allowed to update this job.
-        "404":
-          description: Job not found.
-    delete:
-      tags:
-        - Jobs
-      summary: Delete a job
-      description: Requires an HR access token. Only the creator HR can delete the job.
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/JobId"
-      responses:
-        "200":
-          description: Job deleted successfully.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-              example:
-                message: Job deleted successfully
-        "401":
-          description: Missing or invalid token.
-        "403":
-          description: User is not allowed to delete this job.
-        "404":
-          description: Job not found.
 
   /api/jobs/category/{category}:
     get:
       tags:
         - Jobs
       summary: Get jobs by category name
-      description: Public endpoint. Category matching is case-insensitive.
+      description: Case-insensitive category name matching.
       parameters:
         - name: category
           in: path
           required: true
-          description: Category name.
           schema:
             type: string
           example: engineering
@@ -370,6 +295,861 @@ paths:
                     items:
                       $ref: "#/components/schemas/Job"
 
+  /api/jobs/{id}:
+    get:
+      tags:
+        - Jobs
+      summary: Get job by ID
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: Job returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found or access denied.
+
+    patch:
+      tags:
+        - Jobs
+      summary: Update a draft job (HR only)
+      description: |
+        Requires HR access token. Only the creator HR can update.
+        Only Drafted jobs within the 5-minute editable window can be updated.
+        After the window expires, the job auto-publishes.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateJobInput"
+      responses:
+        "200":
+          description: Job draft updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  job:
+                    $ref: "#/components/schemas/Job"
+        "400":
+          description: Draft editing period expired.
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Not the owner or job is published.
+        "404":
+          description: Job not found.
+
+    delete:
+      tags:
+        - Jobs
+      summary: Delete a job (HR/Admin)
+      description: |
+        Requires HR or Admin access token.
+        HR can only delete their own jobs.
+        Snapshots all applications before deletion.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: Job deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Not allowed.
+        "404":
+          description: Job not found.
+
+  /api/jobs/{id}/enrichment:
+    get:
+      tags:
+        - Jobs
+      summary: Get job enrichment data
+      description: Returns parsedJob, embeddingId, embeddingStatus, and related metadata.
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: Enrichment data returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  parsedJob:
+                    type: object
+                  embeddingId:
+                    type: string
+                    nullable: true
+                  embeddingProvider:
+                    type: string
+                    nullable: true
+                  embeddingStatus:
+                    type: string
+                    enum: [pending, ready, failed]
+                  embeddingVersion:
+                    type: number
+                    nullable: true
+                  lastEmbeddedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  isEdited:
+                    type: boolean
+                  editedAt:
+                    type: string
+                    format: date-time
+                    nullable: true
+
+  # ============================================================================
+  # APPLICATIONS
+  # ============================================================================
+
+  /api/jobs/applied/me:
+    get:
+      tags:
+        - Applications
+      summary: Get my applied jobs (Candidate)
+      description: |
+        Requires Candidate access token.
+        Returns all applications for the authenticated candidate.
+        **Scores are hidden from candidates** — assessmentScore, matchScore, and aiEvaluation are not included.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Applications returned (scores hidden).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/JobApplicationCandidateView"
+
+  /api/jobs/applications/{id}:
+    get:
+      tags:
+        - Applications
+      summary: Get single application by ID (Candidate)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Application detail (scores hidden).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  application:
+                    $ref: "#/components/schemas/JobApplicationCandidateView"
+        "404":
+          description: Application not found.
+
+  /api/jobs/applications/{id}/retry:
+    post:
+      tags:
+        - Applications
+      summary: Retry failed application match (Candidate)
+      description: |
+        Requires Candidate access token.
+        Only applications with `matchingStatus: "failed"` can be retried.
+        Re-uploads CV and recalculates the match score.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                CV:
+                  type: string
+                  format: binary
+                  description: CV file (PDF or DOCX)
+      responses:
+        "200":
+          description: Match retried.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  application:
+                    $ref: "#/components/schemas/JobApplicationCandidateView"
+
+  /api/jobs/hr/my-jobs/applications:
+    get:
+      tags:
+        - Applications
+      summary: Get my jobs with all applications (HR)
+      description: |
+        Requires HR access token.
+        Returns all jobs created by the HR, each with its applications.
+        Applications include **matchScore (CV)** and **assessmentScore**.
+        Sorted by matchScore desc, then assessmentScore desc.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Jobs with applications and scores.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalJobs:
+                    type: integer
+                  totalApplications:
+                    type: integer
+                  jobs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        applicationsCount:
+                          type: integer
+                        applications:
+                          type: array
+                          items:
+                            $ref: "#/components/schemas/JobApplicationHrView"
+
+  /api/jobs/{id}/applications:
+    get:
+      tags:
+        - Applications
+      summary: Get applications for a job (HR)
+      description: |
+        Requires HR access token. Only the job creator can view.
+        Returns all applications with **matchScore (CV)** and **assessmentScore**.
+        Sorted by matchScore desc, then assessmentScore desc, then createdAt asc.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: Applications with scores.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: "#/components/schemas/Job"
+                  total:
+                    type: integer
+                  applications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/JobApplicationHrView"
+        "403":
+          description: Not the job owner.
+        "404":
+          description: Job not found.
+
+  /api/jobs/{id}/apply:
+    post:
+      tags:
+        - Applications
+      summary: Apply to a job (Candidate)
+      description: |
+        Requires Candidate access token.
+        Job must be Open and accepting applications.
+        CV is uploaded and match score is calculated asynchronously.
+        **Scores are hidden from the candidate in the response.**
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                CV:
+                  type: string
+                  format: binary
+                  description: CV file (PDF or DOCX)
+      responses:
+        "201":
+          description: Application submitted (scores hidden).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  application:
+                    $ref: "#/components/schemas/JobApplicationCandidateView"
+        "400":
+          description: Job is not open or applications closed.
+        "409":
+          description: Already applied.
+
+  # ============================================================================
+  # ANALYSIS
+  # ============================================================================
+
+  /api/jobs/{id}/applications/top-analysis:
+    get:
+      tags:
+        - Analysis
+      summary: AI analysis of top candidates (HR/Admin)
+      description: |
+        Requires HR or Admin token.
+        Uses Gemini AI to analyze the top 3 candidates for a job.
+        Returns strengths, weaknesses, summary, and recommendation for each.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: Top candidates analysis.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: "#/components/schemas/Job"
+                  total:
+                    type: integer
+                  applications:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/JobApplicationHrView"
+
+  /api/jobs/{jobId}/applications/{applicationId}/analysis:
+    get:
+      tags:
+        - Analysis
+      summary: AI analysis of a single candidate (HR/Admin)
+      description: Uses Gemini AI to analyze a specific application.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Candidate analysis.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job:
+                    $ref: "#/components/schemas/Job"
+                  application:
+                    $ref: "#/components/schemas/JobApplicationHrView"
+
+  # ============================================================================
+  # ASSESSMENTS (HR)
+  # ============================================================================
+
+  /api/jobs/{jobId}/assessment/generate:
+    post:
+      tags:
+        - Assessments
+      summary: Generate AI assessment questions (HR)
+      description: |
+        Requires HR access token with job ownership.
+        Job must be in Drafted status within the 5-minute editable window.
+        Generates `questionCount * 5` questions via Gemini AI.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobIdAsJobId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateAssessmentInput"
+            example:
+              questionCount: 5
+              difficulty: Medium
+              topics: Node.js, Express, MongoDB
+      responses:
+        "201":
+          description: Assessment generated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  assessment:
+                    $ref: "#/components/schemas/Assessment"
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Job is no longer editable or not the owner.
+        "404":
+          description: Job not found.
+
+  /api/jobs/{jobId}/assessment:
+    get:
+      tags:
+        - Assessments
+      summary: Get assessment with questions (HR/Candidate)
+      description: |
+        Requires authentication.
+        **HR/Admin:** Sees all questions WITH correctAnswer. Triggers auto-lock if job expired.
+        **Candidate:** Sees questions WITHOUT correctAnswer. Assessment must be "Locked".
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobIdAsJobId"
+      responses:
+        "200":
+          description: Assessment returned.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  assessment:
+                    $ref: "#/components/schemas/Assessment"
+                  questions:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: "#/components/schemas/Question"
+                        - $ref: "#/components/schemas/QuestionNoAnswer"
+        "401":
+          description: Missing or invalid token.
+        "404":
+          description: Assessment not found or not available.
+
+    patch:
+      tags:
+        - Assessments
+      summary: Update assessment settings (HR)
+      description: |
+        Requires HR token with job ownership.
+        Updates assessment type, question count, difficulty, and topics.
+        - If type is "AI" and no questions exist → auto-generates questions
+        - If type is "NONE" → assessment is disabled
+        - If type is "MANUAL" → HR adds questions manually via POST /assessment/questions
+        Job must be in Drafted status within the editable window.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobIdAsJobId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAssessmentSettingsInput"
+            example:
+              type: AI
+              questionCount: 10
+              difficulty: Medium
+              topics: Node.js, React
+      responses:
+        "200":
+          description: Assessment settings updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  assessment:
+                    $ref: "#/components/schemas/Assessment"
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Job is no longer editable or not the owner.
+        "404":
+          description: Job not found.
+
+  /api/jobs/{jobId}/assessment/questions:
+    post:
+      tags:
+        - Assessments
+      summary: Add a manual question (HR)
+      description: |
+        Requires HR token with job ownership.
+        Adds a single question manually to the assessment.
+        Automatically sets assessment type to "MANUAL" if currently "NONE".
+        Job must be in Drafted status within the editable window.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobIdAsJobId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddQuestionInput"
+            example:
+              question: What is the virtual DOM in React?
+              options:
+                - A direct copy of the real DOM
+                - A lightweight JavaScript representation of the DOM
+                - A browser API for manipulating HTML
+                - A CSS framework for styling components
+              correctAnswer: A lightweight JavaScript representation of the DOM
+              explanation: The virtual DOM is a lightweight in-memory representation of the real DOM.
+              topic: React
+              difficulty: Medium
+      responses:
+        "201":
+          description: Question added successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  question:
+                    $ref: "#/components/schemas/Question"
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Assessment is locked or job not editable.
+        "404":
+          description: Job not found.
+
+  /api/jobs/{jobId}/assessment/regenerate:
+    post:
+      tags:
+        - Assessments
+      summary: Regenerate entire question repository (HR)
+      description: |
+        Requires HR token with job ownership.
+        Deletes all existing questions and generates a new set.
+        Job must still be Drafted and within editable window.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobIdAsJobId"
+      responses:
+        "200":
+          description: Repository regenerated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  assessment:
+                    $ref: "#/components/schemas/Assessment"
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Job no longer editable.
+        "404":
+          description: Assessment not found.
+
+  /api/jobs/assessment/questions/{questionId}:
+    put:
+      tags:
+        - Assessments
+      summary: Update a single question (HR)
+      description: |
+        Requires HR token. Updates question fields.
+        Parent job must still be Drafted and within editable window.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateQuestionInput"
+      responses:
+        "200":
+          description: Question updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  question:
+                    $ref: "#/components/schemas/Question"
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Job no longer editable.
+        "404":
+          description: Question not found.
+
+    delete:
+      tags:
+        - Assessments
+      summary: Delete a single question (HR)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionId"
+      responses:
+        "204":
+          description: Question deleted (no content).
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Job no longer editable.
+        "404":
+          description: Question not found.
+
+  /api/jobs/assessment/questions/{questionId}/regenerate:
+    post:
+      tags:
+        - Assessments
+      summary: Regenerate a single question via AI (HR)
+      description: |
+        Requires HR token. Uses Gemini AI to regenerate one question.
+        Other questions in the repository are preserved.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/QuestionId"
+      responses:
+        "200":
+          description: Question regenerated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  question:
+                    $ref: "#/components/schemas/Question"
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Job no longer editable.
+        "404":
+          description: Question not found.
+
+  # ============================================================================
+  # CANDIDATE ASSESSMENT
+  # ============================================================================
+
+  /api/jobs/{jobId}/assessment/start:
+    post:
+      tags:
+        - Candidate Assessment
+      summary: Start taking an assessment (Candidate)
+      description: |
+        Requires Candidate token. Job must be Open and assessment Locked.
+        Randomly selects `questionCount` questions from the repository.
+        Returns questions WITHOUT correctAnswer.
+        If already started but not completed, returns the existing session.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobIdAsJobId"
+      responses:
+        "200":
+          description: Assessment started or resumed.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  candidateAssessment:
+                    $ref: "#/components/schemas/CandidateAssessment"
+                  questions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/QuestionNoAnswer"
+        "400":
+          description: Already completed.
+        "403":
+          description: Job not open for assessments.
+        "404":
+          description: No locked assessment found.
+
+  /api/jobs/{jobId}/assessment/submit:
+    post:
+      tags:
+        - Candidate Assessment
+      summary: Submit assessment answers (Candidate)
+      description: |
+        Requires Candidate token.
+        Auto-grades by comparing answers to correct answers.
+        Updates JobApplication with assessmentScore (percentage) and assessmentStatus.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobIdAsJobId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitAnswersInput"
+            example:
+              answers:
+                - questionId: 665fc28a8e7b2a3a11000020
+                  selectedAnswer: A lightweight JavaScript representation of the DOM
+                - questionId: 665fc28a8e7b2a3a11000021
+                  selectedAnswer: A reusable UI piece that returns JSX
+      responses:
+        "200":
+          description: Assessment submitted and graded.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      score:
+                        type: integer
+                      total:
+                        type: integer
+                      percentage:
+                        type: integer
+        "400":
+          description: Validation error or question not part of assessment.
+        "401":
+          description: Missing or invalid token.
+        "404":
+          description: No pending assessment found.
+
+  # ============================================================================
+  # ADMIN
+  # ============================================================================
+
+  /api/jobs/admin/{id}/status:
+    patch:
+      tags:
+        - Admin
+      summary: Update job status (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [Drafted, Open, Closed]
+      responses:
+        "200":
+          description: Status updated.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  job:
+                    $ref: "#/components/schemas/Job"
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Not admin.
+        "404":
+          description: Job not found.
+
+  /api/jobs/admin/{id}:
+    delete:
+      tags:
+        - Admin
+      summary: Delete any job (Admin only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/JobId"
+      responses:
+        "200":
+          description: Job deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        "401":
+          description: Missing or invalid token.
+        "403":
+          description: Not admin.
+        "404":
+          description: Job not found.
+
 components:
   securitySchemes:
     bearerAuth:
@@ -382,12 +1162,30 @@ components:
       name: id
       in: path
       required: true
-      description: Job ObjectId.
+      description: Job ObjectId
       schema:
         type: string
       example: 665fc28a8e7b2a3a11000002
+    JobIdAsJobId:
+      name: jobId
+      in: path
+      required: true
+      description: Job ObjectId
+      schema:
+        type: string
+      example: 665fc28a8e7b2a3a11000002
+    QuestionId:
+      name: questionId
+      in: path
+      required: true
+      description: Question ObjectId
+      schema:
+        type: string
+      example: 665fc28a8e7b2a3a11000020
 
   schemas:
+
+    # ── Job ──
     Recruiter:
       type: object
       properties:
@@ -442,30 +1240,26 @@ components:
             type: string
         status:
           type: string
-          enum: [Open, Closed, Drafted, DRAFT, ACTIVE]
+          enum: [Open, Closed, Drafted]
         requirements:
           type: string
         location:
           type: string
         applicationEnd:
           type: string
-          format: date-time
+          format: date
           nullable: true
         editableUntil:
           type: string
           format: date-time
           nullable: true
-          description: Timestamp when the 5-minute draft editing window expires.
         isPublished:
           type: boolean
-          description: Whether the job is publicly visible.
         acceptApplications:
           type: boolean
-          description: Whether the job currently accepts applications.
         embeddingStatus:
           type: string
           enum: [pending, ready, failed]
-          description: Status of the AI embedding generation.
         createdAt:
           type: string
           format: date-time
@@ -473,6 +1267,7 @@ components:
           type: string
           format: date-time
 
+    # ── Input Schemas ──
     CreateJobInput:
       type: object
       required:
@@ -508,7 +1303,20 @@ components:
           type: string
           format: date
           nullable: true
-      description: Creates a job as DRAFT. Status is always set to DRAFT regardless of input.
+        assessmentQuestionCount:
+          type: integer
+          nullable: true
+          minimum: 1
+          maximum: 100
+          description: If provided, auto-generates AI assessment. Number of questions per candidate.
+        assessmentDifficulty:
+          type: string
+          nullable: true
+          enum: [Auto, Easy, Medium, Hard, Mixed]
+        assessmentTopics:
+          type: string
+          nullable: true
+          description: Comma-separated topics for auto-generated assessment.
 
     UpdateJobInput:
       type: object
@@ -528,7 +1336,6 @@ components:
           enum: [Intern, Full Time, Part Time]
         skills:
           type: array
-          minItems: 1
           items:
             type: string
         requirements:
@@ -539,3 +1346,342 @@ components:
           type: string
           format: date
           nullable: true
+
+    # ── Job Application ──
+    JobApplicationBase:
+      type: object
+      properties:
+        _id:
+          type: string
+        job:
+          type: object
+        candidate:
+          type: object
+          properties:
+            _id:
+              type: string
+            name:
+              type: string
+            email:
+              type: string
+            role:
+              type: string
+            profile_image:
+              type: string
+              nullable: true
+            CV:
+              type: string
+            bio:
+              type: string
+        CV:
+          type: string
+        parsedResume:
+          type: object
+          nullable: true
+        matchScore:
+          type: number
+          nullable: true
+        matchingStatus:
+          type: string
+          enum: [pending, completed, failed, skipped]
+        status:
+          type: string
+          enum: [Pending, Reviewed, Accepted, Rejected, Deleted]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    JobApplicationHrView:
+      allOf:
+        - $ref: "#/components/schemas/JobApplicationBase"
+        - type: object
+          properties:
+            assessmentScore:
+              type: number
+              nullable: true
+              description: Assessment quiz percentage (0-100). Visible to HR only.
+            assessmentStatus:
+              type: string
+              nullable: true
+              enum: [pending, completed, not_started]
+            aiEvaluation:
+              type: object
+              properties:
+                strengths:
+                  type: array
+                  items:
+                    type: string
+                weaknesses:
+                  type: array
+                  items:
+                    type: string
+                summary:
+                  type: string
+                recommendation:
+                  type: string
+                generatedAt:
+                  type: string
+                  format: date-time
+                  nullable: true
+
+    JobApplicationCandidateView:
+      allOf:
+        - $ref: "#/components/schemas/JobApplicationBase"
+        - type: object
+          properties:
+            assessmentScore:
+              type: number
+              nullable: true
+              description: Always null — scores are hidden from candidates.
+              readOnly: true
+            assessmentStatus:
+              type: string
+              nullable: true
+              readOnly: true
+            aiEvaluation:
+              type: object
+              nullable: true
+              readOnly: true
+
+    # ── Assessment ──
+    Assessment:
+      type: object
+      properties:
+        _id:
+          type: string
+        job:
+          type: string
+          description: Job ObjectId
+        type:
+          type: string
+          enum: [NONE, MANUAL, AI]
+        questionCount:
+          type: integer
+        repositorySize:
+          type: integer
+        difficulty:
+          type: string
+          enum: [Auto, Easy, Medium, Hard, Mixed]
+        topics:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [Drafted, Locked]
+        generatedBy:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    GenerateAssessmentInput:
+      type: object
+      required:
+        - questionCount
+      properties:
+        questionCount:
+          type: integer
+          minimum: 1
+          maximum: 100
+        difficulty:
+          type: string
+          enum: [Auto, Easy, Medium, Hard, Mixed]
+          nullable: true
+        topics:
+          type: string
+          nullable: true
+
+    # ── Question ──
+    Question:
+      type: object
+      properties:
+        _id:
+          type: string
+        assessment:
+          type: string
+        question:
+          type: string
+        options:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            type: string
+        correctAnswer:
+          type: string
+        explanation:
+          type: string
+        topic:
+          type: string
+        difficulty:
+          type: string
+          enum: [Easy, Medium, Hard]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    QuestionNoAnswer:
+      type: object
+      description: Question without correctAnswer (returned to candidates)
+      properties:
+        _id:
+          type: string
+        assessment:
+          type: string
+        question:
+          type: string
+        options:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            type: string
+        explanation:
+          type: string
+        topic:
+          type: string
+        difficulty:
+          type: string
+          enum: [Easy, Medium, Hard]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateQuestionInput:
+      type: object
+      properties:
+        question:
+          type: string
+        options:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            type: string
+        correctAnswer:
+          type: string
+        explanation:
+          type: string
+        topic:
+          type: string
+        difficulty:
+          type: string
+          enum: [Easy, Medium, Hard]
+
+    UpdateAssessmentSettingsInput:
+      type: object
+      description: Assessment configuration form — HR chooses type, count, difficulty
+      properties:
+        type:
+          type: string
+          enum: [NONE, MANUAL, AI]
+          description: |
+            NONE → assessment disabled
+            MANUAL → HR adds questions manually
+            AI → auto-generated questions
+        questionCount:
+          type: integer
+          minimum: 1
+          maximum: 100
+          nullable: true
+        difficulty:
+          type: string
+          enum: [Auto, Easy, Medium, Hard, Mixed]
+          nullable: true
+        topics:
+          type: string
+          nullable: true
+          description: Comma-separated list of topics
+
+    AddQuestionInput:
+      type: object
+      required:
+        - question
+        - options
+        - correctAnswer
+        - explanation
+      properties:
+        question:
+          type: string
+        options:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            type: string
+        correctAnswer:
+          type: string
+        explanation:
+          type: string
+        topic:
+          type: string
+          default: General
+        difficulty:
+          type: string
+          enum: [Easy, Medium, Hard]
+          default: Medium
+
+    # ── Candidate Assessment ──
+    CandidateAssessment:
+      type: object
+      properties:
+        _id:
+          type: string
+        candidate:
+          type: string
+        job:
+          type: string
+        assessment:
+          type: string
+        selectedQuestionIds:
+          type: array
+          items:
+            type: string
+        score:
+          type: integer
+          nullable: true
+        submittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [pending, completed]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SubmitAnswersInput:
+      type: object
+      required:
+        - answers
+      properties:
+        answers:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - questionId
+              - selectedAnswer
+            properties:
+              questionId:
+                type: string
+              selectedAnswer:
+                type: string

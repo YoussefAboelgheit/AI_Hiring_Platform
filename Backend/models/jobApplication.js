@@ -46,6 +46,17 @@ const jobApplicationSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    assessmentScore: {
+      type: Number,
+      default: null,
+      min: 0,
+      max: 100,
+    },
+    assessmentStatus: {
+      type: String,
+      enum: ["pending", "completed", "not_started", null],
+      default: null,
+    },
     aiEvaluation: {
       strengths: {
         type: [String],

@@ -17,7 +17,6 @@ import categoryRouter from "./routes/category.router.js";
 import cvRouter from "./routes/cv.router.js";
 //@desc import embeddings
 import embeddingsRouter from "./routes/embeddings.router.js";
-
 const app = express();
 
 //@desc Swagger documentation by abanoub please don't delete
