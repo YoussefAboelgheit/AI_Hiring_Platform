@@ -1,16 +1,54 @@
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import apiClient from "../../services/apiClient";
+import { getApplicantsList, getTopCandidates } from "../../services/recruiterService";
 import CircleProgress from "../../components/common/CircleProgress";
 import LoadingState from "../../components/common/LoadingState";
 import BackButton from "../../components/common/BackButton";
+
+function normalizeApplicantsData(data, jobId) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.jobs)) return data.jobs;
+  if (Array.isArray(data?.applicants)) {
+    return [{ _id: jobId ?? "all", title: data.jobTitle ?? "All Jobs", applications: data.applicants }];
+  }
+  return [];
+}
 
 export default function ApplicantsListPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const jobId = location.state?.jobId;
-  const [jobs, setJobs] = useState([]); 
-  const [loading, setLoading] = useState(true);
+  const [showTopCandidates, setShowTopCandidates] = useState(false);
+  const [jobs, setJobs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [error, setError] = useState(null);
+
+  const loadApplicants = useCallback(
+    async (topOnly) => {
+      setIsLoading(true);
+      setIsError(false);
+      setError(null);
+      try {
+        const data = topOnly ? await getTopCandidates(jobId) : await getApplicantsList(jobId);
+        setJobs(normalizeApplicantsData(data, jobId));
+      } catch (err) {
+        setIsError(true);
+        setError(err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [jobId]
+  );
+
+  useEffect(() => {
+    loadApplicants(showTopCandidates);
+  }, [loadApplicants, showTopCandidates]);
+
+  const handleToggleTopCandidates = () => {
+    setShowTopCandidates((prev) => !prev);
+  };
 
   const currentJobTitle = useMemo(() => {
     if (!jobId || !jobs.length) return "";
@@ -29,25 +67,14 @@ export default function ApplicantsListPage() {
 
   const sortedApplications = useMemo(() => {
     return [...displayedApplications].sort((a, b) => {
-      const scoreA = a.matchScore ?? 0;
-      const scoreB = b.matchScore ?? 0;
+      const scoreA = ((a.cvScore ?? 0) + (a.skillMatch ?? 0) + (a.assessmentScore ?? 0)) / 3;
+      const scoreB = ((b.cvScore ?? 0) + (b.skillMatch ?? 0) + (b.assessmentScore ?? 0)) / 3;
       return scoreB - scoreA;
     });
   }, [displayedApplications]);
 
-  useEffect(() => {
-    apiClient
-      .get("/jobs/hr/my-jobs/applications")
-      .then((res) => {
-        console.log("FETCHED JOBS DATA:", res.data);
-        const jobsData = Array.isArray(res.data) ? res.data : res.data.jobs || [];
-        setJobs(jobsData);
-      })
-      .catch((err) => console.error("Error fetching jobs with applications", err))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <LoadingState message="Loading applicants..." />;
+  if (isLoading) return <LoadingState message="Loading applicants..." />;
+  if (isError) return <div style={{ padding: 20 }}>Failed to load applicants: {error?.message || "Unknown error"}</div>;
   if (!sortedApplications.length) return <div style={{ padding: 20 }}>No applicants found.</div>;
 
   return (
@@ -64,86 +91,65 @@ export default function ApplicantsListPage() {
           <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/email-invitations")}>
             <i className="bi bi-envelope me-2"></i>Send Invitations
           </button>
-          <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }}>
-            <i className="bi bi-funnel me-2"></i>Filter
-          </button>
-          <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }}>
-            <i className="bi bi-sort-down me-2"></i>Sort by Match
-          </button>
-          <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }}>
-            <i className="bi bi-download me-2"></i>Export List
+          <button
+            type="button"
+            className={showTopCandidates ? "btn-primary-custom" : "btn-outline-custom"}
+            style={{ fontSize: 13 }}
+            onClick={handleToggleTopCandidates}
+            disabled={isLoading}
+          >
+            <i className="bi bi-funnel me-2"></i>
+            {showTopCandidates ? "Show All Applicants" : "Top Candidates"}
           </button>
         </div>
       </div>
-
-      {sortedApplications.map((app, idx) => {
-        const cvRelevanceScore = Math.round(app.matchScore ?? 0);
-        const assessmentScore = Math.round(app.assessmentScore ?? 0);
-        // التحقق من الـ id المتاح لتمريره بشكل صحيح
-        const candidateId = app._id || app.id;
-
-        return (
-          <div key={candidateId || idx} className="hcard" style={{ padding: 20, marginBottom: 24, border: 0, background: "var(--card-bg)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-              
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: idx === 0 ? "var(--primary)" : "var(--body-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 16, color: idx === 0 ? "#fff" : "var(--text-muted)" }}>
-                {idx + 1}
-              </div>
-
-              <img
-                src={app.candidate?.profile_image || `https://ui-avatars.com/api/?name=${app.candidate?.name?.[0] || "U"}`}
-                alt=""
-                style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover" }}
-              />
-
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>{app.candidate?.name || "Unknown"}</div>
-                {!jobId && (
-                  <span style={{ display: "inline-flex", alignItems: "center", marginTop: 4, padding: "2px 8px", background: "#F3E8FF", color: "#6B21A8", borderRadius: "9999px", fontSize: 12, fontWeight: 600 }}>
-                    🔍 Applied for: {app.jobTitle}
-                  </span>
-                )}
-                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{app.candidate?.email || ""}</div>
-              </div>
-
-              <CircleProgress
-                value={cvRelevanceScore}
-                size={72}
-                stroke={6}
-              />
-
-              <div style={{ display: "flex", flex: 1, gap: 20 }}>
-                {[["CV Relevance", cvRelevanceScore], ["Assessment", assessmentScore]].map(([label, val]) => (
-                  <div key={label} style={{ flex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                      <span style={{ color: "var(--text-muted)" }}>{label}</span>
-                      <span style={{ fontWeight: 700 }}>{val}/100</span>
-                    </div>
-                    <div className="match-bar">
-                      <div className="match-bar-fill" style={{ width: `${val}%` }}></div>
-                    </div>
+      {sortedApplications.map((app, idx) => (
+        <div key={app._id || idx} className="hcard" style={{ padding: 20, marginBottom: 24, border: 0, background: "var(--card-bg)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: idx === 0 ? "var(--primary)" : "var(--body-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 16, color: idx === 0 ? "#fff" : "var(--text-muted)" }}>{idx + 1}</div>
+            <img
+              src={app.candidate?.profile_image || `https://ui-avatars.com/api/?name=${app.candidate?.name?.[0] || "U"}`}
+              alt=""
+              style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover" }}
+            />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>{app.candidate?.name || "Unknown"}</div>
+              {!jobId && (
+                <span style={{ display: "inline-flex", alignItems: "center", marginTop: 4, padding: "2px 8px", background: "#F3E8FF", color: "#6B21A8", borderRadius: "9999px", fontSize: 12, fontWeight: 600 }}>
+                  🔍 Applied for: {app.jobTitle}
+                </span>
+              )}
+              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{app.candidate?.email || ""}</div>
+            </div>
+            <CircleProgress
+              value={Math.round(((app.cvScore ?? 0) + (app.skillMatch ?? 0) + (app.assessmentScore ?? 0)) / 3)}
+              size={72}
+              stroke={6}
+            />
+            <div style={{ display: "flex", flex: 1, gap: 20 }}>
+              {[["CV Relevance", app.cvScore ?? 0], ["Assessment", app.assessmentScore ?? 0]].map(([label, val]) => (
+                <div key={label} style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: "var(--text-muted)" }}>{label}</span>
+                    <span style={{ fontWeight: 700 }}>{val}/100</span>
                   </div>
-                ))}
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <button 
-                  type="button" 
-                  className="btn-primary-custom" 
-                  style={{ fontSize: 13, padding: "8px 16px" }} 
-                  onClick={() => navigate(`/recruiter/candidates/${candidateId}`)}
-                >
-                  View Candidate →
-                </button>
-                <button type="button" className="btn-outline-custom" style={{ fontSize: 13, padding: "7px 16px" }}>
-                  Add Note
-                </button>
-              </div>
-
+                  <div className="match-bar">
+                    <div className="match-bar-fill" style={{ width: `${val}%` }}></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <button type="button" className="btn-primary-custom" style={{ fontSize: 13, padding: "8px 16px" }} onClick={() => navigate(`/recruiter/candidates/${app.id || app._id}`)}>
+                View Candidate →
+              </button>
+              <button type="button" className="btn-outline-custom" style={{ fontSize: 13, padding: "7px 16px" }}>
+                Add Note
+              </button>
             </div>
           </div>
-        );
-      })}
+        </div>
+      ))}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, padding: "16px 0" }}>
         <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Pagination controls</span>
