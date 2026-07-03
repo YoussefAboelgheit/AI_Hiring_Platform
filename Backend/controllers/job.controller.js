@@ -485,6 +485,10 @@ export const applyToJob = async (req, res, next) => {
       return next(new HTTPError(400, "You can only apply to open jobs"));
     }
 
+    if (job.applicationEnd && job.applicationEnd < new Date()) {
+      return next(new HTTPError(400, "Applications are closed for this job"));
+    }
+
     const alreadyApplied = await JobApplication.findOne({
       job: job._id,
       candidate: req.user._id,

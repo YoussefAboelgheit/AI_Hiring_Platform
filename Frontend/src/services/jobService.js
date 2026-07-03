@@ -11,7 +11,8 @@ function cleanParams(params) {
 
 export function isJobAvailableForCandidate(job) {
   if (job.status !== "Open") return false;
-  return true;
+  if (!job.applicationEnd) return true;
+  return new Date(job.applicationEnd) >= new Date();
 }
 
 function mapFormToJobPayload(form) {
