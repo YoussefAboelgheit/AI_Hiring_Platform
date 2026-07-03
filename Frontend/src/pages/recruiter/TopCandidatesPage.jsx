@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getTopCandidates } from "../../services/recruiterService";
+import { formatTopCandidatesRanking, getTopCandidates } from "../../services/recruiterService";
 import LoadingState from "../../components/common/LoadingState";
 import BackButton from "../../components/common/BackButton";
 
@@ -11,7 +11,9 @@ export default function TopCandidatesPage() {
 
   useEffect(() => {
     getTopCandidates()
+      .then(({ applicants }) => formatTopCandidatesRanking(applicants))
       .then(setData)
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);
 
