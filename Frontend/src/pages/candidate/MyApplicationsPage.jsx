@@ -1,65 +1,77 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { getMyApplications } from "../../services/applicationService";
+import { queryKeys } from "../../constants/queryKeys";
 import StatusBadge from "../../components/common/StatusBadge";
 import LoadingState from "../../components/common/LoadingState";
 import EmptyState from "../../components/common/EmptyState";
 
 export default function MyApplicationsPage() {
   const navigate = useNavigate();
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function load() {
-      setLoading(true);
-      try {
-        const data = await getMyApplications();
-        if (!cancelled) setApplications(data);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    load();
-    return () => { cancelled = true; };
-  }, []);
+  const {
+    data: applications = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = useQuery({
+    queryKey: queryKeys.applications.mine,
+    queryFn: getMyApplications,
+    staleTime: 60 * 1000,
+  });
 
   return (
     <>
-      <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 6 }}>My Applications</h1>
-      <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
-        Track all your job applications and their current status.
-      </p>
+      <div className="page-header-row">
+        <div>
+          <h1>My Applications</h1>
+          <p style={{ color: "var(--text-muted)", margin: 0 }}>
+            Track all your job applications and their current status.
+          </p>
+        </div>
+        {isFetching && !isLoading && (
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+            <i className="bi bi-arrow-repeat me-1" aria-hidden="true" />
+            Refreshing...
+          </span>
+        )}
+      </div>
 
-      {loading ? (
+      {isError && (
+        <div style={{ background: "#FEE2E2", color: "#991B1B", padding: "12px 16px", borderRadius: 10, fontSize: 14, marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span>{error?.message || "Failed to load applications."}</span>
+          <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => refetch()}>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {isLoading ? (
         <LoadingState message="Loading applications..." />
-      ) : applications.length === 0 ? (
+      ) : applications.length === 0 && !isError ? (
         <EmptyState
           icon="bi-file-earmark-text"
           title="No applications yet"
           description="Start exploring jobs and submit your first application."
           action={
-            <button className="btn-primary-custom" onClick={() => navigate("/candidate/jobs")}>
+            <button type="button" className="btn-primary-custom" onClick={() => navigate("/candidate/jobs")}>
               Browse Jobs
             </button>
           }
         />
       ) : (
-        <div className="hcard" style={{ overflow: "hidden" }}>
+        <div className="hcard table-responsive-wrap" style={{ overflow: "hidden" }}>
           <table className="htable">
             <thead>
               <tr>
                 <th>Job Title</th>
                 <th>Company</th>
+                <th>Workplace</th>
                 <th>Applied</th>
-                <th>Match Score</th>
-                <th>Final Score</th>
-                <th>Rank</th>
                 <th>Status</th>
-                <th></th>
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -75,20 +87,16 @@ export default function MyApplicationsPage() {
                         src={app.logo}
                         alt=""
                         style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)" }}
-                        onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${app.company}&background=EDE9FE&color=7C3AED&size=32`; }}
+                        onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&background=EDE9FE&color=7C3AED&size=32`; }}
                       />
                       <span style={{ fontWeight: 600 }}>{app.jobTitle}</span>
                     </div>
                   </td>
                   <td style={{ color: "var(--text-muted)" }}>{app.company}</td>
+                  <td style={{ color: "var(--text-muted)" }}>{app.jobWorkplace || "—"}</td>
                   <td style={{ color: "var(--text-muted)" }}>{app.appliedAt}</td>
-                  <td>
-                    <span className="match-pill"><i className="bi bi-stars"></i>{app.matchScore}%</span>
-                  </td>
-                  <td><span style={{ fontWeight: 700, color: "var(--primary)" }}>{app.finalScore}</span></td>
-                  <td><span style={{ fontWeight: 700 }}>#{app.rank}</span></td>
                   <td><StatusBadge status={app.status} /></td>
-                  <td><i className="bi bi-chevron-right text-muted"></i></td>
+                  <td><i className="bi bi-chevron-right text-muted" aria-hidden="true" /></td>
                 </tr>
               ))}
             </tbody>

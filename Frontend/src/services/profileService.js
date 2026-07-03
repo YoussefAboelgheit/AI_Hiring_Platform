@@ -1,6 +1,5 @@
 import { candidateProfile } from "../mock/profile";
-import { fetchMe, getSessionUser, updateSessionUser } from "./authService";
-import { fileToBase64 } from "./storage/fileUtils";
+import { fetchMe, getSessionUser, updateSessionUser, saveCompleteProfile as saveProfileToBackend } from "./authService";
 import { getApiErrorMessage } from "./apiErrors";
 
 function mergeProfileWithExtras(user) {
@@ -10,7 +9,8 @@ function mergeProfileWithExtras(user) {
     name: user.name || candidateProfile.name,
     email: user.email || candidateProfile.email,
     phone: user.phone || "",
-    avatar: user.avatar,
+    avatar: user.avatar, // يتم جلبه تلقائياً بواسطة normalizeUser المعدلة
+    cv: user.cv || user.CV || null, // تمرير رابط الـ CV الجديد للصفحة
     title: user.title || candidateProfile.title,
     location: user.location || candidateProfile.location,
     bio: user.bio || candidateProfile.bio,
@@ -38,6 +38,7 @@ export async function getCompleteProfileDefaults() {
       email: user.email || "",
       phone: user.phone || "",
       avatar: user.avatar || null,
+      cv: user.cv || null
     };
   }
 
@@ -48,35 +49,45 @@ export async function getCompleteProfileDefaults() {
       email: profile.email || "",
       phone: profile.phone || "",
       avatar: profile.avatar || null,
+      cv: profile.cv || null
     };
   } catch {
-    return { name: "", email: "", phone: "", avatar: null };
+    return { name: "", email: "", phone: "", avatar: null, cv: null };
   }
 }
 
+// إرسال البيانات الحقيقية للباك إند بصيغة FormData
 export async function saveCompleteProfile(data) {
-  const updates = {
-    name: data.name,
-    email: data.email,
-    phone: data.phone,
-    profileCompleted: true,
-  };
+  try {
+    const current = getSessionUser();
+    if (!current) throw new Error("No user session found");
 
-  if (data.avatarFile) {
-    updates.avatar = await fileToBase64(data.avatarFile);
-  } else if (data.avatar) {
-    updates.avatar = data.avatar;
+    const formData = new FormData();
+    formData.append("name", data.name || "");
+    formData.append("email", data.email || "");
+    formData.append("phone", data.phone || "");
+    
+    if (data.avatarFile) {
+      formData.append("profile_image", data.avatarFile);
+    }
+    
+    if (data.cvFile) {
+      formData.append("CV", data.cvFile);
+    }
+
+    const updatedUser = await saveProfileToBackend(current.id, formData);
+    return { success: true, user: updatedUser };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
   }
-
-  if (data.resume) {
-    updates.resumeName = data.resume;
-  }
-
-  const user = await updateSessionUser(updates);
-  return { success: true, user };
 }
 
 export async function saveCandidateProfile(data) {
-  const user = await updateSessionUser(data);
-  return { success: true, user };
+  try {
+    const user = await updateSessionUser(data);
+    return { success: true, user };
+  } catch (error) {
+    throw Object.assign(new Error(getApiErrorMessage(error)), { cause: error });
+  }
 }

@@ -1,10 +1,15 @@
 import { useNavigate } from "react-router-dom";
 
-export default function BackButton({ fallbackTo, label = "Back", className = "", flush = false }) {
+export default function BackButton({ fallbackTo, label = "Back", className = "", flush = false, forceTo }) {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    if (window.history.state?.idx > 0) {
+    // لو بعتنا له مكان معين (زي الهوم)، هيروح له علطول بضغطة واحدة
+    if (forceTo) {
+      navigate(forceTo);
+    } 
+    // لو مبعتناش حاجة، هيفضل شغال زي القديم ويرجع خطوة لورا عادي جداً في باقي الموقع
+    else if (window.history.state?.idx > 0) {
       navigate(-1);
     } else if (fallbackTo) {
       navigate(fallbackTo);

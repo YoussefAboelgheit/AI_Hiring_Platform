@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom"; 
 import { getCandidateProfile } from "../../services/profileService";
 import CircleProgress from "../../components/common/CircleProgress";
 import LoadingState from "../../components/common/LoadingState";
@@ -21,7 +22,8 @@ export default function CandidateProfilePage() {
   if (error) {
     return (
       <>
-        <BackButton fallbackTo="/candidate/dashboard" label="Back to Dashboard" />
+        {/* Updated Error State Back Button */}
+        <BackButton fallbackTo="/candidate/applications" label="Back to My Applications" />
         <div className="hcard" style={{ padding: 24, color: "#991B1B", background: "#FEE2E2" }}>{error}</div>
       </>
     );
@@ -31,13 +33,18 @@ export default function CandidateProfilePage() {
 
   return (
     <>
-      <BackButton fallbackTo="/candidate/dashboard" label="Back to Dashboard" />
+      {/* Updated Main Back Button */}
+    <BackButton forceTo="/candidate/applications" label="Back to my  Applications" />      
       <div className="page-header-row">
         <div>
           <h1>Candidate Profile</h1>
           <p style={{ color: "var(--text-muted)", margin: 0 }}>Manage your professional identity and resume details.</p>
         </div>
-        <button type="button" className="btn-primary-custom"><i className="bi bi-pencil me-2" />Edit Profile</button>
+        
+        <Link to="/candidate/profile/complete" className="btn-primary-custom" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>
+          <i className="bi bi-pencil me-2" />
+          Edit Profile
+        </Link>
       </div>
 
       <div className="grid-profile">
@@ -61,9 +68,25 @@ export default function CandidateProfilePage() {
                 {text}
               </div>
             ))}
+            
             <div style={{ textAlign: "left", marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", letterSpacing: 1, marginBottom: 8 }}>BIO</div>
               <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7, margin: 0 }}>{profile.bio}</p>
+              
+              {profile.cv && (
+                <div style={{ marginTop: 16 }}>
+                  <a
+                    href={profile.cv}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-outline-primary w-100"
+                    style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none" }}
+                  >
+                    <i className="bi bi-file-earmark-pdf" />
+                    View Attached CV
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 
@@ -85,7 +108,7 @@ export default function CandidateProfilePage() {
               <span className="ai-badge"><i className="bi bi-stars" /> AI-Analyzed</span>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {profile.skills.map((s) => (
+              {profile.skills?.map((s) => (
                 <span key={s} className="skill-tag" style={s === "AI Prompting" ? { background: "#CCFBF1", color: "#0F766E" } : undefined}>{s}</span>
               ))}
             </div>
@@ -93,7 +116,7 @@ export default function CandidateProfilePage() {
 
           <div className="hcard" style={{ padding: 24 }}>
             <div style={{ fontWeight: 700, marginBottom: 20 }}>Work Experience</div>
-            {profile.experience.map((exp, i) => (
+            {profile.experience?.map((exp, i) => (
               <div key={exp.title} style={{ display: "flex", gap: 16, marginBottom: i < profile.experience.length - 1 ? 24 : 0 }}>
                 <div style={{ width: 2, background: i === 0 ? "var(--primary)" : "var(--border)", borderRadius: 2, flexShrink: 0 }} />
                 <div>
@@ -108,8 +131,8 @@ export default function CandidateProfilePage() {
 
           <div className="hcard" style={{ padding: 24 }}>
             <div style={{ fontWeight: 700, marginBottom: 16 }}>Education</div>
-            {profile.education.map((edu) => (
-              <div key={edu.degree} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+            {profile.education?.map((edu) => (
+              <div key={edu.degree} style={{ display: "flex", gap: 12, alignItems: "flex-start", marginBottom: 16 }}>
                 <div style={{ width: 40, height: 40, background: "var(--primary-bg)", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <i className="bi bi-mortarboard" style={{ color: "var(--primary)" }} aria-hidden="true" />
                 </div>

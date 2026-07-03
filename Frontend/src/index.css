@@ -35,7 +35,7 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
   flex-direction: column;
   z-index: 100;
 }
-.sidebar-logo { padding: 20px 16px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-logo { padding: 16px 16px 8px; border-bottom: 1px solid var(--border); }
 .sidebar-logo .brand-logo-link { width: 100%; }
 .sidebar-logo-icon {
   width: 40px; height: 40px; border-radius: 10px;
@@ -75,18 +75,19 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 .go-pro-box { margin: 12px; padding: 12px; background: var(--body-bg); border-radius: 10px; border: 1px solid var(--border); }
 .go-pro-box .go-pro-label { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; }
 .auth-accent { color: #5EEAD4; }
-.sidebar-nav { padding: 16px 12px; flex: 1; }
+.sidebar-nav { padding: 10px 12px; flex: 1; }
 .sidebar-nav .nav-item { margin-bottom: 4px; }
 .sidebar-nav .nav-link {
   display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 10px;
+    padding: 8px 12px;
+ border-radius: 10px;
   color: var(--text-muted); font-size: 14px; font-weight: 500;
   text-decoration: none; transition: all 0.15s;
 }
 .sidebar-nav .nav-link:hover { background: var(--primary-bg); color: var(--primary); }
 .sidebar-nav .nav-link.active { background: var(--primary-bg); color: var(--primary); font-weight: 600; }
 .sidebar-nav .nav-link i { font-size: 18px; }
-.sidebar-footer { padding: 16px 12px; border-top: 1px solid var(--border); }
+.sidebar-footer { padding: 10px 12px; border-top: 1px solid var(--border); }
 .sidebar-footer .nav-link { color: var(--text-muted); font-size: 14px; }
 
 /* Topbar */
@@ -116,8 +117,16 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 .user-chip .role { font-size: 11px; color: var(--text-muted); }
 
 /* Main layout */
-.main-layout { margin-left: var(--sidebar-width); padding-top: var(--topbar-height); min-height: 100vh; }
-.page-content { padding: 28px 28px; }
+.main-layout { 
+  margin-left: var(--sidebar-width); 
+  padding-top: var(--topbar-height); 
+  min-height: 100vh; 
+  display: flex;        
+  flex-direction: column; 
+}
+.page-content { 
+  padding: 28px 28px; 
+  flex: 1; }
 
 /* Cards */
 .hcard { background: #fff; border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--card-shadow); }
@@ -429,6 +438,49 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 .page-header-row h1 { font-size: clamp(22px, 4vw, 28px); font-weight: 800; margin-bottom: 4px; }
 .table-responsive-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
+.jobs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+.jobs-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.jobs-filter-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 9px 14px;
+  background: #fff;
+}
+.jobs-filter-input-wrap input {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  width: 100%;
+  background: transparent;
+}
+.jobs-filters-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.jobs-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
 /* Landing nav mobile */
 .landing-nav-toggle {
   margin-left: auto; background: var(--body-bg); border: 1px solid var(--border);
@@ -471,6 +523,7 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
   .grid-aside-main,
   .grid-aside-wide,
   .grid-profile { grid-template-columns: 1fr; }
+  .jobs-filters-grid { grid-template-columns: repeat(2, 1fr); }
   .form-stepper { flex-direction: column; align-items: stretch; gap: 12px; }
   .form-step { flex: none !important; }
   .form-step-line { display: none; }
@@ -506,6 +559,9 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
   .grid-stats-3,
   .grid-stats-4 { grid-template-columns: 1fr; }
   .grid-2-col { grid-template-columns: 1fr; }
+  .jobs-filters-grid { grid-template-columns: 1fr; }
+  .jobs-filters-actions { flex-direction: column; }
+  .jobs-filters-actions button { width: 100%; }
   .page-header-row { margin-bottom: 20px; }
   .btn-primary-custom,
   .btn-outline-custom { font-size: 13px; padding: 9px 16px; }

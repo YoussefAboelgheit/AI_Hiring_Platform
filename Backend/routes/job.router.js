@@ -1,0 +1,305 @@
+import { Router } from "express";
+import {
+  applyToJob,
+  analyzeJobApplicationForHr,
+  analyzeTopJobCandidates,
+  createJob,
+  deleteJob,
+  getAllJobs,
+  getJobById,
+  getJobApplicationsForHr,
+  getJobsByCategory,
+  getMyJobsWithApplications,
+  getMyApplicationById,
+  getMyAppliedJobs,
+  getJobEnrichment,
+  retryMyApplicationMatch,
+  updateJob,
+  adminUpdateJobStatus,
+  adminDeleteJob,
+} from "../controllers/job.controller.js";
+import {
+  generateAssessment,
+  getAssessment,
+  updateQuestion,
+  deleteQuestion,
+  regenerateQuestion,
+  regenerateRepository,
+  startAssessment,
+  submitAssessment,
+  updateAssessmentSettings,
+  addManualQuestion,
+} from "../controllers/assessment.controller.js";
+import authMW from "../middlewares/authMW.js";
+import { authorize } from "../middlewares/authorizeMW.js";
+import jobOwnershipMW from "../middlewares/jobOwnershipMW.js";
+import jobOwnershipByJobIdMW from "../middlewares/jobOwnershipByJobIdMW.js";
+import optionalAuthMW from "../middlewares/optionalAuthMW.js";
+import { uploadCV } from "../middlewares/uploadMW.js";
+import {
+  idParamValidator,
+  jobApplicationParamsValidator,
+} from "../validations/paramValidators.js";
+import {
+  applyToJobValidator,
+  categoryNameParamValidator,
+  createJobValidator,
+  updateJobValidator,
+  updateJobStatusValidator,
+} from "../validations/jobValidators.js";
+import {
+  jobIdParamValidator,
+  questionIdParamValidator,
+  generateAssessmentValidator,
+  updateQuestionValidator,
+  submitAnswerValidator,
+  updateAssessmentSettingsValidator,
+  addQuestionValidator,
+} from "../validations/assessmentValidators.js";
+import validateResults from "../validations/validateResults.js";
+import Assessment from "../models/assessment.js";
+import Job from "../models/job.js";
+
+const router = Router();
+
+// admin 
+router.patch(
+  "/admin/:id/status",
+  authMW,
+  authorize("admin"),
+  idParamValidator,
+  updateJobStatusValidator,
+  validateResults,
+  adminUpdateJobStatus
+);
+
+router.delete(
+  "/admin/:id",
+  authMW,
+  authorize("admin"),
+  idParamValidator,
+  validateResults,
+  adminDeleteJob
+);
+//////////
+
+//hr
+
+router.get("/", optionalAuthMW, getAllJobs);
+router.get("/category/:category", optionalAuthMW, categoryNameParamValidator, validateResults, getJobsByCategory);
+router.get("/applied/me", authMW, authorize("candidate"), getMyAppliedJobs);
+router.get(
+  "/hr/my-jobs/applications",
+  authMW,
+  authorize("hr"),
+  getMyJobsWithApplications
+);
+router.get(
+  "/applications/:id",
+  authMW,
+  authorize("candidate"),
+  idParamValidator,
+  validateResults,
+  getMyApplicationById
+);
+router.post(
+  "/applications/:id/retry",
+  authMW,
+  authorize("candidate"),
+  uploadCV,
+  idParamValidator,
+  validateResults,
+  retryMyApplicationMatch
+);
+router.get(
+  "/:jobId/applications/:applicationId/analysis",
+  authMW,
+  authorize("hr", "admin"),
+  jobApplicationParamsValidator,
+  validateResults,
+  analyzeJobApplicationForHr
+);
+router.get(
+  "/:id/applications",
+  authMW,
+  authorize("hr"),
+  idParamValidator,
+  validateResults,
+  getJobApplicationsForHr
+);
+router.get(
+  "/:id/applications/top-analysis",
+  authMW,
+  authorize("hr", "admin"),
+  idParamValidator,
+  validateResults,
+  analyzeTopJobCandidates
+);
+router.post(
+  "/:id/apply",
+  authMW,
+  authorize("candidate"),
+  uploadCV,
+  idParamValidator,
+  applyToJobValidator,
+  validateResults,
+  applyToJob
+);
+router.get("/:id/enrichment", optionalAuthMW, idParamValidator, validateResults, getJobEnrichment);
+router.get("/:id", optionalAuthMW, idParamValidator, validateResults, getJobById);
+
+router.post("/", authMW, authorize("hr"), createJobValidator, validateResults, createJob);
+router.patch(
+  "/:id",
+  authMW,
+  authorize("hr"),
+  idParamValidator,
+  updateJobValidator,
+  validateResults,
+  jobOwnershipMW,
+  updateJob
+);
+router.delete(
+  "/:id",
+  authMW,
+  authorize("hr", "admin"),
+  idParamValidator,
+  validateResults,
+  jobOwnershipMW,
+  deleteJob
+);
+
+// ── Assessment Management (HR) ──
+
+router.post(
+  "/:jobId/assessment/generate",
+  authMW,
+  authorize("hr"),
+  jobIdParamValidator,
+  generateAssessmentValidator,
+  validateResults,
+  jobOwnershipByJobIdMW,
+  generateAssessment,
+);
+
+router.get(
+  "/:jobId/assessment",
+  authMW,
+  authorize("hr", "admin", "candidate"),
+  jobIdParamValidator,
+  validateResults,
+  getAssessment,
+);
+
+router.post(
+  "/:jobId/assessment/regenerate",
+  authMW,
+  authorize("hr"),
+  jobIdParamValidator,
+  validateResults,
+  jobOwnershipByJobIdMW,
+  regenerateRepository,
+);
+
+// ── Question Management (HR) ──
+
+router.put(
+  "/assessment/questions/:questionId",
+  authMW,
+  authorize("hr"),
+  questionIdParamValidator,
+  updateQuestionValidator,
+  validateResults,
+  updateQuestion,
+);
+
+router.delete(
+  "/assessment/questions/:questionId",
+  authMW,
+  authorize("hr"),
+  questionIdParamValidator,
+  validateResults,
+  deleteQuestion,
+);
+
+router.post(
+  "/assessment/questions/:questionId/regenerate",
+  authMW,
+  authorize("hr"),
+  questionIdParamValidator,
+  validateResults,
+  regenerateQuestion,
+);
+
+// ── Candidate Assessment Flow ──
+
+router.post(
+  "/:jobId/assessment/start",
+  authMW,
+  authorize("candidate"),
+  jobIdParamValidator,
+  validateResults,
+  startAssessment,
+);
+
+router.post(
+  "/:jobId/assessment/submit",
+  authMW,
+  authorize("candidate"),
+  jobIdParamValidator,
+  submitAnswerValidator,
+  validateResults,
+  submitAssessment,
+);
+
+// ── Assessment Settings & Manual Questions (HR) ──
+
+router.patch(
+  "/:jobId/assessment",
+  authMW,
+  authorize("hr"),
+  jobIdParamValidator,
+  updateAssessmentSettingsValidator,
+  validateResults,
+  jobOwnershipByJobIdMW,
+  updateAssessmentSettings,
+);
+
+router.post(
+  "/:jobId/assessment/questions",
+  authMW,
+  authorize("hr"),
+  jobIdParamValidator,
+  addQuestionValidator,
+  validateResults,
+  jobOwnershipByJobIdMW,
+  addManualQuestion,
+);
+
+// ── Background Worker: lock assessments when jobs expire ──
+
+const lockExpiredAssessments = async () => {
+  try {
+    const assessments = await Assessment.find({ status: "Drafted" }).populate({
+      path: "job",
+      select: "status editableUntil",
+    });
+
+    const toLock = assessments.filter(
+      (a) => a.job && (a.job.status !== "Drafted" || (a.job.editableUntil && new Date() > a.job.editableUntil)),
+    );
+
+    if (toLock.length > 0) {
+      await Assessment.updateMany(
+        { _id: { $in: toLock.map((a) => a._id) } },
+        { status: "Locked" },
+      );
+    }
+  } catch (err) {
+    console.error("Assessment lock worker failed:", err?.message || err);
+  }
+};
+
+setInterval(lockExpiredAssessments, 60 * 1000);
+
+export default router;

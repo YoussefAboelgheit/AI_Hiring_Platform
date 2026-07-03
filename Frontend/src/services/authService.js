@@ -3,12 +3,20 @@ import * as userStorage from "./storage/userStorage";
 import { toFrontendRole, toBackendRole } from "../utils/roleMap";
 import { getApiErrorMessage } from "./apiErrors";
 
+// 1. حل مشكلة الصورة الشخصية الافتراضية أو المرفوعة
 export function resolveAvatar(user) {
-  if (user?.avatar) return user.avatar;
+  const userImage =
+    user?.profile_image ||
+    user?.company_logo ||
+    user?.avatar;
+
+  if (userImage) return userImage;
+  
   const name = user?.name || "User";
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=EDE9FE&color=7C3AED&size=150`;
 }
 
+// 2. معالجة بيانات المستخدم وتوحيد الحقول للفرونت إند
 export function normalizeUser(user) {
   if (!user) return null;
 
@@ -18,7 +26,8 @@ export function normalizeUser(user) {
     ...user,
     id: user._id || user.id,
     role,
-    avatar: resolveAvatar(user),
+    avatar: resolveAvatar(user), // قراءة الرابط الصحيح للصورة
+    cv: user.CV || user.cv || null, // قراءة الرابط الصحيح للـ CV
     title: user.title || (role === "recruiter" ? "Recruiter" : "Candidate"),
     bio: user.bio || "",
     phone: user.phone || "",
@@ -93,4 +102,58 @@ export async function updateSessionUser(updates) {
 export async function logout() {
   userStorage.clearSession();
   return { success: true };
+}
+
+// حفظ بيانات الملف الشخصي الكامل وإرساله للباك إند
+export async function saveCompleteProfile(userId, formData) {
+  try {
+    const { data } = await apiClient.patch(`/users/${userId}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return normalizeUser(data.user);
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+}
+
+export async function forgotPassword({ email }) {
+  try {
+    const { data } = await apiClient.post("/auth/forgot-password", {
+      email: email.trim(),
+    });
+    return { success: true, message: data.message };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+}
+
+export async function confirmForgotPassword({ token, newPassword }) {
+  try {
+    const { data } = await apiClient.post("/auth/confirm-forgot-password", {
+      token,
+      newPassword,
+    });
+    return { success: true, message: data.message };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+}
+
+export async function changePassword({ currentPassword, newPassword }) {
+  try {
+    const { data } = await apiClient.patch("/auth/reset-password", {
+      currentPassword,
+      newPassword,
+    });
+    return { success: true, message: data.message };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
 }

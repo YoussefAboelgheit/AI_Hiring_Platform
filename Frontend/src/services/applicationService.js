@@ -1,4 +1,5 @@
 import apiClient from "./apiClient";
+import { getApiErrorMessage } from "./apiErrors";
 import {
   myApplications,
   candidateDashboardStats,
@@ -6,30 +7,67 @@ import {
 } from "../mock/applications";
 import { applicationSubmitted } from "../mock/recruiterExtended";
 import { simulateDelay } from "../mock/utils";
+import { mapApplicationForDetail, mapApplicationForList } from "../utils/applicationMappers";
 
+const MAX_CV_SIZE_BYTES = 5 * 1024 * 1024;
+
+export function validateCvFile(file) {
+  if (!file) return "Please select a CV file.";
+  if (file.type !== "application/pdf") return "CV must be a PDF file.";
+  if (file.size > MAX_CV_SIZE_BYTES) return "CV must be 5MB or smaller.";
+  return null;
+}
+
+/**
+ * Apply to a job as a candidate.
+ * @param {string} jobId
+ * @param {{ cvFile?: File }} options - omit cvFile to use the profile CV
+ */
+export async function applyToJob(jobId, { cvFile } = {}) {
+  try {
+    if (cvFile) {
+      const validationError = validateCvFile(cvFile);
+      if (validationError) throw new Error(validationError);
+
+      const formData = new FormData();
+      formData.append("CV", cvFile);
+
+      const { data } = await apiClient.post(`/jobs/${jobId}/apply`, formData);
+      return data;
+    }
+
+    const { data } = await apiClient.post(`/jobs/${jobId}/apply`);
+    return data;
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+}
+
+/**
+ * Fetch the logged-in candidate's job applications.
+ * GET /api/jobs/applied/me
+ */
 export async function getMyApplications() {
-  await simulateDelay();
-  // Future: const { data } = await apiClient.get("/applications/my");
-  void apiClient;
-  return myApplications;
+  try {
+    const { data } = await apiClient.get("/jobs/applied/me");
+    return (data.applications ?? []).map(mapApplicationForList);
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
 }
 
 export async function getApplicationById(id) {
-  await simulateDelay();
-  // Future: const { data } = await apiClient.get(`/applications/${id}`);
-  void apiClient;
-  const app = myApplications.find((a) => a.id === id);
-  if (!app) return null;
-  return { ...app, ...applicationDetailExtras };
-}
-
-export async function applyToJob(jobId, formData) {
-  await simulateDelay(500);
-  // Future: const { data } = await apiClient.post("/applications", formData);
-  void jobId;
-  void formData;
-  void apiClient;
-  return { success: true, applicationId: "a1" };
+  try {
+    const { data } = await apiClient.get(`/jobs/applications/${id}`);
+    if (!data.application) return null;
+    return mapApplicationForDetail(data.application);
+  } catch (error) {
+    if (error?.response?.status === 404) return null;
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
 }
 
 export async function getCandidateDashboardStats() {
@@ -39,7 +77,6 @@ export async function getCandidateDashboardStats() {
 
 export async function updateApplicationStatus(appId, status) {
   await simulateDelay();
-  // Future: const { data } = await apiClient.patch(`/applications/${appId}/status`, { status });
   void appId;
   void status;
   void apiClient;
@@ -47,8 +84,35 @@ export async function updateApplicationStatus(appId, status) {
 }
 
 export async function getApplicationSubmitted(applicationId) {
-  await simulateDelay();
-  void applicationId;
-  void apiClient;
-  return applicationSubmitted;
+  try {
+    const application = await getApplicationById(applicationId);
+    if (!application) {
+      return {
+        referenceId: applicationId,
+        message: "Your application has been received. You can track its status from My Applications.",
+        statusLabel: "Pending review",
+        eta: "Recruiters typically respond within 5–7 business days.",
+      };
+    }
+
+    return {
+      referenceId: application.id.slice(-8).toUpperCase(),
+      message: `Your application for ${application.jobTitle} at ${application.company} has been submitted successfully.`,
+      statusLabel: application.statusLabel,
+      eta: "Recruiters typically respond within 5–7 business days.",
+    };
+  } catch {
+    await simulateDelay();
+    return applicationSubmitted;
+  }
+}
+
+// Kept for any legacy imports that still expect mock extras during detail rendering.
+export function getApplicationDetailExtras() {
+  return applicationDetailExtras;
+}
+
+// Legacy mock export retained for tests or gradual migration.
+export function getMockApplications() {
+  return myApplications;
 }

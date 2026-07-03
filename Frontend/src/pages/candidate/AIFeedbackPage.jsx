@@ -55,10 +55,10 @@ export default function AIFeedbackPage() {
 
   return (
     <>
-      <BackButton fallbackTo="/candidate/feedback" label="Back to Feedback" />
+     <BackButton forceTo="/candidate/applications" label="Back to Applications" />      
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12, fontSize: 13, flexWrap: "wrap" }}>
         <span style={{ cursor: "pointer", color: "var(--primary)" }} onClick={() => navigate("/candidate/applications")}>
-          Feedback
+          Applications
         </span>
         <i className="bi bi-chevron-right text-muted"></i>
         <span className="ai-badge"><i className="bi bi-stars"></i>AI Report</span>

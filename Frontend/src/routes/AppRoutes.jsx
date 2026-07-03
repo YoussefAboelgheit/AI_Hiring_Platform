@@ -4,6 +4,7 @@ import PublicLayout from "../layouts/PublicLayout";
 import AuthLayout from "../layouts/AuthLayout";
 import CandidateLayout from "../layouts/CandidateLayout";
 import RecruiterLayout from "../layouts/RecruiterLayout";
+import AdminLayout from "../layouts/AdminLayout";
 import StandaloneLayout from "../layouts/StandaloneLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import GuestRoute from "./GuestRoute";
@@ -12,9 +13,11 @@ import LandingPage from "../pages/public/LandingPage";
 import AboutPage from "../pages/public/AboutPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
+import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 
 import CandidateDashboard from "../pages/candidate/CandidateDashboard";
 import BrowseJobsPage from "../pages/candidate/BrowseJobsPage";
+import JobDetailsPage from "../pages/recruiter/JobDetailsPage";
 import JobDetailPage from "../pages/candidate/JobDetailPage";
 import ApplyJobPage from "../pages/candidate/ApplyJobPage";
 import MyApplicationsPage from "../pages/candidate/MyApplicationsPage";
@@ -28,6 +31,7 @@ import ApplicationSubmittedPage from "../pages/candidate/ApplicationSubmittedPag
 import RecruiterDashboard from "../pages/recruiter/RecruiterDashboard";
 import MyJobsPage from "../pages/recruiter/MyJobsPage";
 import PostJobPage from "../pages/recruiter/PostJobPage";
+import EditJobPage from "../pages/recruiter/EditJobPage";
 import ApplicantsListPage from "../pages/recruiter/ApplicantsListPage";
 import CandidateReviewPage from "../pages/recruiter/CandidateReviewPage";
 import TopCandidatesPage from "../pages/recruiter/TopCandidatesPage";
@@ -35,6 +39,13 @@ import RecruiterFeedbackPage from "../pages/recruiter/RecruiterFeedbackPage";
 import AssessmentGeneratorPage from "../pages/recruiter/AssessmentGeneratorPage";
 import AIRecommendationPage from "../pages/recruiter/AIRecommendationPage";
 import EmailInvitationsPage from "../pages/recruiter/EmailInvitationsPage";
+import SettingsPage from "../pages/settings/SettingsPage";
+
+
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import CategoryManagementPage from "../pages/admin/CategoryManagementPage";
+import JobManagementPage from "../pages/admin/JobManagementPage";
+import UserManagementPage from "../pages/admin/UserManagementPage";
 
 export default function AppRoutes() {
   return (
@@ -48,12 +59,18 @@ export default function AppRoutes() {
         <Route element={<AuthLayout />}>
           <Route path="login" element={<LoginPage />} />
           <Route path="register" element={<RegisterPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute allowedRoles={["candidate", "recruiter"]} />}>
+        <Route element={<StandaloneLayout />}>
+          <Route path="candidate/profile/complete" element={<CompleteProfilePage />} />
         </Route>
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={["candidate"]} />}>
         <Route element={<StandaloneLayout />}>
-          <Route path="candidate/profile/complete" element={<CompleteProfilePage />} />
           <Route path="candidate/application-submitted" element={<ApplicationSubmittedPage />} />
         </Route>
 
@@ -62,11 +79,13 @@ export default function AppRoutes() {
         <Route path="candidate" element={<CandidateLayout />}>
           <Route path="dashboard" element={<CandidateDashboard />} />
           <Route path="jobs" element={<BrowseJobsPage />} />
+          <Route path="job/:jobId" element={<JobDetailsPage />} />
           <Route path="jobs/:id" element={<JobDetailPage />} />
           <Route path="jobs/:id/apply" element={<ApplyJobPage />} />
           <Route path="applications" element={<MyApplicationsPage />} />
           <Route path="applications/:id" element={<ApplicationDetailPage />} />
           <Route path="profile" element={<CandidateProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="feedback" element={<AIFeedbackPage />} />
         </Route>
       </Route>
@@ -75,14 +94,27 @@ export default function AppRoutes() {
         <Route path="recruiter" element={<RecruiterLayout />}>
           <Route path="dashboard" element={<RecruiterDashboard />} />
           <Route path="jobs/new" element={<PostJobPage />} />
+          <Route path="jobs/edit/:id" element={<EditJobPage />} />
           <Route path="jobs" element={<MyJobsPage />} />
+          <Route path="job/:jobId" element={<JobDetailsPage />} />
           <Route path="applications" element={<ApplicantsListPage />} />
           <Route path="candidates/:id" element={<CandidateReviewPage />} />
           <Route path="top-candidates" element={<TopCandidatesPage />} />
           <Route path="feedback" element={<RecruiterFeedbackPage />} />
           <Route path="assessment-generator" element={<AssessmentGeneratorPage />} />
           <Route path="ai-recommendation" element={<AIRecommendationPage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="email-invitations" element={<EmailInvitationsPage />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+        <Route path="admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="categories" element={<CategoryManagementPage />} />
+          <Route path="jobs" element={<JobManagementPage />} />
+          <Route path="users" element={<UserManagementPage />} />
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
       </Route>
 

@@ -46,7 +46,7 @@ export default function RegisterPage() {
 
       <div className="auth-right">
         <div className="auth-form">
-          <BackButton fallbackTo="/" label="Back to Home" className="mb-4" />
+        <BackButton forceTo="/" label="Back to Home" className="mb-4" />
           <div className="mb-3">
             <BrandLogo size="sm" linkTo="/" />
           </div>
