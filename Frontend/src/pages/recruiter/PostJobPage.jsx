@@ -63,9 +63,9 @@ export default function PostJobPage() {
 
   const createJobMutation = useMutation({
     mutationFn: createJob,
-    onSuccess: () => {
-      toast.success("Job posted successfully!");
-      navigate("/recruiter/jobs");
+    onSuccess: (job) => {
+      toast.success("Job posted! You have 5 minutes to set up its assessment.");
+      navigate(`/recruiter/jobs/${job._id}/assessment`);
     },
     onError: (err) => {
       toast.error(err.message || "Failed to publish job. Please try again.");

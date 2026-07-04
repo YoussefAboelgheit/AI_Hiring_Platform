@@ -115,13 +115,17 @@ export default function MyJobsPage() {
                 </div>
               </div>
               <div className="job-list-actions">
-                {job.status === "draft" ? (
+                {job.status === "Drafted" ? (
                   <>
-                    <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/jobs/new")}>Publish Now</button>
+                    {job.createdAt && (Date.now() - new Date(job.createdAt).getTime()) < 5 * 60 * 1000 && (
+                      <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }} onClick={() => navigate(`/recruiter/jobs/${job._id}/assessment`)}>
+                        <i className="bi bi-clipboard-check me-2" />Manage Assessment
+                      </button>
+                    )}
                     <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => navigate(`/recruiter/jobs/edit/${job._id}`)}>Resume Editing</button>
                     <button type="button" className="btn-outline-custom" style={{ fontSize: 13, color: "#991B1B" }} onClick={() => handleDelete(job._id, job.title)} disabled={deleting === job._id}>{deleting === job._id ? "Deleting..." : "Delete"}</button>
                   </>
-                ) : job.status === "closed" ? (
+                ) : job.status === "Closed" ? (
                   <>
                     <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }}>View Archive</button>
                     <button type="button" className="btn-outline-custom" style={{ fontSize: 13, color: "#991B1B" }} onClick={() => handleDelete(job._id, job.title)} disabled={deleting === job._id}>{deleting === job._id ? "Deleting..." : "Delete"}</button>

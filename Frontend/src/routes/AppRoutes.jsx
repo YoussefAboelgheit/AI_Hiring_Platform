@@ -101,6 +101,7 @@ export default function AppRoutes() {
           <Route path="candidates/:id" element={<CandidateReviewPage />} />
           <Route path="top-candidates" element={<TopCandidatesPage />} />
           <Route path="feedback" element={<RecruiterFeedbackPage />} />
+          <Route path="jobs/:jobId/assessment" element={<AssessmentGeneratorPage />} />
           <Route path="assessment-generator" element={<AssessmentGeneratorPage />} />
           <Route path="ai-recommendation" element={<AIRecommendationPage />} />
           <Route path="settings" element={<SettingsPage />} />

@@ -201,6 +201,7 @@ export async function getMyJobs(recruiterId) {
       aiMatches: job.aiMatchesCount || 0,
       icon: getCategoryIcon(job.category?.name),
       applicationEnd: job.applicationEnd,
+      createdAt: job.createdAt,
     };
   });
 

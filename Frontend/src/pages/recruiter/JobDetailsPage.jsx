@@ -32,9 +32,14 @@ export default function JobDetailsPage() {
   return (
     <>
       <BackButton fallbackTo="/recruiter/applications" label="Back to Applications" />
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800 }}>{job.title}</h1>
-        <p style={{ color: "var(--text-muted)" }}>{job.category?.name} • {job.location} • {job.type}</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 800 }}>{job.title}</h1>
+          <p style={{ color: "var(--text-muted)" }}>{job.category?.name} • {job.location} • {job.type}</p>
+        </div>
+        <button className="btn-primary-custom" onClick={() => navigate(`/recruiter/jobs/${jobId}/assessment`)}>
+          <i className="bi bi-clipboard-check me-2" />
+AAAAAAAAAAAA        </button>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {job.applications && job.applications.length ? (

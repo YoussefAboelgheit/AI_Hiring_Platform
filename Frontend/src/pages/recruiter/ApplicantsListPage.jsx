@@ -48,7 +48,6 @@ export default function ApplicantsListPage() {
   }, []);
 
   if (loading) return <LoadingState message="Loading applicants..." />;
-  if (!sortedApplications.length) return <div style={{ padding: 20 }}>No applicants found.</div>;
 
   return (
     <>
@@ -58,9 +57,15 @@ export default function ApplicantsListPage() {
           <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 4 }}>
             {jobId && currentJobTitle ? `${currentJobTitle} - Applicants List` : "Applicants List"}
           </h1>
-          <p style={{ color: "var(--text-muted)", margin: 0 }}>Ranked by AI match score</p>
+          <p style={{ color: "var(--text-muted)", margin: 0 }}>Review and filter candidates applying for this position.</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
+          {jobId && (
+            <button className="btn-primary-custom" onClick={() => navigate(`/recruiter/jobs/${jobId}/assessment`)}>
+              <i className="bi bi-clipboard-check me-2" />
+              Manage Assessment
+            </button>
+          )}
           <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/email-invitations")}>
             <i className="bi bi-envelope me-2"></i>Send Invitations
           </button>
@@ -75,6 +80,10 @@ export default function ApplicantsListPage() {
           </button>
         </div>
       </div>
+
+      {!sortedApplications.length && (
+        <div style={{ padding: 20 }}>No applicants found.</div>
+      )}
 
       {sortedApplications.map((app, idx) => {
         const cvRelevanceScore = Math.round(app.matchScore ?? 0);

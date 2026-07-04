@@ -8,4 +8,7 @@ export const queryKeys = {
     mine: ["applications", "mine"],
     detail: (id) => ["applications", "detail", id],
   },
+  assessments: {
+    detail: (jobId) => ["assessments", jobId],
+  },
 };
