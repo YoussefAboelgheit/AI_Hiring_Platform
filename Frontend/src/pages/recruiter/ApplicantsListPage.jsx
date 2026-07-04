@@ -1,16 +1,54 @@
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import apiClient from "../../services/apiClient";
+import { getApplicantsList, getTopCandidates } from "../../services/recruiterService";
 import CircleProgress from "../../components/common/CircleProgress";
 import LoadingState from "../../components/common/LoadingState";
 import BackButton from "../../components/common/BackButton";
+
+function normalizeApplicantsData(data, jobId) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.jobs)) return data.jobs;
+  if (Array.isArray(data?.applicants)) {
+    return [{ _id: jobId ?? "all", title: data.jobTitle ?? "All Jobs", applications: data.applicants }];
+  }
+  return [];
+}
 
 export default function ApplicantsListPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const jobId = location.state?.jobId;
-  const [jobs, setJobs] = useState([]); 
-  const [loading, setLoading] = useState(true);
+  const [showTopCandidates, setShowTopCandidates] = useState(false);
+  const [jobs, setJobs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
+  const [error, setError] = useState(null);
+
+  const loadApplicants = useCallback(
+    async (topOnly) => {
+      setIsLoading(true);
+      setIsError(false);
+      setError(null);
+      try {
+        const data = topOnly ? await getTopCandidates(jobId) : await getApplicantsList(jobId);
+        setJobs(normalizeApplicantsData(data, jobId));
+      } catch (err) {
+        setIsError(true);
+        setError(err);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [jobId]
+  );
+
+  useEffect(() => {
+    loadApplicants(showTopCandidates);
+  }, [loadApplicants, showTopCandidates]);
+
+  const handleToggleTopCandidates = () => {
+    setShowTopCandidates((prev) => !prev);
+  };
 
   const currentJobTitle = useMemo(() => {
     if (!jobId || !jobs.length) return "";
@@ -29,25 +67,16 @@ export default function ApplicantsListPage() {
 
   const sortedApplications = useMemo(() => {
     return [...displayedApplications].sort((a, b) => {
-      const scoreA = a.matchScore ?? 0;
-      const scoreB = b.matchScore ?? 0;
+      const scoreA = ((a.cvScore ?? 0) + (a.skillMatch ?? 0) + (a.assessmentScore ?? 0)) / 3;
+      const scoreB = ((b.cvScore ?? 0) + (b.skillMatch ?? 0) + (b.assessmentScore ?? 0)) / 3;
       return scoreB - scoreA;
     });
   }, [displayedApplications]);
 
-  useEffect(() => {
-    apiClient
-      .get("/jobs/hr/my-jobs/applications")
-      .then((res) => {
-        console.log("FETCHED JOBS DATA:", res.data);
-        const jobsData = Array.isArray(res.data) ? res.data : res.data.jobs || [];
-        setJobs(jobsData);
-      })
-      .catch((err) => console.error("Error fetching jobs with applications", err))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <LoadingState message="Loading applicants..." />;
+  // دمج شروط التحميل والأخطاء المنظمة (الموجودة في الـ Incoming Change)
+  if (isLoading) return <LoadingState message="Loading applicants..." />;
+  if (isError) return <div style={{ padding: 20 }}>Failed to load applicants: {error?.message || "Unknown error"}</div>;
+  if (!sortedApplications.length) return <div style={{ padding: 20 }}>No applicants found.</div>;
 
   return (
     <>
@@ -69,26 +98,24 @@ export default function ApplicantsListPage() {
           <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/email-invitations")}>
             <i className="bi bi-envelope me-2"></i>Send Invitations
           </button>
-          <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }}>
-            <i className="bi bi-funnel me-2"></i>Filter
-          </button>
-          <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }}>
-            <i className="bi bi-sort-down me-2"></i>Sort by Match
-          </button>
-          <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }}>
-            <i className="bi bi-download me-2"></i>Export List
+          <button
+            type="button"
+            className={showTopCandidates ? "btn-primary-custom" : "btn-outline-custom"}
+            style={{ fontSize: 13 }}
+            onClick={handleToggleTopCandidates}
+            disabled={isLoading}
+          >
+            <i className="bi bi-funnel me-2"></i>
+            {showTopCandidates ? "Show All Applicants" : "Top Candidates"}
           </button>
         </div>
       </div>
 
-      {!sortedApplications.length && (
-        <div style={{ padding: 20 }}>No applicants found.</div>
-      )}
-
+      {/* عرض الكروت مع دمج المتغيرات والأزرار من النسختين */}
       {sortedApplications.map((app, idx) => {
-        const cvRelevanceScore = Math.round(app.matchScore ?? 0);
+        const cvRelevanceScore = Math.round(app.cvScore ?? app.matchScore ?? 0);
         const assessmentScore = Math.round(app.assessmentScore ?? 0);
-        // التحقق من الـ id المتاح لتمريره بشكل صحيح
+        const totalAverageScore = Math.round(((app.cvScore ?? 0) + (app.skillMatch ?? 0) + (app.assessmentScore ?? 0)) / 3);
         const candidateId = app._id || app.id;
 
         return (
@@ -115,8 +142,9 @@ export default function ApplicantsListPage() {
                 <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{app.candidate?.email || ""}</div>
               </div>
 
+              {/* استخدام الـ Total Score لـ الدائرة التقدمية */}
               <CircleProgress
-                value={cvRelevanceScore}
+                value={totalAverageScore}
                 size={72}
                 stroke={6}
               />
@@ -135,13 +163,9 @@ export default function ApplicantsListPage() {
                 ))}
               </div>
 
+              {/* الاحتفاظ بأزرار التحكم من النسخة الثانية */}
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <button 
-                  type="button" 
-                  className="btn-primary-custom" 
-                  style={{ fontSize: 13, padding: "8px 16px" }} 
-                  onClick={() => navigate(`/recruiter/candidates/${candidateId}`)}
-                >
+                <button type="button" className="btn-primary-custom" style={{ fontSize: 13, padding: "8px 16px" }} onClick={() => navigate(`/recruiter/candidates/${candidateId}`)}>
                   View Candidate →
                 </button>
                 <button type="button" className="btn-outline-custom" style={{ fontSize: 13, padding: "7px 16px" }}>

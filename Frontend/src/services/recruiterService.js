@@ -1,4 +1,5 @@
 import apiClient from "./apiClient";
+import { getApiErrorMessage } from "./apiErrors";
 import {
   recruiterStats,
   recruiterDashboardStats,
@@ -6,7 +7,6 @@ import {
   topAIMatches,
   applicantsList,
   candidateReviewDetail,
-  topCandidates,
   monthlyGoal,
   aiInsightDashboard,
 } from "../mock/recruiter";
@@ -19,6 +19,29 @@ import {
 } from "../mock/recruiterExtended";
 import { simulateDelay } from "../mock/utils";
 
+const TOP_CANDIDATES_PER_JOB = 3;
+const TOP_CANDIDATES_ALL_JOBS_LIMIT = 10;
+
+// دالة مساعدة لتوحيد حقول الـ Scores
+function mapApplicationScores(app, jobTitle) {
+  const matchScore = app.matchScore ?? 0;
+  return {
+    ...app,
+    jobTitle: jobTitle ?? app.jobTitle,
+    cvScore: app.cvScore ?? matchScore,
+    skillMatch: app.skillMatch ?? matchScore,
+    assessmentScore: app.assessmentScore ?? 0,
+  };
+}
+
+function sortByMatchScore(applications) {
+  return [...applications].sort((a, b) => {
+    const scoreA = a.matchScore ?? a.cvScore ?? 0;
+    const scoreB = b.matchScore ?? b.cvScore ?? 0;
+    return scoreB - scoreA;
+  });
+}
+
 export async function getRecruiterDashboard() {
   let jobs = [];
   try {
@@ -28,10 +51,6 @@ export async function getRecruiterDashboard() {
     console.error("Error fetching HR dashboard data", err);
   }
 
-  // الـ backend بيرجع { totalJobs, totalApplications, jobs: [ { ..., applications: [...] } ] }
-  // يعني الـ applications مش على المستوى الأول، هي جوة كل job.
-  // فبنعمل flatten لكل الـ applications من جميع الـ jobs، ولو app.job مجرد ID نصي
-  // (مش object) بنلصق بيانات الـ job الأصلي بدالها عشان نقدر نعرض العنوان لاحقًا.
   const applications = jobs.flatMap((job) =>
     (job.applications || []).map((app) => ({
       ...app,
@@ -77,18 +96,107 @@ export async function getRecruiterDashboard() {
     stats,
     statCards,
     recentApplications,
-    topMatches: topAIMatches, // Fallback to mock as AI matches might not be provided directly here
+    topMatches: topAIMatches,
     monthlyGoal,
     aiInsight: aiInsightDashboard,
   };
 }
 
-export async function getApplicantsList(jobTitle) {
-  await simulateDelay();
-  // Future: const { data } = await apiClient.get("/recruiter/applications", { params: { jobTitle } });
-  void jobTitle;
-  void apiClient;
-  return { applicants: applicantsList, jobTitle: "Senior Product Designer", total: 128 };
+// جلب كل المتقدمين مع معالجة البيانات وتوحيدها (تحسين الأمان هنا)
+export async function getApplicantsList(jobId) {
+  try {
+    const { data } = await apiClient.get("/jobs/hr/my-jobs/applications");
+    const jobs = Array.isArray(data) ? data : data.jobs || [];
+
+    if (jobId) {
+      const job = jobs.find((j) => j._id === jobId);
+      const applicants = job
+        ? job.applications.map((app) => mapApplicationScores(app, job.title))
+        : [];
+
+      return {
+        applicants,
+        jobTitle: job?.title || "Unknown Job",
+        total: applicants.length,
+      };
+    }
+
+    const applicants = jobs.flatMap((job) =>
+      (job.applications || []).map((app) => mapApplicationScores(app, job.title))
+    );
+
+    return {
+      applicants,
+      total: applicants.length,
+    };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+}
+
+export async function getTopApplicants(jobId) {
+  const response = await apiClient.get(`/jobs/${jobId}/applications/top-analysis`);
+  return response.data;
+}
+
+export async function getTopCandidates(jobId) {
+  try {
+    if (jobId) {
+      const { data } = await apiClient.get(`/jobs/${jobId}/applications/top-analysis`);
+      const applicants = (data.applications || []).map((app) =>
+        mapApplicationScores(app, data.job?.title)
+      );
+      return {
+        applicants,
+        total: applicants.length,
+        jobTitle: data.job?.title,
+      };
+    }
+
+    const { data } = await apiClient.get("/jobs/hr/my-jobs/applications");
+    const jobs = Array.isArray(data) ? data : data.jobs || [];
+
+    const applicants = sortByMatchScore(
+      jobs.flatMap((job) =>
+        sortByMatchScore(job.applications || [])
+          .slice(0, TOP_CANDIDATES_PER_JOB)
+          .map((app) => mapApplicationScores(app, job.title))
+      )
+    ).slice(0, TOP_CANDIDATES_ALL_JOBS_LIMIT);
+
+    return { applicants, total: applicants.length };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+}
+
+export function formatTopCandidatesRanking(applicants) {
+  const sorted = sortByMatchScore(applicants);
+
+  const toEntry = (app, rank) => {
+    const matchScore = app.matchScore ?? app.cvScore ?? 0;
+    const finalScore = Math.round(((app.cvScore ?? matchScore) + (app.skillMatch ?? matchScore) + (app.assessmentScore ?? 0)) / 3 * 10) / 10;
+
+    return {
+      rank,
+      name: app.candidate?.name || "Unknown",
+      title: app.jobTitle || app.candidate?.role || "Applicant",
+      avatar: app.candidate?.profile_image || `https://ui-avatars.com/api/?name=${app.candidate?.name?.[0] || "U"}`,
+      finalScore,
+      score: finalScore,
+      match: Math.round(matchScore),
+      confidence: `High (${Math.round(matchScore)}%)`,
+      technical: app.cvScore ?? matchScore,
+      cultural: app.assessmentScore ?? Math.round(matchScore * 0.9),
+    };
+  };
+
+  return {
+    podium: sorted.slice(0, 3).map((app, index) => toEntry(app, index + 1)),
+    rest: sorted.slice(3, TOP_CANDIDATES_ALL_JOBS_LIMIT).map((app, index) => toEntry(app, index + 4)),
+  };
 }
 
 export async function getJobApplicationByIDForHR(id) {
@@ -130,15 +238,9 @@ export async function getCandidateReview(id) {
     };
   } catch (err) {
     console.error("Error fetching candidate review", err);
-    // Fallback if needed, though usually we'd let it throw
     const applicant = applicantsList.find((c) => c.id === id) || applicantsList[0];
     return { ...candidateReviewDetail, applicant };
   }
-}
-
-export async function getTopCandidates() {
-  await simulateDelay();
-  return topCandidates;
 }
 
 export async function getJobApplicants(jobId) {
@@ -187,7 +289,6 @@ export async function getMyJobs(recruiterId) {
   ];
 
   const uiJobs = jobs.map((job) => {
-    // Preserve original status value (Open, Closed, Drafted)
     const status = job.status;
     return {
       id: job._id,
