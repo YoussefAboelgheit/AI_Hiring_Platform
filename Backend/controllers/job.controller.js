@@ -1,3 +1,4 @@
+import { sendEmail } from "../util/sendEmail.js";
 import Category from "../models/category.js";
 import Job from "../models/job.js";
 import JobApplication, {
@@ -762,6 +763,10 @@ export const retryMyApplicationMatch = async (req, res, next) => {
 
 // status change (Admin)
 export const adminUpdateJobStatus = async (req, res, next) => {
+
+  console.log("adminUpdateJobStatus called ✅");
+  console.log("params:", req.params);
+  console.log("body:", req.body);
   try {
     const { status } = req.body;
 
@@ -804,6 +809,102 @@ export const adminDeleteJob = async (req, res, next) => {
     await job.deleteOne();
 
     return res.status(200).json({ message: "Job deleted successfully by admin" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+//// belong HR
+
+export const updateApplicationStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const { jobId, applicationId } = req.params;
+
+   
+    const job = await Job.findById(jobId);
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+    if (req.user.role !== "admin" && job.recruiter.toString() !== req.user._id.toString()) {
+      return next(
+        new HTTPError(403, "You can only manage applications for your own jobs")
+      );
+    }
+
+  
+    const application = await JobApplication.findOne({
+      _id: applicationId,
+      job: jobId,})
+      .populate({ path: "candidate",
+                 select: "name email",});
+
+    if (!application) return next(new HTTPError(404, "Application not found"));
+
+   
+    application.status = status;
+    await application.save();
+
+   
+    const emailTemplates = {
+      Accepted: {
+        subject: `🎉 Congratulations! Your application for "${job.title}" has been accepted`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Congratulations ${application.candidate.name}! 🎉</h2>
+            <p>We're happy to let you know that your application for 
+              <strong>${job.title}</strong> has been <strong>accepted</strong>.
+            </p>
+            <p>The HR team will be in touch with you soon with next steps.</p>
+            <br/>
+            <p>Best of luck!</p>
+            <p><strong>AI Hiring Platform Team</strong></p>
+          </div>
+        `,
+      },
+      Rejected: {
+        subject: `Update on your application for "${job.title}"`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Dear ${application.candidate.name},</h2>
+            <p>Thank you for your interest in the <strong>${job.title}</strong> position 
+              and for taking the time to apply.
+            </p>
+            <p>After careful consideration, we regret to inform you that 
+              your application was not successful at this time.
+            </p>
+            <p>We encourage you to keep developing your skills and apply 
+              for future positions that match your profile.
+            </p>
+            <br/>
+            <p>We wish you all the best in your job search.</p>
+            <p><strong>AI Hiring Platform Team</strong></p>
+          </div>
+        `,
+      },
+    };
+
+    if (emailTemplates[status]) {
+      try {
+        await sendEmail({
+          to: application.candidate.email,
+          subject: emailTemplates[status].subject,
+          html: emailTemplates[status].html,
+        });
+      } catch (emailErr) {
+       
+        console.error("Failed to send status email:", emailErr.message);
+      }
+    }
+
+    return res.status(200).json({
+      message: `Application ${status.toLowerCase()} successfully`,
+      application: {
+        _id: application._id,
+        status: application.status,
+        candidate: application.candidate,
+        updatedAt: application.updatedAt,
+      },
+    });
   } catch (err) {
     next(err);
   }

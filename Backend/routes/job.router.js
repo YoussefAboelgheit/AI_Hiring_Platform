@@ -1,5 +1,7 @@
 import { Router } from "express";
+
 import {
+  updateApplicationStatus,   //Hr
   applyToJob,
   analyzeJobApplicationForHr,
   analyzeTopJobCandidates,
@@ -41,6 +43,7 @@ import {
   jobApplicationParamsValidator,
 } from "../validations/paramValidators.js";
 import {
+  updateApplicationStatusValidator, //hr
   applyToJobValidator,
   categoryNameParamValidator,
   createJobValidator,
@@ -62,6 +65,7 @@ import Job from "../models/job.js";
 
 const router = Router();
 
+
 // admin 
 router.patch(
   "/admin/:id/status",
@@ -82,6 +86,18 @@ router.delete(
   adminDeleteJob
 );
 //////////
+
+// HR يقبل أو يرفض candidate
+router.patch(
+  "/:jobId/applications/:applicationId/status",
+  authMW,
+  authorize("hr","admin"),
+  jobApplicationParamsValidator,
+  updateApplicationStatusValidator,
+  validateResults,
+  updateApplicationStatus
+);
+
 
 //hr
 

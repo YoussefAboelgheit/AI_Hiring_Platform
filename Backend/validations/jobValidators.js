@@ -198,3 +198,12 @@ export const updateJobStatusValidator = [
     .notEmpty().withMessage("Status is required")
     .isIn(JOB_STATUSES).withMessage("Status must be Open, Closed, or Drafted"),
 ];
+
+// jobapplicaton status 
+
+export const updateApplicationStatusValidator = [
+  body("status")
+    .notEmpty().withMessage("Status is required")
+    .isIn(["Reviewed", "Accepted", "Rejected"])
+    .withMessage("Status must be Reviewed, Accepted, or Rejected"),
+];
