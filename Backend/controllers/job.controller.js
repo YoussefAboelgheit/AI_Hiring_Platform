@@ -152,6 +152,10 @@ function sanitizeApplicationForCandidate(application) {
   delete applicationObject.assessmentScore;
   delete applicationObject.assessmentStatus;
   delete applicationObject.aiEvaluation;
+  delete applicationObject.matchScore;
+  delete applicationObject.matchingStatus;
+  delete applicationObject.matchingError;
+  delete applicationObject.matchedAgainstJobVersion;
   return applicationObject;
 }
 
