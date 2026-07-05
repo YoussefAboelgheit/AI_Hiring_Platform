@@ -15,6 +15,7 @@ import { calculateApplicationMatch } from "../services/jobApplicationMatching.se
 import {
   publishJob,
   publishExpiredDraftJobs,
+  closeExpiredJobs,
 } from "../services/jobEnrichment.service.js";
 import { generateAssessment } from "../services/ai/assessment/assessment.service.js";
 
@@ -173,21 +174,32 @@ function sortApplicationsByMatch(applications) {
 
 export const createJob = async (req, res, next) => {
   try {
-    const job = await Job.create({
+    const saveAsDraft = req.body.saveAsDraft === true;
+
+    const jobData = {
       ...pickJobFields(req.body),
       recruiter: req.user._id,
       status: "Drafted",
       isPublished: false,
       acceptApplications: false,
-      editableUntil: new Date(Date.now() + 5 * 60 * 1000),
       embeddingStatus: "pending",
-    });
+    };
 
-    setTimeout(() => {
-      publishExpiredDraftJobs({ jobId: job._id }).catch((err) =>
-        console.error("Scheduled job publishing failed:", err?.message || err),
-      );
-    }, Math.max(0, job.editableUntil.getTime() - Date.now()));
+    if (saveAsDraft) {
+      jobData.editableUntil = null;
+    } else {
+      jobData.editableUntil = new Date(Date.now() + 5 * 60 * 1000);
+    }
+
+    const job = await Job.create(jobData);
+
+    if (!saveAsDraft && job.editableUntil) {
+      setTimeout(() => {
+        publishExpiredDraftJobs({ jobId: job._id }).catch((err) =>
+          console.error("Scheduled job publishing failed:", err?.message || err),
+        );
+      }, Math.max(0, job.editableUntil.getTime() - Date.now()));
+    }
 
     const assessmentQuestionCount = req.body.assessmentQuestionCount;
     if (assessmentQuestionCount) {
@@ -207,7 +219,9 @@ export const createJob = async (req, res, next) => {
       .populate(categoryPopulate);
 
     return res.status(201).json({
-      message: "Job created successfully.",
+      message: saveAsDraft
+        ? "Job saved as draft successfully. You can publish it later."
+        : "Job created successfully.",
       job: sanitizeJob(populatedJob),
     });
   } catch (err) {
@@ -218,15 +232,18 @@ export const createJob = async (req, res, next) => {
 export const getAllJobs = async (req, res, next) => {
   try {
     await publishExpiredDraftJobs();
+    await closeExpiredJobs();
 
     let baseFilter = { status: "Open" };
 
     if (req.user?.role === "admin") {
       baseFilter = {};
-    } else     if (req.user?.role === "hr" && req.query.status === "Drafted") {
+    } else if (req.user?.role === "hr" && req.query.status === "Drafted") {
       baseFilter = { recruiter: req.user._id, status: "Drafted" };
     } else if (req.user?.role === "hr" && req.query.status === "Open") {
       baseFilter = { recruiter: req.user._id, status: "Open" };
+    } else if (req.user?.role === "hr" && req.query.status === "Closed") {
+      baseFilter = { recruiter: req.user._id, status: "Closed" };
     }
 
     const features = new APIFeatures(Job.find(baseFilter), req.query)
@@ -248,6 +265,7 @@ export const getAllJobs = async (req, res, next) => {
 export const getJobById = async (req, res, next) => {
   try {
     await publishExpiredDraftJobs({ jobId: req.params.id });
+    await closeExpiredJobs({ jobId: req.params.id });
 
     const job = await Job.findById(req.params.id)
       .populate(recruiterPopulate)
@@ -301,6 +319,7 @@ export const getJobEnrichment = async (req, res, next) => {
 export const getJobsByCategory = async (req, res, next) => {
   try {
     await publishExpiredDraftJobs();
+    await closeExpiredJobs();
 
     const categoryName = req.params.category;
     const categoryRegex = new RegExp(`^${escapeRegExp(categoryName)}$`, "i");
@@ -329,6 +348,8 @@ export const getJobsByCategory = async (req, res, next) => {
 
       if (req.query.status === "Drafted") {
         hrFilter.status = "Drafted";
+      } else if (req.query.status === "Closed") {
+        hrFilter.status = "Closed";
       } else {
         hrFilter.status = "Open";
       }
@@ -392,6 +413,7 @@ export const getMyApplicationById = async (req, res, next) => {
 export const getJobApplicationsForHr = async (req, res, next) => {
   try {
     await publishExpiredDraftJobs({ jobId: req.params.id });
+    await closeExpiredJobs({ jobId: req.params.id });
 
     const job = await Job.findById(req.params.id)
       .populate(recruiterPopulate)
@@ -429,6 +451,7 @@ export const getJobApplicationsForHr = async (req, res, next) => {
 export const getMyJobsWithApplications = async (req, res, next) => {
   try {
     await publishExpiredDraftJobs();
+    await closeExpiredJobs();
 
     const jobs = await Job.find({ recruiter: req.user._id })
       .populate(recruiterPopulate)
@@ -477,37 +500,108 @@ export const getMyJobsWithApplications = async (req, res, next) => {
 
 export const updateJob = async (req, res, next) => {
   try {
+    // ── DRAFTED JOBS ──
+    // 1a. If Drafted with a timer and 5-min expired → auto-publish, reject edit
     if (req.job.status === "Drafted" && req.job.editableUntil && new Date() > req.job.editableUntil) {
       await publishJob(req.job);
       return next(
-        new HTTPError(
-          400,
-          "The 5-minute draft editing period has expired. The job has been published.",
-        ),
+        new HTTPError(400, "The 5-minute draft editing period has expired. The job has been published."),
       );
     }
-
+    // 1b. If Drafted → allow editing fields AND allow manual publish (status → Open)
     if (req.job.status === "Drafted") {
+      const { status } = req.body;
+      // HR wants to publish the draft → transition to Open
+      if (status === "Open") {
+        // Timed drafts (saveAsDraft: false) cannot be manually published; must wait 5-min auto-publish
+        if (req.job.editableUntil) {
+          return next(
+            new HTTPError(400, "This draft will auto-publish after the 5-minute editing period. Only persistent drafts (saveAsDraft: true) can be published manually."),
+          );
+        }
+        // Check no other fields are sent alongside status
+        const otherFields = Object.keys(req.body).filter(key => key !== "status");
+        if (otherFields.length > 0) {
+          return next(
+            new HTTPError(400, "To publish a draft, send only { \"status\": \"Open\" }. Edit the draft fields first in a separate request, then publish."),
+          );
+        }
+        // Publish the job (runs AI parsing + embedding, sets status to Open)
+        await publishJob(req.job);
+        const job = await Job.findById(req.job._id)
+          .populate(recruiterPopulate)
+          .populate(categoryPopulate);
+        return res.status(200).json({
+          message: "Job published successfully.",
+          job: sanitizeJob(job),
+        });
+      }
+      // HR wants to edit draft fields (no status change)
+      if (status && status !== "Drafted") {
+        return next(
+          new HTTPError(400, "Drafted jobs can only be changed to Open status."),
+        );
+      }
       Object.assign(req.job, pickJobFields(req.body));
       req.job.isEdited = true;
       req.job.editedAt = new Date();
       await req.job.save();
-
       const job = await Job.findById(req.job._id)
         .populate(recruiterPopulate)
         .populate(categoryPopulate);
-
       return res.status(200).json({
         message: "Job draft updated successfully.",
         job: sanitizeJob(job),
       });
     }
-
+    // ── OPEN JOBS ──
+    if (req.job.status === "Open") {
+      // Auto-close if applicationEnd has already passed
+      if (req.job.applicationEnd && new Date() > req.job.applicationEnd) {
+        req.job.status = "Closed";
+        req.job.acceptApplications = false;
+        await req.job.save();
+        return next(
+          new HTTPError(400, "The application deadline has passed. The job has been automatically closed."),
+        );
+      }
+      const { status } = req.body;
+      if (!status) {
+        return next(
+          new HTTPError(403, "Open jobs can only have their status updated. Send { \"status\": \"Closed\" } to close this job."),
+        );
+      }
+      if (status !== "Closed") {
+        return next(
+          new HTTPError(400, "Open jobs can only be changed to Closed status."),
+        );
+      }
+      // Check if HR sent other fields besides status — reject if so
+      const otherFields = Object.keys(req.body).filter(key => key !== "status");
+      if (otherFields.length > 0) {
+        return next(
+          new HTTPError(403, "Open jobs cannot be edited. You can only update the status to Closed."),
+        );
+      }
+      req.job.status = "Closed";
+      req.job.acceptApplications = false;
+      await req.job.save();
+      const job = await Job.findById(req.job._id)
+        .populate(recruiterPopulate)
+        .populate(categoryPopulate);
+      return res.status(200).json({
+        message: "Job closed successfully.",
+        job: sanitizeJob(job),
+      });
+    }
+    // ── CLOSED JOBS ──
+    if (req.job.status === "Closed") {
+      return next(
+        new HTTPError(403, "Closed jobs cannot be edited or reopened."),
+      );
+    }
     return next(
-      new HTTPError(
-        403,
-        "Published jobs cannot be edited by HR.",
-      ),
+      new HTTPError(403, "This job cannot be edited."),
     );
   } catch (err) {
     next(err);
@@ -539,16 +633,13 @@ export const deleteJob = async (req, res, next) => {
 export const applyToJob = async (req, res, next) => {
   try {
     await publishExpiredDraftJobs({ jobId: req.params.id });
+    await closeExpiredJobs({ jobId: req.params.id });
 
     const job = await Job.findById(req.params.id);
     if (!job) return next(new HTTPError(404, "Job not found"));
 
     if (job.status !== "Open") {
       return next(new HTTPError(400, "You can only apply to open jobs"));
-    }
-
-    if (job.applicationEnd && job.applicationEnd < new Date()) {
-      return next(new HTTPError(400, "Applications are closed for this job"));
     }
 
     const alreadyApplied = await JobApplication.findOne({
