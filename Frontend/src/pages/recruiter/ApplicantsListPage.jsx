@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getApplicantsList, getTopCandidates } from "../../services/recruiterService";
+import { getApplicantsList, getTopCandidates, updateJobApplicationStatus } from "../../services/recruiterService";
+import toast from "react-hot-toast";
 import CircleProgress from "../../components/common/CircleProgress";
 import LoadingState from "../../components/common/LoadingState";
 import BackButton from "../../components/common/BackButton";
@@ -23,6 +24,35 @@ export default function ApplicantsListPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState(null);
+  const [updatingStatus, setUpdatingStatus] = useState({});
+
+  const handleStatusUpdate = async (jobId, applicationId, newStatus) => {
+    if (!jobId || !applicationId) return;
+    setUpdatingStatus((prev) => ({ ...prev, [applicationId]: newStatus }));
+    try {
+      await updateJobApplicationStatus(jobId, applicationId, newStatus);
+      setJobs((prevJobs) =>
+        prevJobs.map((job) => {
+          if (job._id === jobId || job._id === "all") {
+            return {
+              ...job,
+              applications: job.applications.map((app) =>
+                app._id === applicationId || app.id === applicationId
+                  ? { ...app, status: newStatus }
+                  : app
+              ),
+            };
+          }
+          return job;
+        })
+      );
+      toast.success(`Candidate application ${newStatus.toLowerCase()} successfully!`);
+    } catch (err) {
+      toast.error(err.message || "Failed to update candidate application status.");
+    } finally {
+      setUpdatingStatus((prev) => ({ ...prev, [applicationId]: null }));
+    }
+  };
 
   const loadApplicants = useCallback(
     async (topOnly) => {
@@ -135,11 +165,21 @@ export default function ApplicantsListPage() {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 16 }}>{app.candidate?.name || "Unknown"}</div>
                 {!jobId && (
-                  <span style={{ display: "inline-flex", alignItems: "center", marginTop: 4, padding: "2px 8px", background: "#F3E8FF", color: "#6B21A8", borderRadius: "9999px", fontSize: 12, fontWeight: 600 }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", marginTop: 4, padding: "2px 8px", background: "#F3E8FF", color: "#6B21A8", borderRadius: "9999px", fontSize: 12, fontWeight: 600, marginRight: 8 }}>
                     🔍 Applied for: {app.jobTitle}
                   </span>
                 )}
-                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{app.candidate?.email || ""}</div>
+                <span style={{
+                    display: "inline-flex", alignItems: "center", marginTop: 4, padding: "2px 8px",
+                    borderRadius: "9999px", fontSize: 12, fontWeight: 600,
+                    background: (app.status || "Pending").toLowerCase() === "accepted" ? "#D1FAE5" :
+                                (app.status || "Pending").toLowerCase() === "rejected" ? "#FEE2E2" : "#FEF3C7",
+                    color: (app.status || "Pending").toLowerCase() === "accepted" ? "#059669" :
+                           (app.status || "Pending").toLowerCase() === "rejected" ? "#DC2626" : "#D97706"
+                }}>
+                  {app.status || "Pending"}
+                </span>
+                <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>{app.candidate?.email || ""}</div>
               </div>
 
               {/* استخدام الـ Total Score لـ الدائرة التقدمية */}
@@ -168,9 +208,33 @@ export default function ApplicantsListPage() {
                 <button type="button" className="btn-primary-custom" style={{ fontSize: 13, padding: "8px 16px" }} onClick={() => navigate(`/recruiter/candidates/${candidateId}`)}>
                   View Candidate →
                 </button>
-                <button type="button" className="btn-outline-custom" style={{ fontSize: 13, padding: "7px 16px" }}>
-                  Add Note
-                </button>
+                {(app.status || "Pending").toLowerCase() === "pending" && (
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <button
+                      type="button"
+                      className="btn-primary-custom"
+                      style={{ fontSize: 13, padding: "7px 8px", flex: 1, backgroundColor: "#10b981", borderColor: "#10b981" }}
+                      onClick={() => handleStatusUpdate(app.jobId || jobId, candidateId, "Accepted")}
+                      disabled={!!updatingStatus[candidateId]}
+                    >
+                      {updatingStatus[candidateId] === "Accepted" ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : "Accept"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-outline-custom"
+                      style={{ fontSize: 13, padding: "7px 8px", flex: 1, color: "#ef4444", borderColor: "#ef4444" }}
+                      onClick={() => handleStatusUpdate(app.jobId || jobId, candidateId, "Rejected")}
+                      disabled={!!updatingStatus[candidateId]}
+                    >
+                      {updatingStatus[candidateId] === "Rejected" ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : "Reject"}
+                    </button>
+                  </div>
+                )}
+                {(app.status || "Pending").toLowerCase() !== "pending" && (
+                  <button type="button" className="btn-outline-custom" style={{ fontSize: 13, padding: "7px 16px" }}>
+                    Add Note
+                  </button>
+                )}
               </div>
 
             </div>

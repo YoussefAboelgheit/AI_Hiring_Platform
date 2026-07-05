@@ -111,7 +111,7 @@ export async function getApplicantsList(jobId) {
     if (jobId) {
       const job = jobs.find((j) => j._id === jobId);
       const applicants = job
-        ? job.applications.map((app) => mapApplicationScores(app, job.title))
+        ? job.applications.map((app) => ({...mapApplicationScores(app, job.title), jobId: job._id}))
         : [];
 
       return {
@@ -122,13 +122,23 @@ export async function getApplicantsList(jobId) {
     }
 
     const applicants = jobs.flatMap((job) =>
-      (job.applications || []).map((app) => mapApplicationScores(app, job.title))
+      (job.applications || []).map((app) => ({...mapApplicationScores(app, job.title), jobId: job._id}))
     );
 
     return {
       applicants,
       total: applicants.length,
     };
+  } catch (error) {
+    const message = getApiErrorMessage(error);
+    throw Object.assign(new Error(message), { cause: error });
+  }
+}
+
+export async function updateJobApplicationStatus(jobId, applicationId, status) {
+  try {
+    const { data } = await apiClient.patch(`/jobs/${jobId}/applications/${applicationId}/status`, { status });
+    return data;
   } catch (error) {
     const message = getApiErrorMessage(error);
     throw Object.assign(new Error(message), { cause: error });
@@ -161,7 +171,7 @@ export async function getTopCandidates(jobId) {
       jobs.flatMap((job) =>
         sortByMatchScore(job.applications || [])
           .slice(0, TOP_CANDIDATES_PER_JOB)
-          .map((app) => mapApplicationScores(app, job.title))
+          .map((app) => ({...mapApplicationScores(app, job.title), jobId: job._id}))
       )
     ).slice(0, TOP_CANDIDATES_ALL_JOBS_LIMIT);
 
