@@ -122,6 +122,12 @@ export const createJobValidator = [
     .isString()
     .withMessage("Topics must be a string")
     .trim(),
+
+  body("saveAsDraft")
+    .optional()
+    .isBoolean()
+    .withMessage("saveAsDraft must be a boolean (true or false)")
+    .toBoolean(),
 ];
 
 export const updateJobValidator = [
@@ -171,6 +177,11 @@ export const updateJobValidator = [
     .optional({ nullable: true })
     .isISO8601().withMessage("Application end must be a valid date")
     .toDate(),
+
+  body("status")
+    .optional()
+    .isIn(["Open", "Closed"])
+    .withMessage("Status must be Open or Closed"),
 ];
 
 export const applyToJobValidator = [

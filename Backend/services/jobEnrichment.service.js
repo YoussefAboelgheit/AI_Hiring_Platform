@@ -159,3 +159,15 @@ export const publishExpiredDraftJobs = async ({ jobId } = {}) => {
   const jobs = await Job.find(filter);
   await Promise.all(jobs.map((job) => publishJob(job)));
 };
+
+export const closeExpiredJobs = async ({ jobId } = {}) => {
+  const filter = {
+    status: "Open",
+    applicationEnd: { $ne: null, $lte: new Date() },
+  };
+  if (jobId) filter._id = jobId;
+  await Job.updateMany(filter, {
+    status: "Closed",
+    acceptApplications: false,
+  });
+};
