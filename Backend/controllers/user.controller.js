@@ -1,13 +1,10 @@
-// Backend/controllers/user.controller.js
 import User from "../models/user.js";
 import HTTPError from "../util/httpError.js";
-import {
-  uploadToSupabase,
-  deleteFromSupabase,
-} from "../util/supabaseClient.js";
+import { uploadToSupabase, deleteFromSupabase } from "../util/supabaseClient.js";
 import ParsedResume from "../models/parsedResume.js";
 import { parseResumeWithAI } from "../services/ai/parsing/resumeParserService.js";
 import { enrichParsedResume } from "../services/resumeEnrichment.service.js";
+
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -23,61 +20,68 @@ export const getAllUsers = async (req, res, next) => {
     const total = await User.countDocuments();
     const pages = Math.ceil(total / limit);
 
-    return res.status(200).json({
-      total,
-      page,
-      pages,
-      users,
-    });
+    return res.status(200).json({ total, page, pages, users });
   } catch (err) {
     next(err);
   }
 };
+
 
 export const getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
     if (!user) return next(new HTTPError(404, "User not found"));
 
-    return res.status(200).json({ user });
+    const userObj = user.toObject();
+
+    if (user.role === "candidate") {
+      userObj.profile_completion = user.getProfileCompletion();
+    }
+
+    if (
+      user.role === "candidate" &&
+      user.cv_visibility === "private" &&
+      req.user._id.toString() !== user._id.toString() &&
+      req.user.role !== "admin"
+    ) {
+      userObj.CV = null;
+    }
+
+    return res.status(200).json({ user: userObj });
   } catch (err) {
     next(err);
   }
 };
 
+
 export const createUser = async (req, res, next) => {
   try {
-    const { name, email, password, role, bio } = req.body;
+    const {
+      name, email, password, role, bio,
+      job_title, about, skills, education, attachments, cv_visibility
+    } = req.body;
 
     const userRole = role || "candidate";
 
-    let companyLogoUrl = "";
+    let companyLogoUrl  = "";
     let profileImageUrl = "";
-    let cvUrl = "";
-    let uploadedCvFile = null;
+    let cvUrl           = "";
+    let uploadedCvFile  = null;
 
     if (userRole === "hr") {
       if (req.files?.company_logo?.[0]) {
         const file = req.files.company_logo[0];
-        companyLogoUrl = await uploadToSupabase(
-          file.buffer,
-          file.mimetype,
-          "logos",
-        );
+        companyLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
       }
     } else if (userRole === "candidate") {
       if (req.files?.profile_image?.[0]) {
-        const imgFile = req.files.profile_image[0];
-        profileImageUrl = await uploadToSupabase(
-          imgFile.buffer,
-          imgFile.mimetype,
-          "avatars",
-        );
+        const imgFile   = req.files.profile_image[0];
+        profileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
       }
       if (req.files?.CV?.[0]) {
-        const cvFile = req.files.CV[0];
+        const cvFile   = req.files.CV[0];
         uploadedCvFile = cvFile;
-        cvUrl = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
+        cvUrl          = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
       }
     }
 
@@ -85,195 +89,173 @@ export const createUser = async (req, res, next) => {
       name,
       email,
       password,
-      role: userRole,
+      role:          userRole,
       bio,
-      company_logo: companyLogoUrl,
+      company_logo:  companyLogoUrl,
       profile_image: profileImageUrl,
-      CV: cvUrl,
-      isVerified: true, // admin-created users skip email verification
+      CV:            cvUrl,
+      isVerified:    true,
+      job_title:     job_title     || "",
+      about:         about         || "",
+      skills:        skills        || [],
+      education:     education     || [],
+      attachments:   attachments   || [],
+      cv_visibility: cv_visibility || "public",
     });
 
     const userObj = user.toObject();
     delete userObj.password;
 
-    // Attempt to parse uploaded CV and save parsed resume, but do not block user creation on failure.
     if (uploadedCvFile) {
       (async () => {
         try {
-          const parsedData = await parseResumeWithAI(
-            uploadedCvFile.buffer,
-            uploadedCvFile.mimetype,
-          );
+          const parsedData = await parseResumeWithAI(uploadedCvFile.buffer, uploadedCvFile.mimetype);
           const parsed = await ParsedResume.create({
             originalFileName: uploadedCvFile.originalname,
-            contentType: uploadedCvFile.mimetype,
-            size: uploadedCvFile.size,
+            contentType:      uploadedCvFile.mimetype,
+            size:             uploadedCvFile.size,
             parsedData,
-            user: user._id,
-            embeddingStatus: "pending",
+            user:             user._id,
+            embeddingStatus:  "pending",
           });
-          // link parsed resume to user
-          await User.findByIdAndUpdate(user._id, {
-            parsedResumeId: parsed._id,
-          });
+          await User.findByIdAndUpdate(user._id, { parsedResumeId: parsed._id });
           enrichParsedResume(parsed).catch((err) =>
-            console.error("Resume embedding failed:", err?.message || err),
+            console.error("Resume embedding failed:", err?.message || err)
           );
         } catch (err) {
-          console.error(
-            "CV parsing failed for user creation:",
-            err.message || err,
-          );
+          console.error("CV parsing failed for user creation:", err.message || err);
         }
       })();
     }
 
     return res.status(201).json({
       message: "User created successfully",
-      user: userObj,
+      user:    userObj,
     });
   } catch (err) {
     next(err);
   }
 };
+
 
 export const updateUser = async (req, res, next) => {
   try {
     const targetId = req.params.id;
 
     if (req.user.role !== "admin" && req.user._id.toString() !== targetId) {
-      return next(
-        new HTTPError(403, "You are not authorized to update this user"),
-      );
+      return next(new HTTPError(403, "You are not authorized to update this user"));
     }
 
     const targetUser = await User.findById(targetId);
     if (!targetUser) return next(new HTTPError(404, "User not found"));
 
-    const { name, email, bio } = req.body;
+    const {
+      name, email, bio,
+      job_title, about, skills, education, attachments, cv_visibility
+    } = req.body;
+
     const updateData = { name, email, bio };
     let newCvFile = null;
 
+    if (targetUser.role === "candidate") {
+      if (job_title     !== undefined) updateData.job_title     = job_title;
+      if (about         !== undefined) updateData.about         = about;
+      if (cv_visibility !== undefined) updateData.cv_visibility = cv_visibility;
+      if (skills        !== undefined) updateData.skills        = skills;
+      if (education     !== undefined) updateData.education     = education;
+      if (attachments   !== undefined) updateData.attachments   = attachments;
+    }
+
     if (targetUser.role === "hr") {
       if (req.files?.company_logo?.[0]) {
-        const file = req.files.company_logo[0];
-        const newLogoUrl = await uploadToSupabase(
-          file.buffer,
-          file.mimetype,
-          "logos",
-        );
+        const file       = req.files.company_logo[0];
+        const newLogoUrl = await uploadToSupabase(file.buffer, file.mimetype, "logos");
         updateData.company_logo = newLogoUrl;
-        if (targetUser.company_logo) {
-          await deleteFromSupabase(targetUser.company_logo);
-        }
+        if (targetUser.company_logo) await deleteFromSupabase(targetUser.company_logo);
       }
     } else if (targetUser.role === "candidate") {
       if (req.files?.profile_image?.[0]) {
-        const imgFile = req.files.profile_image[0];
-        const newProfileImageUrl = await uploadToSupabase(
-          imgFile.buffer,
-          imgFile.mimetype,
-          "avatars",
-        );
+        const imgFile            = req.files.profile_image[0];
+        const newProfileImageUrl = await uploadToSupabase(imgFile.buffer, imgFile.mimetype, "avatars");
         updateData.profile_image = newProfileImageUrl;
-        if (targetUser.profile_image) {
-          await deleteFromSupabase(targetUser.profile_image);
-        }
+        if (targetUser.profile_image) await deleteFromSupabase(targetUser.profile_image);
       }
       if (req.files?.CV?.[0]) {
-        const cvFile = req.files.CV[0];
-        newCvFile = cvFile;
-        const newCvUrl = await uploadToSupabase(
-          cvFile.buffer,
-          cvFile.mimetype,
-          "cvs",
-        );
-        updateData.CV = newCvUrl;
-        if (targetUser.CV) {
-          await deleteFromSupabase(targetUser.CV);
-        }
+        const cvFile   = req.files.CV[0];
+        newCvFile      = cvFile;
+        const newCvUrl = await uploadToSupabase(cvFile.buffer, cvFile.mimetype, "cvs");
+        updateData.CV  = newCvUrl;
+        if (targetUser.CV) await deleteFromSupabase(targetUser.CV);
       }
     }
 
     if (req.body.role) {
       if (req.user.role !== "admin") {
-        return next(
-          new HTTPError(
-            403,
-            "You cannot update your role. Please contact an admin.",
-          ),
-        );
+        return next(new HTTPError(403, "You cannot update your role. Please contact an admin."));
       }
       updateData.role = req.body.role;
     }
 
     Object.keys(updateData).forEach(
-      (key) => updateData[key] === undefined && delete updateData[key],
+      (key) => updateData[key] === undefined && delete updateData[key]
     );
 
     const user = await User.findByIdAndUpdate(targetId, updateData, {
-      new: true,
+      new:           true,
       runValidators: true,
     }).select("-password");
 
-    // If a new CV file was uploaded, parse it and link the parsed resume to the user (non-blocking on errors)
+    const userObj = user.toObject();
+    if (user.role === "candidate") {
+      userObj.profile_completion = user.getProfileCompletion();
+    }
+
     if (newCvFile) {
       (async () => {
         try {
-          const parsedData = await parseResumeWithAI(
-            newCvFile.buffer,
-            newCvFile.mimetype,
-          );
+          const parsedData = await parseResumeWithAI(newCvFile.buffer, newCvFile.mimetype);
           const parsed = await ParsedResume.create({
             originalFileName: newCvFile.originalname,
-            contentType: newCvFile.mimetype,
-            size: newCvFile.size,
+            contentType:      newCvFile.mimetype,
+            size:             newCvFile.size,
             parsedData,
-            user: user._id,
-            embeddingStatus: "pending",
+            user:             user._id,
+            embeddingStatus:  "pending",
           });
-          await User.findByIdAndUpdate(user._id, {
-            parsedResumeId: parsed._id,
-          });
+          await User.findByIdAndUpdate(user._id, { parsedResumeId: parsed._id });
           enrichParsedResume(parsed).catch((err) =>
-            console.error("Resume embedding failed:", err?.message || err),
+            console.error("Resume embedding failed:", err?.message || err)
           );
         } catch (err) {
-          console.error(
-            "CV parsing failed for user update:",
-            err.message || err,
-          );
+          console.error("CV parsing failed for user update:", err.message || err);
         }
       })();
     }
 
     return res.status(200).json({
       message: "User updated successfully",
-      user,
+      user:    userObj,
     });
   } catch (err) {
     next(err);
   }
 };
 
+
 export const deleteUser = async (req, res, next) => {
   try {
     const targetId = req.params.id;
 
-    // only admin or the user themselves can delete
     if (req.user.role !== "admin" && req.user._id.toString() !== targetId) {
-      return next(
-        new HTTPError(403, "You are not authorized to delete this user"),
-      );
+      return next(new HTTPError(403, "You are not authorized to delete this user"));
     }
 
     const user = await User.findById(targetId);
     if (!user) return next(new HTTPError(404, "User not found"));
 
-    // delete files from Supabase
-    if (user.company_logo) await deleteFromSupabase(user.company_logo);
+    if (user.company_logo)  await deleteFromSupabase(user.company_logo);
     if (user.profile_image) await deleteFromSupabase(user.profile_image);
-    if (user.CV) await deleteFromSupabase(user.CV);
+    if (user.CV)            await deleteFromSupabase(user.CV);
 
     await User.findByIdAndDelete(targetId);
 

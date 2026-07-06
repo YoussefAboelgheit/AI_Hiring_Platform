@@ -25,8 +25,9 @@ function validateUploadedFile(file, allowedMimes) {
   }
 
   if (file.mimetype && file.mimetype !== detectedMime) {
-    const isJpgJpeg = (file.mimetype === "image/jpg" || file.mimetype === "image/jpeg") &&
-                      (detectedMime === "image/jpg" || detectedMime === "image/jpeg");
+    const isJpgJpeg =
+      (file.mimetype === "image/jpg" || file.mimetype === "image/jpeg") &&
+      (detectedMime === "image/jpg"  || detectedMime === "image/jpeg");
     if (!isJpgJpeg) {
       return { isValid: false, reason: `File content does not match the file type. ${allowedFormatsMsg}` };
     }
@@ -65,6 +66,65 @@ export const createUserValidator = [
     .isString().withMessage("Bio must be a string")
     .isLength({ max: 300 }).withMessage("Bio cannot exceed 300 characters")
     .trim(),
+
+  body("job_title")
+    .optional()
+    .isString().withMessage("Job title must be a string")
+    .isLength({ max: 100 }).withMessage("Job title cannot exceed 100 characters")
+    .trim(),
+
+  body("about")
+    .optional()
+    .isString().withMessage("About must be a string")
+    .isLength({ max: 1000 }).withMessage("About cannot exceed 1000 characters")
+    .trim(),
+
+  body("skills")
+    .optional()
+    .isArray().withMessage("Skills must be an array"),
+
+  body("skills.*")
+    .isString().withMessage("Each skill must be a string")
+    .trim(),
+
+  body("education")
+    .optional()
+    .isArray().withMessage("Education must be an array"),
+
+  body("education.*.degree")
+    .notEmpty().withMessage("Degree is required"),
+
+  body("education.*.field")
+    .notEmpty().withMessage("Field of study is required"),
+
+  body("education.*.university")
+    .notEmpty().withMessage("University is required"),
+
+  body("education.*.from")
+    .notEmpty().withMessage("Start year is required")
+    .isInt({ min: 1900, max: new Date().getFullYear() })
+    .withMessage("Invalid start year"),
+
+  body("education.*.to")
+    .optional()
+    .isInt({ min: 1900, max: new Date().getFullYear() + 10 })
+    .withMessage("Invalid end year"),
+
+  body("education.*.current")
+    .optional()
+    .isBoolean().withMessage("Current must be a boolean"),
+
+  body("attachments")
+    .optional()
+    .isArray().withMessage("Attachments must be an array"),
+
+  body("attachments.*")
+    .isURL().withMessage("Each attachment must be a valid URL"),
+
+  body("cv_visibility")
+    .optional()
+    .isIn(["public", "private"])
+    .withMessage("CV visibility must be public or private"),
 
   body("company_logo")
     .custom((value, { req }) => {
@@ -122,6 +182,65 @@ export const updateUserValidator = [
     .optional()
     .isIn(["candidate", "hr", "admin"])
     .withMessage("Role must be candidate, hr, or admin"),
+
+  body("job_title")
+    .optional()
+    .isString().withMessage("Job title must be a string")
+    .isLength({ max: 100 }).withMessage("Job title cannot exceed 100 characters")
+    .trim(),
+
+  body("about")
+    .optional()
+    .isString().withMessage("About must be a string")
+    .isLength({ max: 1000 }).withMessage("About cannot exceed 1000 characters")
+    .trim(),
+
+  body("skills")
+    .optional()
+    .isArray().withMessage("Skills must be an array"),
+
+  body("skills.*")
+    .isString().withMessage("Each skill must be a string")
+    .trim(),
+
+  body("education")
+    .optional()
+    .isArray().withMessage("Education must be an array"),
+
+  body("education.*.degree")
+    .notEmpty().withMessage("Degree is required"),
+
+  body("education.*.field")
+    .notEmpty().withMessage("Field of study is required"),
+
+  body("education.*.university")
+    .notEmpty().withMessage("University is required"),
+
+  body("education.*.from")
+    .notEmpty().withMessage("Start year is required")
+    .isInt({ min: 1900, max: new Date().getFullYear() })
+    .withMessage("Invalid start year"),
+
+  body("education.*.to")
+    .optional()
+    .isInt({ min: 1900, max: new Date().getFullYear() + 10 })
+    .withMessage("Invalid end year"),
+
+  body("education.*.current")
+    .optional()
+    .isBoolean().withMessage("Current must be a boolean"),
+
+  body("attachments")
+    .optional()
+    .isArray().withMessage("Attachments must be an array"),
+
+  body("attachments.*")
+    .isURL().withMessage("Each attachment must be a valid URL"),
+
+  body("cv_visibility")
+    .optional()
+    .isIn(["public", "private"])
+    .withMessage("CV visibility must be public or private"),
 
   body("company_logo")
     .custom(async (value, { req }) => {
