@@ -15,13 +15,26 @@ import { uploadFields } from "../middlewares/uploadMW.js";
 
 const router = Router();
 
+const parseFormDataArrays = (req, res, next) => {
+  const fields = ["skills", "education", "attachments"];
+  for (const field of fields) {
+    if (req.body[field] && typeof req.body[field] === "string") {
+      try {
+        req.body[field] = JSON.parse(req.body[field]);
+      } catch {
+        // leave as is, validator will catch it
+      }
+    }
+  }
+  next();
+};
+
 router.use(authMW);
 
 router.get("/", authorize("admin"), paginationValidator, validateResults, getAllUsers);
-router.post("/", authorize("admin"), uploadFields, createUserValidator, validateResults, createUser);
-
+router.post("/", authorize("admin"), uploadFields, parseFormDataArrays, createUserValidator, validateResults, createUser);
 router.get("/:id", idParamValidator, validateResults, getUserById);
-router.patch("/:id", uploadFields, idParamValidator, updateUserValidator, validateResults, updateUser);
+router.patch("/:id", uploadFields, parseFormDataArrays, idParamValidator, updateUserValidator, validateResults, updateUser);
 router.delete("/:id", idParamValidator, validateResults, deleteUser);
 
 export default router;
