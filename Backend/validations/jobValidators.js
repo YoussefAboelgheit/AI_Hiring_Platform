@@ -7,7 +7,7 @@ function getMimeFromBuffer(buffer) {
   const hex = buffer.toString("hex", 0, 12).toLowerCase();
   if (hex.startsWith("25504446")) return "application/pdf";
   if (hex.startsWith("89504e47")) return "image/png";
-  if (hex.startsWith("ffd8ff"))   return "image/jpeg";
+  if (hex.startsWith("ffd8ff")) return "image/jpeg";
   return null;
 }
 
@@ -28,7 +28,7 @@ function validateUploadedFile(file, allowedMimes) {
 
   if (file.mimetype && file.mimetype !== detectedMime) {
     const isJpgJpeg = (file.mimetype === "image/jpg" || file.mimetype === "image/jpeg") &&
-                      (detectedMime === "image/jpg" || detectedMime === "image/jpeg");
+      (detectedMime === "image/jpg" || detectedMime === "image/jpeg");
     if (!isJpgJpeg) {
       return { isValid: false, reason: `File content does not match the file type. ${allowedFormatsMsg}` };
     }
@@ -67,9 +67,9 @@ export const createJobValidator = [
       if (!category) throw new Error("Category not found");
       return true;
     }),
-  
-  
-  
+
+
+
   body("title").trim().notEmpty().withMessage("Title is required"),
 
   body("description").trim().notEmpty().withMessage("Description is required"),
@@ -104,7 +104,13 @@ export const createJobValidator = [
     .optional({ nullable: true })
     .isISO8601()
     .withMessage("Application end must be a valid date")
-    .toDate(),
+    .toDate()
+    .custom((value) => {
+      if (value && value < new Date()) {
+        throw new Error("Application end date can not be in the past");
+      }
+      return true;
+    }),
 
   body("assessmentQuestionCount")
     .optional({ nullable: true })
@@ -176,7 +182,13 @@ export const updateJobValidator = [
   body("applicationEnd")
     .optional({ nullable: true })
     .isISO8601().withMessage("Application end must be a valid date")
-    .toDate(),
+    .toDate()
+    .custom((value) => {
+      if (value && value < new Date()) {
+        throw new Error("Application end date can not be in the past");
+      }
+      return true;
+    }),
 
   body("status")
     .optional()
