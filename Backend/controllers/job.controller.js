@@ -519,6 +519,12 @@ export const updateJob = async (req, res, next) => {
             new HTTPError(400, "This draft will auto-publish after the 5-minute editing period. Only persistent drafts (saveAsDraft: true) can be published manually."),
           );
         }
+        // Reject publish if applicationEnd is in the past
+        if (req.job.applicationEnd && new Date() > req.job.applicationEnd) {
+          return next(
+            new HTTPError(400, "Cannot publish a job with an application end date in the past. Update the application end date first, then publish."),
+          );
+        }
         // Check no other fields are sent alongside status
         const otherFields = Object.keys(req.body).filter(key => key !== "status");
         if (otherFields.length > 0) {
