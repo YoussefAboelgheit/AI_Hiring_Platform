@@ -116,6 +116,56 @@ const userSchema = new mongoose.Schema(
       },
       default: "public",
     },
+
+    // ── HR/Company-specific fields ────────────────────────────────────────────
+
+    company_name: {
+      type: String,
+      maxlength: [100, "Company name cannot exceed 100 characters"],
+      default: "",
+    },
+
+    company_website: {
+      type: String,
+      default: "",
+    },
+
+    company_size: {
+      type: String,
+      enum: {
+        values: ["1-10", "11-50", "51-200", "201-500", "501-1000", "1000+", ""],
+        message: "Invalid company size",
+      },
+      default: "",
+    },
+
+    industry: {
+      type: String,
+      maxlength: [100, "Industry cannot exceed 100 characters"],
+      default: "",
+    },
+
+    company_location: {
+      type: String,
+      maxlength: [100, "Company location cannot exceed 100 characters"],
+      default: "",
+    },
+
+    company_description: {
+      type: String,
+      maxlength: [1000, "Company description cannot exceed 1000 characters"],
+      default: "",
+    },
+
+    founded_year: {
+      type: Number,
+      default: null,
+    },
+
+    social_links: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -131,29 +181,49 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// calculate profile completion percentage for candidates
 userSchema.methods.getProfileCompletion = function () {
-  if (this.role !== "candidate") return null;
+  if (this.role === "candidate") {
+    const fields = [
+      { key: "profile_image", weight: 15 },
+      { key: "CV",            weight: 20 },
+      { key: "job_title",     weight: 15 },
+      { key: "about",         weight: 15 },
+      { key: "skills",        weight: 15 },
+      { key: "education",     weight: 10 },
+      { key: "attachments",   weight: 10 },
+    ];
 
-  const fields = [
-    { key: "profile_image", weight: 15 },
-    { key: "CV",            weight: 20 },
-    { key: "job_title",     weight: 15 },
-    { key: "about",         weight: 15 },
-    { key: "skills",        weight: 15 },
-    { key: "education",     weight: 10 },
-    { key: "attachments",   weight: 10 },
-  ];
-
-  let total = 0;
-  for (const field of fields) {
-    const value = this[field.key];
-    const filled =
-      Array.isArray(value) ? value.length > 0 : Boolean(value);
-    if (filled) total += field.weight;
+    let total = 0;
+    for (const field of fields) {
+      const value  = this[field.key];
+      const filled = Array.isArray(value) ? value.length > 0 : Boolean(value);
+      if (filled) total += field.weight;
+    }
+    return total;
   }
 
-  return total;
+  if (this.role === "hr") {
+    const fields = [
+      { key: "company_logo",        weight: 15 },
+      { key: "company_name",        weight: 20 },
+      { key: "company_website",     weight: 10 },
+      { key: "company_size",        weight: 10 },
+      { key: "industry",            weight: 10 },
+      { key: "company_location",    weight: 10 },
+      { key: "company_description", weight: 15 },
+      { key: "social_links",        weight: 10 },
+    ];
+
+    let total = 0;
+    for (const field of fields) {
+      const value  = this[field.key];
+      const filled = Array.isArray(value) ? value.length > 0 : Boolean(value);
+      if (filled) total += field.weight;
+    }
+    return total;
+  }
+
+  return null;
 };
 
 export default mongoose.model("User", userSchema);

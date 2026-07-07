@@ -34,7 +34,7 @@ export const getUserById = async (req, res, next) => {
 
     const userObj = user.toObject();
 
-    if (user.role === "candidate") {
+    if (user.role === "candidate" || user.role === "hr") {
       userObj.profile_completion = user.getProfileCompletion();
     }
 
@@ -58,7 +58,9 @@ export const createUser = async (req, res, next) => {
   try {
     const {
       name, email, password, role, bio,
-      job_title, about, skills, education, attachments, cv_visibility
+      job_title, about, skills, education, attachments, cv_visibility,
+      company_name, company_website, company_size, industry,
+      company_location, company_description, founded_year, social_links,
     } = req.body;
 
     const userRole = role || "candidate";
@@ -89,18 +91,28 @@ export const createUser = async (req, res, next) => {
       name,
       email,
       password,
-      role:          userRole,
+      role:                userRole,
       bio,
-      company_logo:  companyLogoUrl,
-      profile_image: profileImageUrl,
-      CV:            cvUrl,
-      isVerified:    true,
-      job_title:     job_title     || "",
-      about:         about         || "",
-      skills:        skills        || [],
-      education:     education     || [],
-      attachments:   attachments   || [],
-      cv_visibility: cv_visibility || "public",
+      company_logo:        companyLogoUrl,
+      profile_image:       profileImageUrl,
+      CV:                  cvUrl,
+      isVerified:          true,
+      // candidate fields
+      job_title:           job_title     || "",
+      about:               about         || "",
+      skills:              skills        || [],
+      education:           education     || [],
+      attachments:         attachments   || [],
+      cv_visibility:       cv_visibility || "public",
+      // hr fields
+      company_name:        company_name        || "",
+      company_website:     company_website     || "",
+      company_size:        company_size        || "",
+      industry:            industry            || "",
+      company_location:    company_location    || "",
+      company_description: company_description || "",
+      founded_year:        founded_year        || null,
+      social_links:        social_links        || [],
     });
 
     const userObj = user.toObject();
@@ -151,12 +163,15 @@ export const updateUser = async (req, res, next) => {
 
     const {
       name, email, bio,
-      job_title, about, skills, education, attachments, cv_visibility
+      job_title, about, skills, education, attachments, cv_visibility,
+      company_name, company_website, company_size, industry,
+      company_location, company_description, founded_year, social_links,
     } = req.body;
 
     const updateData = { name, email, bio };
     let newCvFile = null;
 
+    // candidate specific fields
     if (targetUser.role === "candidate") {
       if (job_title     !== undefined) updateData.job_title     = job_title;
       if (about         !== undefined) updateData.about         = about;
@@ -164,6 +179,18 @@ export const updateUser = async (req, res, next) => {
       if (skills        !== undefined) updateData.skills        = skills;
       if (education     !== undefined) updateData.education     = education;
       if (attachments   !== undefined) updateData.attachments   = attachments;
+    }
+
+    // hr specific fields
+    if (targetUser.role === "hr") {
+      if (company_name        !== undefined) updateData.company_name        = company_name;
+      if (company_website     !== undefined) updateData.company_website     = company_website;
+      if (company_size        !== undefined) updateData.company_size        = company_size;
+      if (industry            !== undefined) updateData.industry            = industry;
+      if (company_location    !== undefined) updateData.company_location    = company_location;
+      if (company_description !== undefined) updateData.company_description = company_description;
+      if (founded_year        !== undefined) updateData.founded_year        = founded_year;
+      if (social_links        !== undefined) updateData.social_links        = social_links;
     }
 
     if (targetUser.role === "hr") {
@@ -206,7 +233,7 @@ export const updateUser = async (req, res, next) => {
     }).select("-password");
 
     const userObj = user.toObject();
-    if (user.role === "candidate") {
+    if (user.role === "candidate" || user.role === "hr") {
       userObj.profile_completion = user.getProfileCompletion();
     }
 

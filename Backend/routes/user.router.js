@@ -16,7 +16,7 @@ import { uploadFields } from "../middlewares/uploadMW.js";
 const router = Router();
 
 const parseFormDataArrays = (req, res, next) => {
-  const fields = ["skills", "education", "attachments"];
+  const fields = ["skills", "education", "attachments", "social_links"]; // ← social_links must be here
   for (const field of fields) {
     if (req.body[field] && typeof req.body[field] === "string") {
       try {

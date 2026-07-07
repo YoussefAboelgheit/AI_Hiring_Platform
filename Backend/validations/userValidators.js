@@ -40,6 +40,8 @@ function validateUploadedFile(file, allowedMimes) {
   return { isValid: true };
 }
 
+const companySizes = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1000+"];
+
 
 export const createUserValidator = [
   body("name")
@@ -67,6 +69,7 @@ export const createUserValidator = [
     .isLength({ max: 300 }).withMessage("Bio cannot exceed 300 characters")
     .trim(),
 
+  // ── Candidate fields ────────────────────────────────────────────────────────
   body("job_title")
     .optional()
     .isString().withMessage("Job title must be a string")
@@ -84,8 +87,7 @@ export const createUserValidator = [
     .isArray().withMessage("Skills must be an array"),
 
   body("skills.*")
-    .isString().withMessage("Each skill must be a string")
-    .trim(),
+    .isString().withMessage("Each skill must be a string").trim(),
 
   body("education")
     .optional()
@@ -126,6 +128,52 @@ export const createUserValidator = [
     .isIn(["public", "private"])
     .withMessage("CV visibility must be public or private"),
 
+  // ── HR/Company fields ───────────────────────────────────────────────────────
+  body("company_name")
+    .optional()
+    .isString().withMessage("Company name must be a string")
+    .isLength({ max: 100 }).withMessage("Company name cannot exceed 100 characters")
+    .trim(),
+
+  body("company_website")
+    .optional()
+    .isURL().withMessage("Company website must be a valid URL"),
+
+  body("company_size")
+    .optional()
+    .isIn(companySizes).withMessage(`Company size must be one of: ${companySizes.join(", ")}`),
+
+  body("industry")
+    .optional()
+    .isString().withMessage("Industry must be a string")
+    .isLength({ max: 100 }).withMessage("Industry cannot exceed 100 characters")
+    .trim(),
+
+  body("company_location")
+    .optional()
+    .isString().withMessage("Company location must be a string")
+    .isLength({ max: 100 }).withMessage("Company location cannot exceed 100 characters")
+    .trim(),
+
+  body("company_description")
+    .optional()
+    .isString().withMessage("Company description must be a string")
+    .isLength({ max: 1000 }).withMessage("Company description cannot exceed 1000 characters")
+    .trim(),
+
+  body("founded_year")
+    .optional()
+    .isInt({ min: 1800, max: new Date().getFullYear() })
+    .withMessage("Invalid founded year"),
+
+  body("social_links")
+    .optional()
+    .isArray().withMessage("Social links must be an array"),
+
+  body("social_links.*")
+    .isURL().withMessage("Each social link must be a valid URL"),
+
+  // ── File validators ─────────────────────────────────────────────────────────
   body("company_logo")
     .custom((value, { req }) => {
       const role = req.body.role || "candidate";
@@ -183,6 +231,7 @@ export const updateUserValidator = [
     .isIn(["candidate", "hr", "admin"])
     .withMessage("Role must be candidate, hr, or admin"),
 
+  // ── Candidate fields ────────────────────────────────────────────────────────
   body("job_title")
     .optional()
     .isString().withMessage("Job title must be a string")
@@ -200,8 +249,7 @@ export const updateUserValidator = [
     .isArray().withMessage("Skills must be an array"),
 
   body("skills.*")
-    .isString().withMessage("Each skill must be a string")
-    .trim(),
+    .isString().withMessage("Each skill must be a string").trim(),
 
   body("education")
     .optional()
@@ -242,6 +290,52 @@ export const updateUserValidator = [
     .isIn(["public", "private"])
     .withMessage("CV visibility must be public or private"),
 
+  // ── HR/Company fields ───────────────────────────────────────────────────────
+  body("company_name")
+    .optional()
+    .isString().withMessage("Company name must be a string")
+    .isLength({ max: 100 }).withMessage("Company name cannot exceed 100 characters")
+    .trim(),
+
+  body("company_website")
+    .optional()
+    .isURL().withMessage("Company website must be a valid URL"),
+
+  body("company_size")
+    .optional()
+    .isIn(companySizes).withMessage(`Company size must be one of: ${companySizes.join(", ")}`),
+
+  body("industry")
+    .optional()
+    .isString().withMessage("Industry must be a string")
+    .isLength({ max: 100 }).withMessage("Industry cannot exceed 100 characters")
+    .trim(),
+
+  body("company_location")
+    .optional()
+    .isString().withMessage("Company location must be a string")
+    .isLength({ max: 100 }).withMessage("Company location cannot exceed 100 characters")
+    .trim(),
+
+  body("company_description")
+    .optional()
+    .isString().withMessage("Company description must be a string")
+    .isLength({ max: 1000 }).withMessage("Company description cannot exceed 1000 characters")
+    .trim(),
+
+  body("founded_year")
+    .optional()
+    .isInt({ min: 1800, max: new Date().getFullYear() })
+    .withMessage("Invalid founded year"),
+
+  body("social_links")
+    .optional()
+    .isArray().withMessage("Social links must be an array"),
+
+  body("social_links.*")
+    .isURL().withMessage("Each social link must be a valid URL"),
+
+  // ── File validators ─────────────────────────────────────────────────────────
   body("company_logo")
     .custom(async (value, { req }) => {
       if (req.files?.company_logo?.[0]) {
