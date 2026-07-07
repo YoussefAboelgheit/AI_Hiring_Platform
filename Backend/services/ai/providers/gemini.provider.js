@@ -5,5 +5,6 @@ export const name = "gemini";
 export const generateContent = async (prompt, options = {}) => {
   return callGeminiJson(prompt, {
     temperature: options.temperature ?? 0.2,
+    model: options.model,
   });
 };

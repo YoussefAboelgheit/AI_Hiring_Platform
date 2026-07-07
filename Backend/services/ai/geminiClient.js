@@ -49,17 +49,29 @@ const isRetryableGeminiError = (err) => {
 };
 
 const parseJsonResponse = (text) => {
-  const first = text.indexOf("{");
-  const last = text.lastIndexOf("}");
-  if (first === -1 || last === -1 || last <= first) {
-    throw new HTTPError(500, "Gemini response did not contain valid JSON.");
-  }
+  const trimmed = text.trim();
 
   try {
-    return JSON.parse(text.slice(first, last + 1));
-  } catch (err) {
-    throw new HTTPError(500, "Gemini response could not be parsed as JSON.");
+    return JSON.parse(trimmed);
+  } catch {}
+
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    try {
+      return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
+    } catch {}
   }
+
+  const firstBracket = trimmed.indexOf("[");
+  const lastBracket = trimmed.lastIndexOf("]");
+  if (firstBracket !== -1 && lastBracket > firstBracket) {
+    try {
+      return JSON.parse(trimmed.slice(firstBracket, lastBracket + 1));
+    } catch {}
+  }
+
+  throw new HTTPError(500, "Gemini response did not contain valid JSON.");
 };
 
 export const callGemini = async (prompt, options = {}) => {
@@ -67,7 +79,7 @@ export const callGemini = async (prompt, options = {}) => {
     throw new HTTPError(500, "Gemini API key is not configured.");
   }
 
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const model = options.model || process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const maxAttempts = toPositiveInteger(
     process.env.GEMINI_MAX_ATTEMPTS || process.env.GEMINI_MAX_RETRIES,
     DEFAULT_MAX_ATTEMPTS,

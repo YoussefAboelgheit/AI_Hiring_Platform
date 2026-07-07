@@ -134,7 +134,10 @@ export const generateAssessment = async ({ jobId, questionCount, difficulty, top
     topics,
   });
 
-  const rawQuestions = await provider.generateContent(prompt, { temperature: 0.2 });
+  const rawQuestions = await provider.generateContent(prompt, {
+    temperature: 0.2,
+    model: "gemini-2.5-flash-lite",
+  });
 
   const validatedQuestions = validateQuestionBatch(rawQuestions);
 
@@ -251,7 +254,10 @@ export const regenerateQuestion = async (questionId) => {
     topic: question.topic,
   });
 
-  const newQuestionData = await provider.generateContent(prompt, { temperature: 0.3 });
+  const newQuestionData = await provider.generateContent(prompt, {
+    temperature: 0.3,
+    model: "gemini-2.5-flash-lite",
+  });
 
   const validated = validateSingleQuestion(newQuestionData);
 
