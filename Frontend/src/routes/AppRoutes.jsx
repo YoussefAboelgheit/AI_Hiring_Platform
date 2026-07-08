@@ -11,6 +11,8 @@ import GuestRoute from "./GuestRoute";
 
 import LandingPage from "../pages/public/LandingPage";
 import AboutPage from "../pages/public/AboutPage";
+import PrivacyPolicyPage from "../pages/public/PrivacyPolicyPage";
+import NotFoundPage from "../pages/public/NotFoundPage";
 import LoginPage from "../pages/auth/LoginPage";
 import RegisterPage from "../pages/auth/RegisterPage";
 import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
@@ -56,6 +58,7 @@ export default function AppRoutes() {
       <Route element={<PublicLayout />}>
         <Route index element={<LandingPage />} />
         <Route path="about" element={<AboutPage />} />
+        <Route path="privacy" element={<PrivacyPolicyPage />} />
       </Route>
 
       <Route element={<GuestRoute />}>
@@ -126,7 +129,7 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

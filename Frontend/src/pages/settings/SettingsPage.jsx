@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "../../context/useAuth";
 import * as authService from "../../services/authService";
+import { deleteUser } from "../../services/userService";
 import BackButton from "../../components/common/BackButton";
+import toast from "react-hot-toast";
 
 const passwordSchema = yup.object({
   currentPassword: yup.string().required("Current password is required"),
@@ -21,11 +23,13 @@ const passwordSchema = yup.object({
 });
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isRecruiter = user?.role === "recruiter";
   const dashboardPath = isRecruiter ? "/recruiter/dashboard" : "/candidate/dashboard";
@@ -38,6 +42,32 @@ export default function SettingsPage() {
       reset();
     },
   });
+
+  const {
+    mutate: mutateDelete,
+    isPending: isDeleting,
+    isError: isDeleteError,
+    error: deleteError,
+  } = useMutation({
+    mutationFn: () => deleteUser(user.id),
+    onSuccess: async () => {
+      toast.success("Your account has been deleted.");
+      await logout();
+      navigate("/login", { replace: true });
+    },
+  });
+
+  const handleDeleteAccount = () => {
+    if (!user?.id) {
+      toast.error("Unable to delete account. Please sign in again.");
+      return;
+    }
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    mutateDelete();
+  };
 
   return (
     <>
@@ -148,6 +178,50 @@ export default function SettingsPage() {
               </Form>
             )}
           </Formik>
+        </div>
+
+        {/* Danger zone */}
+        <div className="hcard" style={{ padding: 24, borderColor: "#FECACA" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#991B1B" }}>Delete Account</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 16 }}>
+            Permanently delete your account and associated data. This action cannot be undone.
+          </p>
+
+          {isDeleteError && (
+            <div style={{ background: "#FEE2E2", color: "#991B1B", padding: "10px 14px", borderRadius: 10, fontSize: 13, marginBottom: 16 }}>
+              {deleteError?.message || "Failed to delete account."}
+            </div>
+          )}
+
+          {confirmDelete && (
+            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#991B1B", marginBottom: 16 }}>
+              Click <strong>Confirm Delete</strong> to permanently remove your account.
+            </div>
+          )}
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+            >
+              {isDeleting
+                ? "Deleting..."
+                : confirmDelete
+                  ? "Confirm Delete"
+                  : "Delete Account"}
+            </button>
+            {confirmDelete && !isDeleting && (
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setConfirmDelete(false)}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </>

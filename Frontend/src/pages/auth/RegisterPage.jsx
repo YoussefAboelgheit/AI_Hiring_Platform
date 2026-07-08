@@ -140,7 +140,7 @@ export default function RegisterPage() {
                     I agree to the{" "}
                     <a href="#terms" style={{ color: "var(--primary)" }}>Terms of Service</a>
                     {" "}and{" "}
-                    <a href="#privacy" style={{ color: "var(--primary)" }}>Privacy Policy</a>
+                    <Link to="/privacy" style={{ color: "var(--primary)" }}>Privacy Policy</Link>
                   </label>
                 </div>
                 <ErrorMessage name="terms">
@@ -159,21 +159,6 @@ export default function RegisterPage() {
               </Form>
             )}
           </Formik>
-
-          <div className="auth-divider"><span>Or continue with</span></div>
-
-          <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-            {["Google", "LinkedIn"].map((p) => (
-              <button key={p} type="button" className="auth-social-btn">
-                <i
-                  className={`bi bi-${p === "Google" ? "google" : "linkedin"}`}
-                  style={{ color: p === "Google" ? "#EA4335" : "#0A66C2" }}
-                  aria-hidden="true"
-                />{" "}
-                {p}
-              </button>
-            ))}
-          </div>
 
           <div style={{ textAlign: "center", fontSize: 14, color: "var(--text-muted)" }}>
             Already have an account?{" "}
