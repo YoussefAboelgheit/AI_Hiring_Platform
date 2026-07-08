@@ -17,3 +17,10 @@ export async function getRecruiterFeedbackReport(candidateId) {
   void apiClient;
   return recruiterFeedbackReport;
 }
+
+// Real AI analysis for one candidate's application, straight from the backend.
+// GET /jobs/:jobId/applications/:applicationId/analysis
+export async function getCandidateAIAnalysis(jobId, applicationId) {
+  const { data } = await apiClient.get(`/jobs/${jobId}/applications/${applicationId}/analysis`);
+  return data;
+}

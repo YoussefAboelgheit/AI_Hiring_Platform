@@ -4,11 +4,8 @@ import {
   recruiterStats,
   recruiterDashboardStats,
   recentApplicationsRecruiter,
-  topAIMatches,
   applicantsList,
   candidateReviewDetail,
-  monthlyGoal,
-  aiInsightDashboard,
 } from "../mock/recruiter";
 import {
   myJobsStats,
@@ -92,13 +89,25 @@ export async function getRecruiterDashboard() {
       status: app.status || "pending",
     }));
 
+  // Real top matches — highest-scored applicants across all of the recruiter's jobs.
+  // (replaces the old hardcoded mock names/scores)
+  const topMatches = applications
+    .map((app) => ({
+      id: app._id,
+      name: app.candidate?.name || app.candidate?.username || "Unknown Applicant",
+      title: app.job?.title || "Unknown Role",
+      avatar: app.candidate?.profile_image || `https://ui-avatars.com/api/?name=${app.candidate?.name?.[0] || "U"}`,
+      match: Math.round(app.matchScore ?? app.finalScore ?? app.cvScore ?? 0),
+    }))
+    .filter((m) => m.match > 0)
+    .sort((a, b) => b.match - a.match)
+    .slice(0, 3);
+
   return {
     stats,
     statCards,
     recentApplications,
-    topMatches: topAIMatches,
-    monthlyGoal,
-    aiInsight: aiInsightDashboard,
+    topMatches,
   };
 }
 
@@ -295,7 +304,6 @@ export async function getMyJobs(recruiterId) {
     { label: "Active Roles", value: activeJobsCount.toString(), change: "Live listings", icon: "bi-lightning-charge", iconBg: "#EDE9FE", iconColor: "#7C3AED" },
     { label: "Drafted Roles", value: draftJobsCount.toString(), change: "Saved as drafts", icon: "bi-file-earmark-text", iconBg: "#F3F4F6", iconColor: "#4B5563" },
     { label: "Total Positions", value: jobs.length.toString(), change: "All time posts", icon: "bi-briefcase", iconBg: "#E0F2FE", iconColor: "#0284C7" },
-    { label: "Pending Interviews", value: "3", change: "Scheduled this week", icon: "bi-calendar-check", iconBg: "#F5F0FF", iconColor: "#7C3AED", highlight: true },
   ];
 
   const uiJobs = jobs.map((job) => {
@@ -309,7 +317,6 @@ export async function getMyJobs(recruiterId) {
       location: job.location || "Remote",
       type: job.jobType || "Full Time",
       applicants: job.applications?.length || job.applicantsCount || 0,
-      aiMatches: job.aiMatchesCount || 0,
       icon: getCategoryIcon(job.category?.name),
       applicationEnd: job.applicationEnd,
       createdAt: job.createdAt,

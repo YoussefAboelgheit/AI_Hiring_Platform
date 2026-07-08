@@ -97,6 +97,7 @@ export async function getApplicationSubmitted(applicationId) {
 
     return {
       referenceId: application.id.slice(-8).toUpperCase(),
+      jobId: application.jobId,
       message: `Your application for ${application.jobTitle} at ${application.company} has been submitted successfully.`,
       statusLabel: application.statusLabel,
       eta: "Recruiters typically respond within 5–7 business days.",

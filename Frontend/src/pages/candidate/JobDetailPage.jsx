@@ -26,12 +26,14 @@ function normalizeJob(raw) {
   };
 }
 
-const DESCRIPTION_BULLETS = [
-  "Design and develop responsive, robust web applications using modern frameworks.",
-  "Collaborate with product, design, and backend teams to define feature requirements.",
-  "Optimize code and resources for maximum performance, scalability, and speed.",
-  "Write clean, well-documented, and testable code with high quality standards.",
-];
+/** Collapse extra blank lines / trailing whitespace so pre-wrap text doesn't leave big gaps */
+function cleanMultilineText(text) {
+  if (!text) return "";
+  return text
+    .replace(/[ \t]+$/gm, "")   // trailing spaces per line
+    .replace(/\n{3,}/g, "\n\n") // collapse 3+ newlines into 2
+    .trim();
+}
 
 export default function JobDetailPage() {
   const { id } = useParams();
@@ -141,44 +143,34 @@ export default function JobDetailPage() {
               )}
             </div>
             {job.skills.length > 0 && (
-              <div>
+              <div style={{ marginBottom: 24 }}>
                 <div style={{ fontWeight: 700, marginBottom: 8 }}>Required Skills</div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {job.skills.map((s) => <span key={s} className="skill-tag">{s}</span>)}
                 </div>
               </div>
             )}
-          </div>
 
-          <div className="hcard" style={{ padding: 28 }}>
-            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>About this role</div>
-            {job.description ? (
-              <p style={{ color: "var(--text-muted)", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{job.description}</p>
-            ) : (
-              <>
-                <p style={{ color: "var(--text-muted)", lineHeight: 1.8 }}>
-                  We&apos;re looking for a passionate {job.title} to join our growing team at {job.company}.
-                  You&apos;ll work closely with cross-functional teams to deliver exceptional user experiences that drive business impact at scale.
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: 24 }}>
+              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 16 }}>About this role</div>
+              {job.description ? (
+                <p style={{ color: "var(--text-muted)", lineHeight: 1.8, whiteSpace: "pre-wrap", margin: 0 }}>
+                  {cleanMultilineText(job.description)}
                 </p>
-                <p style={{ color: "var(--text-muted)", lineHeight: 1.8 }}>
-                  You&apos;ll be responsible for leading design initiatives, collaborating with engineers,
-                  and advocating for user-centered design practices across the organization.
+              ) : (
+                <p style={{ color: "var(--text-muted)", lineHeight: 1.8, margin: 0 }}>
+                  No description provided for this role yet.
                 </p>
-              </>
-            )}
-            {job.experience && job.experience !== "Experience details not specified" && (
-              <>
-                <div style={{ fontWeight: 700, fontSize: 15, margin: "20px 0 12px" }}>Requirements</div>
-                <p style={{ color: "var(--text-muted)", lineHeight: 1.8, whiteSpace: "pre-wrap" }}>{job.experience}</p>
-              </>
-            )}
-            <div style={{ fontWeight: 700, fontSize: 15, margin: "20px 0 12px" }}>What you&apos;ll do</div>
-            {DESCRIPTION_BULLETS.map((item, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, marginBottom: 8, fontSize: 14, color: "var(--text-muted)" }}>
-                <i className="bi bi-check-circle-fill" style={{ color: "var(--success)", flexShrink: 0, marginTop: 2 }}></i>
-                {item}
-              </div>
-            ))}
+              )}
+              {job.experience && job.experience !== "Experience details not specified" && (
+                <>
+                  <div style={{ fontWeight: 700, fontSize: 15, margin: "20px 0 12px" }}>Requirements</div>
+                  <p style={{ color: "var(--text-muted)", lineHeight: 1.8, whiteSpace: "pre-wrap", margin: 0 }}>
+                    {cleanMultilineText(job.experience)}
+                  </p>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

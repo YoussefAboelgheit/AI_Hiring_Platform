@@ -71,8 +71,20 @@ export default function ApplicationSubmittedPage() {
           • {data.statusLabel}
         </span>
 
+        {data.jobId && (
+          <button
+            type="button"
+            className="btn-primary-custom"
+            style={{ padding: "12px 28px", marginBottom: 16, width: "100%", maxWidth: 320 }}
+            onClick={() => navigate(`/candidate/jobs/${data.jobId}/assessment`)}
+          >
+            <i className="bi bi-clipboard-check me-2" aria-hidden="true" />
+            Start Assessment
+          </button>
+        )}
+
         <div style={{ display: "flex", gap: 12, marginBottom: 32, flexWrap: "wrap", justifyContent: "center" }}>
-          <button type="button" className="btn-primary-custom" style={{ padding: "12px 28px" }} onClick={() => navigate(`/candidate/applications/${applicationId}`)}>
+          <button type="button" className="btn-outline-custom" style={{ padding: "12px 28px" }} onClick={() => navigate(`/candidate/applications/${applicationId}`)}>
             Track Application
           </button>
           <button type="button" className="btn-outline-custom" style={{ padding: "12px 28px" }} onClick={() => navigate("/candidate/jobs")}>

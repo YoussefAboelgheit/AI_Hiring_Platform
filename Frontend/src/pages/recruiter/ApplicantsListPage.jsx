@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getApplicantsList, getTopCandidates, updateJobApplicationStatus } from "../../services/recruiterService";
+import { getApplicantsList, updateJobApplicationStatus } from "../../services/recruiterService";
 import toast from "react-hot-toast";
 import CircleProgress from "../../components/common/CircleProgress";
 import LoadingState from "../../components/common/LoadingState";
@@ -19,12 +19,13 @@ export default function ApplicantsListPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const jobId = location.state?.jobId;
-  const [showTopCandidates, setShowTopCandidates] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isError, setIsError] = useState(false);
   const [error, setError] = useState(null);
   const [updatingStatus, setUpdatingStatus] = useState({});
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const handleStatusUpdate = async (jobId, applicationId, newStatus) => {
     if (!jobId || !applicationId) return;
@@ -55,12 +56,12 @@ export default function ApplicantsListPage() {
   };
 
   const loadApplicants = useCallback(
-    async (topOnly) => {
+    async () => {
       setIsLoading(true);
       setIsError(false);
       setError(null);
       try {
-        const data = topOnly ? await getTopCandidates(jobId) : await getApplicantsList(jobId);
+        const data = await getApplicantsList(jobId);
         setJobs(normalizeApplicantsData(data, jobId));
       } catch (err) {
         setIsError(true);
@@ -73,12 +74,8 @@ export default function ApplicantsListPage() {
   );
 
   useEffect(() => {
-    loadApplicants(showTopCandidates);
-  }, [loadApplicants, showTopCandidates]);
-
-  const handleToggleTopCandidates = () => {
-    setShowTopCandidates((prev) => !prev);
-  };
+    loadApplicants();
+  }, [loadApplicants]);
 
   const currentJobTitle = useMemo(() => {
     if (!jobId || !jobs.length) return "";
@@ -96,22 +93,36 @@ export default function ApplicantsListPage() {
   }, [jobs, jobId]);
 
   const sortedApplications = useMemo(() => {
-    return [...displayedApplications].sort((a, b) => {
-      const scoreA = ((a.cvScore ?? 0) + (a.skillMatch ?? 0) + (a.assessmentScore ?? 0)) / 3;
-      const scoreB = ((b.cvScore ?? 0) + (b.skillMatch ?? 0) + (b.assessmentScore ?? 0)) / 3;
-      return scoreB - scoreA;
-    });
+    return [...displayedApplications]
+      .filter((app) => (app.status || "Pending").toLowerCase() !== "rejected")
+      .sort((a, b) => {
+        const scoreA = ((a.cvScore ?? 0) + (a.skillMatch ?? 0) + (a.assessmentScore ?? 0)) / 3;
+        const scoreB = ((b.cvScore ?? 0) + (b.skillMatch ?? 0) + (b.assessmentScore ?? 0)) / 3;
+        return scoreB - scoreA;
+      });
   }, [displayedApplications]);
 
-  // دمج شروط التحميل والأخطاء المنظمة (الموجودة في الـ Incoming Change)
+  const filteredApplications = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return sortedApplications.filter((app) => {
+      if (term) {
+        const name = (app.candidate?.name || "").toLowerCase();
+        const email = (app.candidate?.email || "").toLowerCase();
+        if (!name.includes(term) && !email.includes(term)) return false;
+      }
+      if (statusFilter !== "all" && (app.status || "Pending").toLowerCase() !== statusFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [sortedApplications, search, statusFilter]);
+
   if (isLoading) return <LoadingState message="Loading applicants..." />;
-  if (isError) return <div style={{ padding: 20 }}>Failed to load applicants: {error?.message || "Unknown error"}</div>;
-  if (!sortedApplications.length) return <div style={{ padding: 20 }}>No applicants found.</div>;
 
   return (
     <>
       <BackButton fallbackTo="/recruiter/applications" label="Back to Applications" />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 4 }}>
             {jobId && currentJobTitle ? `${currentJobTitle} - Applicants List` : "Applicants List"}
@@ -125,133 +136,155 @@ export default function ApplicantsListPage() {
               Manage Assessment
             </button>
           )}
-          <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/email-invitations")}>
+          <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/email-invitations")}>
             <i className="bi bi-envelope me-2"></i>Send Invitations
           </button>
-          <button
-            type="button"
-            className={showTopCandidates ? "btn-primary-custom" : "btn-outline-custom"}
-            style={{ fontSize: 13 }}
-            onClick={handleToggleTopCandidates}
-            disabled={isLoading}
-          >
-            <i className="bi bi-funnel me-2"></i>
-            {showTopCandidates ? "Show All Applicants" : "Top Candidates"}
-          </button>
         </div>
       </div>
 
-      {/* عرض الكروت مع دمج المتغيرات والأزرار من النسختين */}
-      {sortedApplications.map((app, idx) => {
-        const cvRelevanceScore = Math.round(app.cvScore ?? app.matchScore ?? 0);
-        const assessmentScore = Math.round(app.assessmentScore ?? 0);
-        const totalAverageScore = Math.round(((app.cvScore ?? 0) + (app.skillMatch ?? 0) + (app.assessmentScore ?? 0)) / 3);
-        const candidateId = app._id || app.id;
-
-        return (
-          <div key={candidateId || idx} className="hcard" style={{ padding: 20, marginBottom: 24, border: 0, background: "var(--card-bg)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-              
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: idx === 0 ? "var(--primary)" : "var(--body-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 16, color: idx === 0 ? "#fff" : "var(--text-muted)" }}>
-                {idx + 1}
-              </div>
-
-              <img
-                src={app.candidate?.profile_image || `https://ui-avatars.com/api/?name=${app.candidate?.name?.[0] || "U"}`}
-                alt=""
-                style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover" }}
-              />
-
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>{app.candidate?.name || "Unknown"}</div>
-                {!jobId && (
-                  <span style={{ display: "inline-flex", alignItems: "center", marginTop: 4, padding: "2px 8px", background: "#F3E8FF", color: "#6B21A8", borderRadius: "9999px", fontSize: 12, fontWeight: 600, marginRight: 8 }}>
-                    🔍 Applied for: {app.jobTitle}
-                  </span>
-                )}
-                <span style={{
-                    display: "inline-flex", alignItems: "center", marginTop: 4, padding: "2px 8px",
-                    borderRadius: "9999px", fontSize: 12, fontWeight: 600,
-                    background: (app.status || "Pending").toLowerCase() === "accepted" ? "#D1FAE5" :
-                                (app.status || "Pending").toLowerCase() === "rejected" ? "#FEE2E2" : "#FEF3C7",
-                    color: (app.status || "Pending").toLowerCase() === "accepted" ? "#059669" :
-                           (app.status || "Pending").toLowerCase() === "rejected" ? "#DC2626" : "#D97706"
-                }}>
-                  {app.status || "Pending"}
-                </span>
-                <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>{app.candidate?.email || ""}</div>
-              </div>
-
-              {/* استخدام الـ Total Score لـ الدائرة التقدمية */}
-              <CircleProgress
-                value={totalAverageScore}
-                size={72}
-                stroke={6}
-              />
-
-              <div style={{ display: "flex", flex: 1, gap: 20 }}>
-                {[["CV Relevance", cvRelevanceScore], ["Assessment", assessmentScore]].map(([label, val]) => (
-                  <div key={label} style={{ flex: 1 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                      <span style={{ color: "var(--text-muted)" }}>{label}</span>
-                      <span style={{ fontWeight: 700 }}>{val}/100</span>
-                    </div>
-                    <div className="match-bar">
-                      <div className="match-bar-fill" style={{ width: `${val}%` }}></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* الاحتفاظ بأزرار التحكم من النسخة الثانية */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <button type="button" className="btn-primary-custom" style={{ fontSize: 13, padding: "8px 16px" }} onClick={() => navigate(`/recruiter/candidates/${candidateId}`)}>
-                  View Candidate →
-                </button>
-                {(app.status || "Pending").toLowerCase() === "pending" && (
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <button
-                      type="button"
-                      className="btn-primary-custom"
-                      style={{ fontSize: 13, padding: "7px 8px", flex: 1, backgroundColor: "#10b981", borderColor: "#10b981" }}
-                      onClick={() => handleStatusUpdate(app.jobId || jobId, candidateId, "Accepted")}
-                      disabled={!!updatingStatus[candidateId]}
-                    >
-                      {updatingStatus[candidateId] === "Accepted" ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : "Accept"}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-outline-custom"
-                      style={{ fontSize: 13, padding: "7px 8px", flex: 1, color: "#ef4444", borderColor: "#ef4444" }}
-                      onClick={() => handleStatusUpdate(app.jobId || jobId, candidateId, "Rejected")}
-                      disabled={!!updatingStatus[candidateId]}
-                    >
-                      {updatingStatus[candidateId] === "Rejected" ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : "Reject"}
-                    </button>
-                  </div>
-                )}
-                {(app.status || "Pending").toLowerCase() !== "pending" && (
-                  <button type="button" className="btn-outline-custom" style={{ fontSize: 13, padding: "7px 16px" }}>
-                    Add Note
-                  </button>
-                )}
-              </div>
-
-            </div>
-          </div>
-        );
-      })}
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 20, padding: "16px 0" }}>
-        <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Pagination controls</span>
-        <div style={{ display: "flex", gap: 6 }}>
-          {["‹", "1", "2", "3", "...", "›"].map((p, i) => (
-            <button key={i} type="button" style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid var(--border)", background: p === "1" ? "var(--primary)" : "#fff", color: p === "1" ? "#fff" : "var(--text-muted)", fontWeight: 600, cursor: "pointer", fontSize: 13 }}>
-              {p}
-            </button>
-          ))}
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div className="input-group search-filter-box" style={{ maxWidth: 320 }}>
+          <span className="input-group-text border-0"><i className="bi bi-search text-muted"></i></span>
+          <input
+            type="text"
+            className="form-control border-0"
+            placeholder="Search by name or email"
+            name="applicant-search"
+            autoComplete="off"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="input-group search-filter-box" style={{ maxWidth: 170 }}>
+          <span className="input-group-text border-0"><i className="bi bi-sliders text-muted"></i></span>
+          <select className="form-select border-0" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="accepted">Accepted</option>
+          </select>
         </div>
       </div>
+
+      {isError && (
+        <div style={{ padding: 20, color: "#991B1B" }}>Failed to load applicants: {error?.message || "Unknown error"}</div>
+      )}
+
+      {!isError && !filteredApplications.length && (
+        <div style={{ padding: 20, color: "var(--text-muted)" }}>No applicants found.</div>
+      )}
+
+      {!isError && filteredApplications.length > 0 && (
+        <div className="hcard p-0" style={{ overflowX: "auto" }}>
+          <table className="table align-middle mb-0" style={{ minWidth: 900 }}>
+            <thead className="table-light">
+              <tr style={{ fontSize: 13 }}>
+                <th>Applicant</th>
+                <th>Status</th>
+                <th className="text-center">CV Score</th>
+                <th className="text-center">Assessment Score</th>
+                <th>AI Report</th>
+                <th style={{ minWidth: 132 }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredApplications.map((app, idx) => {
+                const cvRelevanceScore = Math.round(app.cvScore ?? app.matchScore ?? 0);
+                const assessmentScore = Math.round(app.assessmentScore ?? 0);
+                const candidateId = app._id || app.id;
+                const effectiveJobId = app.jobId || jobId;
+                const summary = app.aiEvaluation?.summary;
+
+                return (
+                  <tr key={candidateId || idx}>
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <img
+                          src={app.candidate?.profile_image || `https://ui-avatars.com/api/?name=${app.candidate?.name?.[0] || "U"}`}
+                          alt=""
+                          style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                        />
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>{app.candidate?.name || "Unknown"}</div>
+                          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{app.candidate?.email || ""}</div>
+                          {!jobId && (
+                            <span className="badge rounded-pill text-bg-purple mt-1">
+                              Applied for: {app.jobTitle}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge rounded-pill text-bg-${(app.status || "Pending").toLowerCase() === "accepted" ? "success" : (app.status || "Pending").toLowerCase() === "rejected" ? "danger" : "warning"}`}>
+                        {app.status || "Pending"}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <CircleProgress value={cvRelevanceScore} size={60} stroke={5} />
+                    </td>
+                    <td style={{ textAlign: "center" }}>
+                      <CircleProgress value={assessmentScore} size={60} stroke={5} />
+                    </td>
+                    <td style={{ maxWidth: 160 }}>
+                      {summary ? (
+                        <button
+                          type="button"
+                          className="btn btn-link btn-sm p-0 fw-bold"
+                          onClick={() => navigate(`/recruiter/feedback/${effectiveJobId}/${candidateId}`)}
+                        >
+                          View Report <i className="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                        </button>
+                      ) : (
+                        <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Not analyzed yet</span>
+                      )}
+                    </td>
+                    <td>
+                      <div className="d-flex flex-column gap-1" style={{ minWidth: 128 }}>
+                        <button
+                          type="button"
+                          className="w-100"
+                          style={{ fontSize: 11.5, padding: "5px 8px", border: "none", borderRadius: 8, background: "var(--primary-bg)", color: "var(--primary)", fontWeight: 600, cursor: "pointer" }}
+                          onClick={() => navigate(`/recruiter/candidates/${candidateId}`)}
+                        >
+                          View Candidate <i className="bi bi-arrow-right ms-1" />
+                        </button>
+                        {(app.status || "Pending").toLowerCase() === "pending" && (
+                          <div className="d-flex gap-1">
+                            <button
+                              type="button"
+                              className="flex-fill"
+                              style={{ fontSize: 11.5, padding: "5px 8px", border: "none", borderRadius: 8, background: "#D1FAE5", color: "#065F46", fontWeight: 600, cursor: "pointer" }}
+                              onClick={() => handleStatusUpdate(effectiveJobId, candidateId, "Accepted")}
+                              disabled={!!updatingStatus[candidateId]}
+                            >
+                              {updatingStatus[candidateId] === "Accepted" ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : "Accept"}
+                            </button>
+                            <button
+                              type="button"
+                              className="flex-fill"
+                              style={{ fontSize: 11.5, padding: "5px 8px", border: "none", borderRadius: 8, background: "#FEE2E2", color: "#991B1B", fontWeight: 600, cursor: "pointer" }}
+                              onClick={() => handleStatusUpdate(effectiveJobId, candidateId, "Rejected")}
+                              disabled={!!updatingStatus[candidateId]}
+                            >
+                              {updatingStatus[candidateId] === "Rejected" ? <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> : "Reject"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {!isError && filteredApplications.length > 0 && (
+        <div style={{ marginTop: 16, padding: "8px 4px", fontSize: 13, color: "var(--text-muted)" }}>
+          Showing {filteredApplications.length} {filteredApplications.length === 1 ? "applicant" : "applicants"}
+        </div>
+      )}
     </>
   );
 }

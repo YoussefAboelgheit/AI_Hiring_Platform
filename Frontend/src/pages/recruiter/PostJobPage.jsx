@@ -34,7 +34,6 @@ const initialValues = {
   location: "",
   skills: [],
   requirements: "",
-  status: "Open",
   applicationEnd: defaultDeadline(),
 };
 
@@ -62,10 +61,15 @@ export default function PostJobPage() {
   });
 
   const createJobMutation = useMutation({
-    mutationFn: createJob,
-    onSuccess: (job) => {
-      toast.success("Job posted! You have 5 minutes to set up its assessment.");
-      navigate(`/recruiter/jobs/${job._id}/assessment`);
+    mutationFn: ({ values, saveAsDraft }) => createJob(values, saveAsDraft),
+    onSuccess: (job, { saveAsDraft }) => {
+      if (saveAsDraft) {
+        toast.success("Job saved as draft. Publish it whenever you're ready.");
+        navigate("/recruiter/jobs");
+      } else {
+        toast.success("Job posted! It will go live automatically in 5 minutes — edit it now if you need to.");
+        navigate(`/recruiter/jobs/${job._id}/assessment`);
+      }
     },
     onError: (err) => {
       toast.error(err.message || "Failed to publish job. Please try again.");
@@ -100,7 +104,7 @@ export default function PostJobPage() {
       <Formik
         initialValues={initialValues}
         validationSchema={postJobSchema}
-        onSubmit={(values) => createJobMutation.mutate(values)}
+        onSubmit={(values) => createJobMutation.mutate({ values, saveAsDraft: false })}
       >
         {({ values, setFieldValue, validateForm, setTouched }) => {
           const addSkill = (value) => {
@@ -125,9 +129,8 @@ export default function PostJobPage() {
             );
           };
 
-          const submitWithStatus = async (status) => {
-            await setFieldValue("status", status);
-            const errors = await validateForm({ ...values, status });
+          const submitJob = async (saveAsDraft) => {
+            const errors = await validateForm(values);
             if (Object.keys(errors).length) {
               setTouched(
                 Object.keys(errors).reduce((acc, key) => ({ ...acc, [key]: true }), {})
@@ -135,7 +138,7 @@ export default function PostJobPage() {
               toast.error("Please fill in all required fields.");
               return;
             }
-            createJobMutation.mutate({ ...values, status });
+            createJobMutation.mutate({ values, saveAsDraft });
           };
 
           return (
@@ -234,28 +237,20 @@ export default function PostJobPage() {
                   <FieldError name="requirements" />
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }} className="grid-2-col">
-                  <div>
-                    <label style={labelStyle} htmlFor="application-end">Application End</label>
-                    <Field id="application-end" name="applicationEnd" type="date" min={todayMinDate()} style={inputStyle} />
-                    <FieldError name="applicationEnd" />
-                  </div>
-                  <div>
-                    <label style={labelStyle} htmlFor="status">Status</label>
-                    <Field as="select" id="status" name="status" style={inputStyle}>
-                      <option value="Open">Open</option>
-                      <option value="Drafted">Drafted</option>
-                      <option value="Closed">Closed</option>
-                    </Field>
-                    <FieldError name="status" />
-                  </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={labelStyle} htmlFor="application-end">Application End</label>
+                  <Field id="application-end" name="applicationEnd" type="date" min={todayMinDate()} style={inputStyle} />
+                  <FieldError name="applicationEnd" />
                 </div>
 
-                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 28, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
-                  <button type="button" className="btn-outline-custom" onClick={() => submitWithStatus("Drafted")}>
-                    Save Draft
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 20, textAlign: "right" }}>
+                  "Post Job" goes live automatically in 5 minutes (editable until then). "Save as Draft" keeps it hidden until you publish it yourself.
+                </div>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 10, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+                  <button type="button" className="btn-outline-custom" onClick={() => submitJob(true)}>
+                    Save as Draft
                   </button>
-                  <button type="button" className="btn-primary-custom" onClick={() => submitWithStatus("Open")}>
+                  <button type="button" className="btn-primary-custom" onClick={() => submitJob(false)}>
                     <i className="bi bi-send me-2" aria-hidden="true" />Post Job
                   </button>
                 </div>

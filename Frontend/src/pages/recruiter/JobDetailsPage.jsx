@@ -38,8 +38,8 @@ export default function JobDetailsPage() {
           <p style={{ color: "var(--text-muted)" }}>{job.category?.name} • {job.location} • {job.type}</p>
         </div>
         <button className="btn-primary-custom" onClick={() => navigate(`/recruiter/jobs/${jobId}/assessment`)}>
-          <i className="bi bi-clipboard-check me-2" />
-AAAAAAAAAAAA        </button>
+          <i className="bi bi-clipboard-check me-2" />Manage Assessment
+        </button>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {job.applications && job.applications.length ? (

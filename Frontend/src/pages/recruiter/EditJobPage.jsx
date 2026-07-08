@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { getJobById, updateJob } from "../../services/jobService";
+import { getJobById, updateJob, openJob } from "../../services/jobService";
 import { getCategories } from "../../services/categoryService";
 import { queryKeys } from "../../constants/queryKeys";
 import { WORKPLACES, JOB_TYPES } from "../../constants/jobEnums";
@@ -63,6 +63,17 @@ export default function EditJobPage() {
     },
   });
 
+  const publishJobMutation = useMutation({
+    mutationFn: () => openJob(id),
+    onSuccess: () => {
+      toast.success("Job is now live!");
+      navigate("/recruiter/jobs");
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to publish job. Please try again.");
+    },
+  });
+
   if (categoriesLoading || jobLoading) return <LoadingState message="Loading job details..." />;
 
   if (jobError) {
@@ -88,6 +99,7 @@ export default function EditJobPage() {
   }
 
   if (updateJobMutation.isPending) return <LoadingState message="Saving changes..." />;
+  if (publishJobMutation.isPending) return <LoadingState message="Publishing job..." />;
 
   const editInitialValues = {
     category: job.category?._id || job.category || "",
@@ -98,7 +110,6 @@ export default function EditJobPage() {
     location: job.location || "",
     skills: job.skills || [],
     requirements: job.requirements || "",
-    status: job.status || "Open",
     applicationEnd: job.applicationEnd ? job.applicationEnd.slice(0, 10) : "",
   };
 
@@ -124,7 +135,6 @@ export default function EditJobPage() {
             workplace: values.workplace,
             jobType: values.jobType,
             skills: values.skills,
-            status: values.status,
             requirements: values.requirements?.trim() ?? "",
             location: values.location?.trim() ?? "",
           };
@@ -134,7 +144,7 @@ export default function EditJobPage() {
           updateJobMutation.mutate(payload);
         }}
       >
-        {({ values, setFieldValue, validateForm, setTouched }) => {
+        {({ values, setFieldValue }) => {
           const addSkill = (value) => {
             const trimmed = (value || skillInput).trim().replace(/,$/, "");
             if (trimmed && !values.skills.includes(trimmed)) {
@@ -152,31 +162,6 @@ export default function EditJobPage() {
 
           const removeSkill = (skill) => {
             setFieldValue("skills", values.skills.filter((s) => s !== skill));
-          };
-
-          const submitWithStatus = async (status) => {
-            await setFieldValue("status", status);
-            const errors = await validateForm({ ...values, status });
-            if (Object.keys(errors).length) {
-              setTouched(Object.keys(errors).reduce((acc, key) => ({ ...acc, [key]: true }), {}));
-              toast.error("Please fill in all required fields.");
-              return;
-            }
-            const payload = {
-              category: values.category,
-              title: values.title.trim(),
-              description: values.description.trim(),
-              workplace: values.workplace,
-              jobType: values.jobType,
-              skills: values.skills,
-              status,
-              requirements: values.requirements?.trim() ?? "",
-              location: values.location?.trim() ?? "",
-            };
-            if (values.applicationEnd) {
-              payload.applicationEnd = values.applicationEnd;
-            }
-            updateJobMutation.mutate(payload);
           };
 
           return (
@@ -275,29 +260,31 @@ export default function EditJobPage() {
                   <FieldError name="requirements" />
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }} className="grid-2-col">
-                  <div>
-                    <label style={labelStyle} htmlFor="application-end">Application End</label>
-                    <Field id="application-end" name="applicationEnd" type="date" min={todayMinDate()} style={inputStyle} />
-                    <FieldError name="applicationEnd" />
-                  </div>
-                  <div>
-                    <label style={labelStyle} htmlFor="status">Status</label>
-                    <Field as="select" id="status" name="status" style={inputStyle}>
-                      <option value="Open">Open</option>
-                      <option value="Drafted">Drafted</option>
-                      <option value="Closed">Closed</option>
-                    </Field>
-                    <FieldError name="status" />
-                  </div>
+                <div style={{ marginBottom: 16 }}>
+                  <label style={labelStyle} htmlFor="application-end">Application End</label>
+                  <Field id="application-end" name="applicationEnd" type="date" min={todayMinDate()} style={inputStyle} />
+                  <FieldError name="applicationEnd" />
                 </div>
 
                 <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 28, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
-                  <button type="button" className="btn-outline-custom" onClick={() => submitWithStatus("Drafted")}>
-                    Save as Draft
-                  </button>
-                  <button type="button" className="btn-primary-custom" onClick={() => submitWithStatus(values.status || "Open")}>
-                    <i className="bi bi-check-lg me-2" aria-hidden="true" />Update Job
+                  {job.status === "Drafted" && (
+                    <button
+                      type="button"
+                      className="btn-outline-custom"
+                      onClick={() => {
+                        const deadline = values.applicationEnd ? new Date(`${values.applicationEnd}T23:59:59`) : null;
+                        if (deadline && deadline < new Date()) {
+                          toast.error("Can't publish this job — its application deadline has already passed. Please update the deadline first.");
+                          return;
+                        }
+                        publishJobMutation.mutate();
+                      }}
+                    >
+                      <i className="bi bi-send me-2" aria-hidden="true" />Publish Now
+                    </button>
+                  )}
+                  <button type="submit" className="btn-primary-custom">
+                    <i className="bi bi-check-lg me-2" aria-hidden="true" />Save Changes
                   </button>
                 </div>
               </div>

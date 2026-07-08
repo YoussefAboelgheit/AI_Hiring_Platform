@@ -7,7 +7,7 @@ const navItems = [
   { to: "/candidate/dashboard", icon: "bi-grid-fill", label: "Dashboard", end: true },
   { to: "/candidate/jobs", icon: "bi-briefcase", label: "Jobs" },
   { to: "/candidate/applications", icon: "bi-file-text", label: "Applications" },
-  { to: "/candidate/assessments", icon: "bi-clipboard-check", label: "Assessments" },
+  { to: "/candidate/applications", icon: "bi-clipboard-check", label: "Assessments" },
   { to: "/candidate/feedback", icon: "bi-chat-square-text", label: "Feedback" },
   { to: "/candidate/profile", icon: "bi-person", label: "Profile" },
   { to: "/candidate/settings", icon: "bi-gear", label: "Settings" },

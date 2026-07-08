@@ -89,10 +89,12 @@ export default function ApplicationDetailPage() {
             reviewing your profile. You will receive an update once a decision has been made.
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-            <button className="btn-primary-custom" onClick={() => navigate("/candidate/applications")}>
+            <button className="btn-primary-custom" onClick={() => navigate(`/candidate/jobs/${app.jobId}/assessment`)}>
+              Take Assessment
+            </button>
+            <button className="btn-outline-custom" onClick={() => navigate("/candidate/applications")}>
               View All Applications
             </button>
-            <button className="btn-outline-custom">Contact Support</button>
           </div>
         </div>
       )}
@@ -230,7 +232,7 @@ export default function ApplicationDetailPage() {
             Congratulations! The recruiter has reviewed your profile and selected you for the next stage.
             You will receive further instructions shortly.
           </p>
-          <button className="btn-primary-custom" onClick={() => navigate("/candidate/assessments")}>
+          <button className="btn-primary-custom" onClick={() => navigate(`/candidate/jobs/${app.jobId}/assessment`)}>
             View Assessment
           </button>
         </div>

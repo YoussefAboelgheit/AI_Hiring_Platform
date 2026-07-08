@@ -415,10 +415,6 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 .back-button:hover .back-button__icon { transform: translateX(-2px); }
 
-.job-list-card {
-  padding: 20px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
-}
-.job-list-card .job-list-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
 
 .assessment-topbar {
   background: #fff; border-bottom: 1px solid var(--border);

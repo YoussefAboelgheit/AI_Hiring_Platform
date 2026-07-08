@@ -31,13 +31,9 @@ export default function RecruiterDashboard() {
   const inReviewCount = dashboardData?.stats?.assessmentsPending ?? 0;
 
   // جلب البيانات الأخرى مع وضع Fallbacks لحماية الصفحة من الـ Crash
-  const recentApplications = dashboardData?.recentApplications ?? [];
+  const RECENT_APPLICATIONS_LIMIT = 6;
+  const recentApplications = (dashboardData?.recentApplications ?? []).slice(0, RECENT_APPLICATIONS_LIMIT);
   const topMatches = dashboardData?.topMatches ?? [];
-  const monthlyGoal = dashboardData?.monthlyGoal ?? { percent: 0, filled: 0, target: 0, avgDays: 0 };
-  const aiInsight = dashboardData?.aiInsight ?? "No insights available at the moment.";
-
-  const goalCirc = 2 * Math.PI * 32;
-  const goalOffset = goalCirc * (1 - monthlyGoal.percent / 100);
 
   // إعداد الكروت الثابتة وربطها بالمتغيرات الفوقية مع ستايل الباستيل والـ border-0
   const statCardsConfig = [
@@ -198,6 +194,11 @@ export default function RecruiterDashboard() {
             <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Recommended based on skillset & experience</div>
             
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {topMatches.length === 0 && (
+                <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", padding: "12px 0" }}>
+                  No applicants yet.
+                </div>
+              )}
               {topMatches.map((m, i) => (
                 <div key={m.id || m._id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: "var(--body-bg)", borderRadius: 10 }}>
                   <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", fontWeight: 800 }}>
@@ -216,44 +217,9 @@ export default function RecruiterDashboard() {
               ))}
             </div>
 
-            {/* AI Insights Section */}
-            <div className="border-0" style={{ background: "var(--primary-bg)", borderRadius: 10, padding: "12px 14px", marginTop: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <i className="bi bi-lightbulb" style={{ color: "var(--primary)", fontSize: 14 }}></i>
-                <span style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)" }}>AI Insights</span>
-              </div>
-              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>{aiInsight}</p>
-            </div>
             <button type="button" className="btn-outline-custom" style={{ width: "100%", marginTop: 14, fontSize: 13 }} onClick={() => navigate("/recruiter/top-candidates")}>
               Open Talent Pool
             </button>
-          </div>
-
-          {/* Monthly Goal Progress */}
-          <div className="hcard border-0 shadow-sm" style={{ padding: 20, borderRadius: "16px" }}>
-            <div style={{ fontWeight: 700, marginBottom: 14 }}>Monthly Goal</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ position: "relative", width: 80, height: 80 }}>
-                <svg width="80" height="80" style={{ transform: "rotate(-90deg)" }}>
-                  <circle cx="40" cy="40" r="32" fill="none" stroke="#E5E7EB" strokeWidth="8" />
-                  <circle cx="40" cy="40" r="32" fill="none" stroke="var(--primary)" strokeWidth="8" strokeDasharray={goalCirc} strokeDashoffset={goalOffset} strokeLinecap="round" />
-                </svg>
-                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 800, color: "var(--primary)" }}>
-                  {monthlyGoal.percent}%
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 13, marginBottom: 6 }}>
-                  You have filled <strong>{monthlyGoal.filled} out of {monthlyGoal.target}</strong> targeted roles this month.
-                </div>
-                <div style={{ display: "flex", gap: 6 }}>
-                  <span className="border-0" style={{ background: "#D1FAE5", color: "#065F46", fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 20 }}>On Track</span>
-                  <span className="border-0" style={{ background: "var(--body-bg)", color: "var(--text-muted)", fontSize: 11, padding: "3px 8px", borderRadius: 20 }}>
-                    Avg {monthlyGoal.avgDays} Days
-                  </span>
-                </div>
-              </div>
-            </div>
           </div>
 
         </div>

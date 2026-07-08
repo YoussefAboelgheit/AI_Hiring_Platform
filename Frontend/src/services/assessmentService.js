@@ -33,6 +33,19 @@ export const deleteQuestion = (questionId) =>
 export const regenerateQuestion = (questionId) =>
   apiClient.post(`/jobs/assessment/questions/${questionId}/regenerate`);
 
+// ===== Candidate-facing endpoints =====
+
+// POST /api/jobs/{jobId}/assessment/start
+// Job must be Open and assessment Locked. Randomly selects questionCount questions.
+// Returns questions WITHOUT correctAnswer. Resumes existing session if already started.
+export const startAssessment = (jobId) =>
+  apiClient.post(`/jobs/${jobId}/assessment/start`);
+
+// POST /api/jobs/{jobId}/assessment/submit
+// answers: [{ questionId, selectedAnswer }]
+export const submitCandidateAssessment = (jobId, answers) =>
+  apiClient.post(`/jobs/${jobId}/assessment/submit`, { answers });
+
 // Candidate Mock Functions
 import { assessmentData } from "../mock/assessments";
 import { simulateDelay } from "../mock/utils";

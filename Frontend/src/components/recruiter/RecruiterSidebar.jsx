@@ -49,11 +49,6 @@ const handleLogout = async () => {
           </div>
         ))}
       </nav>
-      <div className="credits-box">
-        <div className="credits-label">AI Credits Remaining</div>
-        <div className="credits-bar"><div className="credits-fill" style={{ width: "75%" }} /></div>
-        <div className="credits-text">750 / 1000 AI Scans Used</div>
-      </div>
       <div className="sidebar-footer">
         <button type="button" onClick={handleLogout} className="nav-link w-100 border-0 bg-transparent text-start">
           <i className="bi bi-box-arrow-left" aria-hidden="true" /> Sign Out

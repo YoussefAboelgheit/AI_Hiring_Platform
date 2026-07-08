@@ -74,7 +74,7 @@ export default function AppRoutes() {
           <Route path="candidate/application-submitted" element={<ApplicationSubmittedPage />} />
         </Route>
 
-        <Route path="candidate/assessments" element={<AssessmentPage />} />
+        <Route path="candidate/jobs/:jobId/assessment" element={<AssessmentPage />} />
 
         <Route path="candidate" element={<CandidateLayout />}>
           <Route path="dashboard" element={<CandidateDashboard />} />
@@ -100,6 +100,7 @@ export default function AppRoutes() {
           <Route path="applications" element={<ApplicantsListPage />} />
           <Route path="candidates/:id" element={<CandidateReviewPage />} />
           <Route path="top-candidates" element={<TopCandidatesPage />} />
+          <Route path="feedback/:jobId/:applicationId" element={<RecruiterFeedbackPage />} />
           <Route path="feedback" element={<RecruiterFeedbackPage />} />
           <Route path="jobs/:jobId/assessment" element={<AssessmentGeneratorPage />} />
           <Route path="assessment-generator" element={<AssessmentGeneratorPage />} />

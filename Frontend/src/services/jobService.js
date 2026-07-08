@@ -23,7 +23,6 @@ function mapFormToJobPayload(form) {
     workplace: form.workplace,
     jobType: form.jobType,
     skills: form.skills,
-    status: form.status || "Drafted",
     requirements: form.requirements?.trim() ?? "",
     location: form.location?.trim() ?? "",
   };
@@ -76,9 +75,12 @@ export async function getJobById(id) {
   return data.job || null;
 }
 
-export async function createJob(form) {
+export async function createJob(form, saveAsDraft = false) {
   try {
     const payload = mapFormToJobPayload(form);
+    if (saveAsDraft) {
+      payload.saveAsDraft = true;
+    }
     const { data } = await apiClient.post("/jobs", payload);
     return data.job ?? data;
   } catch (error) {
@@ -92,6 +94,16 @@ export async function updateJob(id, payload) {
   const headers = adminToken ? { Authorization: `Bearer ${adminToken}` } : {};
   const { data } = await apiClient.patch(`/jobs/${id}`, payload, { headers });
   return data.job;
+}
+
+// Drafted -> Open only. Not allowed from Closed, and Open can never go back to Drafted.
+export async function openJob(id) {
+  return updateJob(id, { status: "Open" });
+}
+
+// Open -> Closed only. Closed is final; it can't be reopened or reverted.
+export async function closeJob(id) {
+  return updateJob(id, { status: "Closed" });
 }
 
 export async function deleteJob(id) {

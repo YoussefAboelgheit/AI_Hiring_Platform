@@ -1,5 +1,5 @@
 import * as yup from "yup";
-import { WORKPLACES, JOB_TYPES, JOB_STATUSES } from "../constants/jobEnums";
+import { WORKPLACES, JOB_TYPES } from "../constants/jobEnums";
 
 const mongoId = yup
   .string()
@@ -18,12 +18,11 @@ export const postJobSchema = yup.object({
     .of(yup.string().trim().required())
     .min(1, "Add at least one skill"),
   requirements: yup.string().trim(),
-  status: yup.string().oneOf(JOB_STATUSES),
   applicationEnd: yup
     .string()
     .nullable()
-    .test("not-past", "Deadline cannot be in the past", (value, context) => {
-      if (!value || context.parent.status === "Drafted") return true;
+    .test("not-past", "Deadline cannot be in the past", (value) => {
+      if (!value) return true;
       const deadline = new Date(`${value}T23:59:59`);
       return deadline >= new Date();
     }),
