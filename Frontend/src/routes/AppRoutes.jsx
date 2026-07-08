@@ -25,6 +25,7 @@ import ApplicationDetailPage from "../pages/candidate/ApplicationDetailPage";
 import AssessmentPage from "../pages/candidate/AssessmentPage";
 import AIFeedbackPage from "../pages/candidate/AIFeedbackPage";
 import CandidateProfilePage from "../pages/candidate/CandidateProfilePage";
+import CandidateEditProfilePage from "../pages/candidate/CandidateEditProfilePage";
 import CompleteProfilePage from "../pages/candidate/CompleteProfilePage";
 import ApplicationSubmittedPage from "../pages/candidate/ApplicationSubmittedPage";
 
@@ -40,6 +41,7 @@ import AssessmentGeneratorPage from "../pages/recruiter/AssessmentGeneratorPage"
 import AIRecommendationPage from "../pages/recruiter/AIRecommendationPage";
 import EmailInvitationsPage from "../pages/recruiter/EmailInvitationsPage";
 import RecruiterProfilePage from "../pages/recruiter/RecruiterProfilePage";
+import RecruiterEditProfilePage from "../pages/recruiter/RecruiterEditProfilePage";
 import SettingsPage from "../pages/settings/SettingsPage";
 
 
@@ -86,6 +88,7 @@ export default function AppRoutes() {
           <Route path="applications" element={<MyApplicationsPage />} />
           <Route path="applications/:id" element={<ApplicationDetailPage />} />
           <Route path="profile" element={<CandidateProfilePage />} />
+          <Route path="profile/edit" element={<CandidateEditProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="feedback" element={<AIFeedbackPage />} />
         </Route>
@@ -107,6 +110,7 @@ export default function AppRoutes() {
           <Route path="assessment-generator" element={<AssessmentGeneratorPage />} />
           <Route path="ai-recommendation" element={<AIRecommendationPage />} />
           <Route path="profile" element={<RecruiterProfilePage />} />
+          <Route path="profile/edit" element={<RecruiterEditProfilePage />} />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="email-invitations" element={<EmailInvitationsPage />} />
         </Route>

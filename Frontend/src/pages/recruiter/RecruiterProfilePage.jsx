@@ -1,13 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getRecruiterProfile } from "../../services/profileService";
+import { formatSocialLink } from "../../utils/profileFormat";
 import LoadingState from "../../components/common/LoadingState";
 import BackButton from "../../components/common/BackButton";
-
-function withProtocol(url) {
-  if (!url) return "";
-  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
-}
 
 export default function RecruiterProfilePage() {
   const [profile, setProfile] = useState(null);
@@ -26,7 +22,7 @@ export default function RecruiterProfilePage() {
   if (error) {
     return (
       <>
-        <BackButton forceTo="/recruiter/dashboard" label="Back to Dashboard" />
+        <BackButton fallbackTo="/recruiter/dashboard" label="Back to Dashboard" />
         <div className="hcard" style={{ padding: 24, color: "#991B1B", background: "#FEE2E2" }}>{error}</div>
       </>
     );
@@ -34,19 +30,15 @@ export default function RecruiterProfilePage() {
 
   if (!profile) return null;
 
-  const { company } = profile;
-  const contactRows = [
-    ["bi-envelope", profile.email],
-    ["bi-geo-alt", company.location],
-    ["bi-globe", company.website && withProtocol(company.website)],
-  ].filter(([, value]) => Boolean(value));
+  const logo = profile.companyLogo || profile.avatar;
+  const socialLinks = profile.socialLinks.map(formatSocialLink).filter(Boolean);
 
-  const companyDetails = [
-    ["bi-briefcase", "Industry", company.industry],
-    ["bi-people", "Company Size", company.size],
-    ["bi-calendar-event", "Founded", company.foundedYear],
-    ["bi-geo-alt", "Location", company.location],
-  ].filter(([, , value]) => Boolean(value));
+  const companyRows = [
+    ["bi-briefcase", profile.industry],
+    ["bi-geo-alt", profile.companyLocation || profile.location],
+    ["bi-people", profile.companySize && `${profile.companySize} employees`],
+    ["bi-calendar-event", profile.foundedYear && `Founded ${profile.foundedYear}`],
+  ].filter(([, text]) => Boolean(text));
 
   return (
     <>
@@ -54,16 +46,10 @@ export default function RecruiterProfilePage() {
       <div className="page-header-row">
         <div>
           <h1>Company Profile</h1>
-          <p style={{ color: "var(--text-muted)", margin: 0 }}>
-            Manage your company identity and how candidates see you.
-          </p>
+          <p style={{ color: "var(--text-muted)", margin: 0 }}>Manage how your company appears to candidates.</p>
         </div>
 
-        <Link
-          to="/candidate/profile/complete"
-          className="btn-primary-custom"
-          style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}
-        >
+        <Link to="/recruiter/profile/edit" className="btn-primary-custom" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
           <i className="bi bi-pencil me-2" />
           Edit Profile
         </Link>
@@ -73,135 +59,80 @@ export default function RecruiterProfilePage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="hcard" style={{ padding: 24, textAlign: "center" }}>
             <div style={{ position: "relative", display: "inline-block", marginBottom: 16 }}>
-              <img
-                src={
-                  profile.logo ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                    company.name || profile.name || "Company"
-                  )}&background=EDE9FE&color=7C3AED&size=150`
-                }
-                alt=""
-                style={{
-                  width: 100,
-                  height: 100,
-                  borderRadius: "18px",
-                  objectFit: "cover",
-                  border: "3px solid var(--primary-bg)",
-                  background: "#fff",
-                }}
-              />
+              <img src={logo} alt="" style={{ width: 100, height: 100, borderRadius: 16, objectFit: "cover", border: "3px solid var(--primary-bg)", background: "#fff" }} />
               {profile.isVerified && (
-                <span
-                  style={{
-                    position: "absolute",
-                    bottom: 4,
-                    right: 4,
-                    width: 24,
-                    height: 24,
-                    background: "var(--primary)",
-                    borderRadius: "50%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    border: "2px solid #fff",
-                  }}
-                >
+                <span style={{ position: "absolute", bottom: 4, right: 4, width: 24, height: 24, background: "var(--primary)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #fff" }}>
                   <i className="bi bi-check text-white" style={{ fontSize: 12 }} aria-hidden="true" />
                 </span>
               )}
             </div>
-            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>
-              {company.name || profile.name}
-            </h2>
-            <div style={{ color: "var(--primary)", fontWeight: 600, fontSize: 14, marginBottom: 16 }}>
-              {profile.jobTitle || "Recruiter"}
-            </div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>{profile.companyName || "Your Company"}</h2>
+            {profile.industry && <div style={{ color: "var(--primary)", fontWeight: 600, fontSize: 14, marginBottom: 16 }}>{profile.industry}</div>}
 
-            {contactRows.map(([icon, text]) => (
-              <div
-                key={text}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  fontSize: 13,
-                  color: "var(--text-muted)",
-                  marginBottom: 8,
-                  textAlign: "left",
-                }}
-              >
+            {companyRows.map(([icon, text]) => (
+              <div key={text} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--text-muted)", marginBottom: 8, textAlign: "left" }}>
                 <i className={`bi ${icon}`} style={{ color: "var(--primary)" }} aria-hidden="true" />
                 {text}
               </div>
             ))}
 
-            {profile.socialLinks?.length > 0 && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  justifyContent: "center",
-                  marginTop: 16,
-                  paddingTop: 16,
-                  borderTop: "1px solid var(--border)",
-                }}
-              >
-                {profile.socialLinks.map((link) => (
-                  <a
-                    key={typeof link === "string" ? link : link.url}
-                    href={withProtocol(typeof link === "string" ? link : link.url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: "var(--primary)", fontSize: 18 }}
-                  >
-                    <i className="bi bi-link-45deg" />
-                  </a>
-                ))}
+            {profile.companyWebsite && (
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+                <a
+                  href={/^https?:\/\//i.test(profile.companyWebsite) ? profile.companyWebsite : `https://${profile.companyWebsite}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-outline-primary w-100"
+                  style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, textDecoration: "none" }}
+                >
+                  <i className="bi bi-globe" />
+                  Visit Website
+                </a>
               </div>
             )}
           </div>
+
+          {socialLinks.length > 0 && (
+            <div className="hcard" style={{ padding: 24 }}>
+              <div style={{ fontWeight: 700, marginBottom: 16 }}>Social Links</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {socialLinks.map((link) => (
+                  <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--primary)", textDecoration: "none", textTransform: "capitalize" }}>
+                    <i className={`bi ${link.icon}`} aria-hidden="true" />
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="hcard" style={{ padding: 24 }}>
-            <div style={{ fontWeight: 700, marginBottom: 16 }}>Company Details</div>
-            {companyDetails.length > 0 ? (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16 }}>
-                {companyDetails.map(([icon, label, value]) => (
-                  <div key={label} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        background: "var(--primary-bg)",
-                        borderRadius: 10,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flexShrink: 0,
-                      }}
-                    >
-                      <i className={`bi ${icon}`} style={{ color: "var(--primary)" }} aria-hidden="true" />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{label}</div>
-                      <div style={{ fontWeight: 700, fontSize: 14 }}>{value}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>
-                No company details added yet. Use “Edit Profile” to complete your company info.
-              </p>
-            )}
+            <div style={{ fontWeight: 700, marginBottom: 12 }}>About the Company</div>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7, margin: 0 }}>
+              {profile.companyDescription || "No company description yet. Click \u201cEdit Profile\u201d to introduce your company to candidates."}
+            </p>
           </div>
 
           <div className="hcard" style={{ padding: 24 }}>
-            <div style={{ fontWeight: 700, marginBottom: 16 }}>About the Company</div>
-            <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7, margin: 0 }}>
-              {company.description || profile.bio || "No description provided yet."}
-            </p>
+            <div style={{ fontWeight: 700, marginBottom: 16 }}>Contact Person</div>
+            <div style={{ display: "grid", gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Name</div>
+                <div style={{ fontWeight: 600 }}>{profile.name || "\u2014"}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Email</div>
+                <div style={{ fontWeight: 600 }}>{profile.email || "\u2014"}</div>
+              </div>
+              {profile.phone && (
+                <div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Phone</div>
+                  <div style={{ fontWeight: 600 }}>{profile.phone}</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
