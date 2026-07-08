@@ -1,20 +1,24 @@
-import { candidateProfile } from "../mock/profile";
 import { fetchMe, getSessionUser, updateSessionUser, saveCompleteProfile as saveProfileToBackend } from "./authService";
 import { getApiErrorMessage } from "./apiErrors";
 
+// تحويل استجابة /auth/me إلى الشكل الذي تستهلكه صفحة الملف الشخصي
 function mergeProfileWithExtras(user) {
+  const socialLinks = Array.isArray(user.social_links) ? user.social_links : [];
+
   return {
-    ...candidateProfile,
     id: user.id,
-    name: user.name || candidateProfile.name,
-    email: user.email || candidateProfile.email,
+    name: user.name || "",
+    email: user.email || "",
     phone: user.phone || "",
     avatar: user.avatar, // يتم جلبه تلقائياً بواسطة normalizeUser المعدلة
     cv: user.cv || user.CV || null, // تمرير رابط الـ CV الجديد للصفحة
-    title: user.title || candidateProfile.title,
-    location: user.location || candidateProfile.location,
-    bio: user.bio || candidateProfile.bio,
-    portfolio: user.portfolio || candidateProfile.portfolio,
+    title: user.job_title || user.title || "",
+    location: user.location || user.company_location || "",
+    bio: user.about || user.bio || "",
+    portfolio: user.portfolio || socialLinks[0] || "",
+    skills: Array.isArray(user.skills) ? user.skills : [],
+    experience: Array.isArray(user.experience) ? user.experience : [],
+    education: Array.isArray(user.education) ? user.education : [],
   };
 }
 
