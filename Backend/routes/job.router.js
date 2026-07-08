@@ -2,6 +2,8 @@ import { Router } from "express";
 
 import {
   updateApplicationStatus,   //Hr
+  toggleSaveJob, //candidate
+  getMySavedJobs,//candidate
   applyToJob,
   analyzeJobApplicationForHr,
   analyzeTopJobCandidates,
@@ -96,6 +98,24 @@ router.patch(
   updateApplicationStatusValidator,
   validateResults,
   updateApplicationStatus
+);
+
+// ── Saved Jobs Features (Candidate) ──
+
+
+router.get(
+  "/saved/me",
+  authMW,
+  authorize("candidate"),
+  getMySavedJobs
+);
+
+//  زرار الحفظ أو إلغاء الحفظ
+router.post(
+  "/:jobId/save",
+  authMW,
+  authorize("candidate"),
+  toggleSaveJob
 );
 
 
