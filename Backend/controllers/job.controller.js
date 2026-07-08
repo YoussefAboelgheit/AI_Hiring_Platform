@@ -1,3 +1,4 @@
+import SavedJob from "../models/savedJob.js";
 import { sendEmail } from "../util/sendEmail.js";
 import Category from "../models/category.js";
 import Job from "../models/job.js";
@@ -1005,6 +1006,59 @@ export const updateApplicationStatus = async (req, res, next) => {
         candidate: application.candidate,
         updatedAt: application.updatedAt,
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+// saved jobs by candidate
+export const toggleSaveJob = async (req, res, next) => {
+  try {
+    const { jobId } = req.params; 
+    const candidateId = req.user._id; 
+
+   
+    const job = await Job.findById(jobId);
+    if (!job) return next(new HTTPError(404, "Job not found"));
+
+   
+    const existingSave = await SavedJob.findOne({ candidate: candidateId, job: jobId });
+
+    if (existingSave) {
+    
+      await SavedJob.findByIdAndDelete(existingSave._id);
+      return res.status(200).json({
+        success: true,
+        message: "Job removed from saved jobs successfully",
+      });
+    }
+
+    const newSave = new SavedJob({ candidate: candidateId, job: jobId });
+    await newSave.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Job saved successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getMySavedJobs = async (req, res, next) => {
+  try {
+    const candidateId = req.user._id;
+
+    const savedJobs = await SavedJob.find({ candidate: candidateId })
+    .populate({
+      path: "job",
+      select: "title status description skills", 
+    }).sort("-createdAt"); 
+
+    res.status(200).json({
+      success: true,
+      results: savedJobs.length,
+      data: savedJobs,
     });
   } catch (err) {
     next(err);
