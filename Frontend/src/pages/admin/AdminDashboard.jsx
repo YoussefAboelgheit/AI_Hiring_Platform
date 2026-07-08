@@ -41,8 +41,8 @@ export default function AdminDashboard() {
       label: "Total Categories",
       value: categoriesCount,
       icon: "bi-tags-fill",
-      bgColor: "#F3E8FF", // pastel purple
-      iconColor: "#7C3AED",
+      bgColor: "#f3f5fb",
+      iconColor: "#1d2445",
       actionLabel: "Manage",
       onClick: () => navigate("/admin/categories")
     },

@@ -56,7 +56,7 @@ const tagColors = {
   Easy: { bg: "#D1FAE5", color: "#065F46" },
   Medium: { bg: "#FEF3C7", color: "#92400E" },
   Hard: { bg: "#FEE2E2", color: "#991B1B" },
-  default: { bg: "#EDE9FE", color: "#6D28D9" },
+  default: { bg: "#f3f5fb", color: "#1d2445" },
 };
 
 function ChangeTypeButton({ onClick, style }) {
@@ -398,7 +398,7 @@ export default function AssessmentGeneratorPage() {
       {mode === "manual" && (
         <>
           <div style={{ marginBottom: 20 }}>
-            <span className="ai-badge mb-2 d-inline-flex" style={{ background: "#EDE9FE", color: "#6D28D9" }}>
+            <span className="ai-badge mb-2 d-inline-flex" style={{ background: "#f3f5fb", color: "#1d2445" }}>
               <i className="bi bi-pencil-square" /> Manual Assessment
             </span>
             <p style={{ color: "var(--text-muted)", margin: 0 }}>Write and manage your own questions for this position.</p>

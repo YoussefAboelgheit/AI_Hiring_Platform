@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import logoSrc from "../../assets/illustrations/images.png";
+import logoSrc from "../../assets/illustrations/hire-ai-logo.png";
 
 const LANDING_PATH = "/";
 
@@ -12,7 +12,7 @@ export default function BrandLogo({
   const img = (
     <img
       src={logoSrc}
-      alt="HireAI Workforce"
+      alt="Hire AI"
       className={`brand-logo brand-logo--${size} ${className}`.trim()}
       decoding="async"
       draggable={false}
@@ -24,7 +24,7 @@ export default function BrandLogo({
       <Link
         to={linkTo}
         className="brand-logo-link"
-        aria-label="Go to HireAI home page"
+        aria-label="Go to Hire AI home page"
         title="Go to home page"
       >
         {img}

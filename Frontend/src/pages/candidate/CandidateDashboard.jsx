@@ -60,8 +60,8 @@ export default function CandidateDashboard() {
                 From your submitted applications
               </div>
             </div>
-            <div className="stat-icon" style={{ background: "#EDE9FE" }}>
-              <i className="bi bi-file-earmark-text" style={{ color: "#7C3AED" }} aria-hidden="true" />
+            <div className="stat-icon" style={{ background: "#f3f5fb" }}>
+              <i className="bi bi-file-earmark-text" style={{ color: "#1d2445" }} aria-hidden="true" />
             </div>
           </div>
         </div>
@@ -136,7 +136,7 @@ export default function CandidateDashboard() {
                     src={app.logo}
                     alt={app.company}
                     style={{ width: 40, height: 40, borderRadius: 10, objectFit: "cover", border: "1px solid var(--border)" }}
-                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&background=EDE9FE&color=7C3AED&size=40`; }}
+                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&background=F3F5FB&color=1D2445&size=40`; }}
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 2 }}>{app.jobTitle}</div>
@@ -195,7 +195,7 @@ export default function CandidateDashboard() {
           ) : (
             <div style={{ textAlign: "center", padding: "32px 16px" }}>
               <div style={{
-                width: 56, height: 56, background: "#EDE9FE", borderRadius: "50%",
+                width: 56, height: 56, background: "#f3f5fb", borderRadius: "50%",
                 display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px",
               }}>
                 <i className="bi bi-clipboard-check" style={{ fontSize: 28, color: "var(--primary)" }} aria-hidden="true" />

@@ -237,7 +237,7 @@ export default function UserManagementPage() {
                           src={
                             u.profile_image ||
                             u.company_logo ||
-                            `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=EDE9FE&color=7C3AED&size=80`
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=F3F5FB&color=1D2445&size=80`
                           }
                           alt={u.name}
                           style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", border: "1.5px solid var(--border)" }}

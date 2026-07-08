@@ -6,7 +6,7 @@ export const recruiterStats = {
 };
 
 export const recruiterDashboardStats = [
-  { label: "Total Active Jobs", key: "activeJobs", change: "+12%", icon: "bi-briefcase", iconBg: "#EDE9FE", iconColor: "#7C3AED" },
+  { label: "Total Active Jobs", key: "activeJobs", change: "+12%", icon: "bi-briefcase", iconBg: "#f3f5fb", iconColor: "#1d2445" },
   { label: "New Applications", key: "newApplications", change: "+5%", icon: "bi-file-earmark-person", iconBg: "#D1FAE5", iconColor: "#059669" },
   { label: "Shortlisted Candidates", key: "shortlisted", change: "-2%", icon: "bi-person-check", iconBg: "#FEE2E2", iconColor: "#DC2626", negative: true },
   { label: "Assessments Pending", key: "assessmentsPending", change: "+18%", icon: "bi-clipboard-check", iconBg: "#DBEAFE", iconColor: "#1D4ED8" },

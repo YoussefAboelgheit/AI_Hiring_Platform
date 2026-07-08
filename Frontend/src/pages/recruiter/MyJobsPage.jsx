@@ -18,7 +18,7 @@ const statusAccent = { Open: "#10B981", Closed: "#EF4444", Drafted: "#9CA3AF", d
 
 // Gives each job category a consistent, distinct color instead of one flat gray icon everywhere.
 const categoryPalette = [
-  { bg: "#EDE9FE", color: "#7C3AED" },
+  { bg: "#f3f5fb", color: "#1d2445" },
   { bg: "#DBEAFE", color: "#2563EB" },
   { bg: "#D1FAE5", color: "#059669" },
   { bg: "#FEF3C7", color: "#B45309" },

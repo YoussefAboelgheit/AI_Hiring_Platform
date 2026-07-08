@@ -63,7 +63,7 @@ export default function EmailInvitationsPage() {
               <i className="bi bi-plus me-1" />Add More
             </button>
           </div>
-          <div style={{ background: "var(--primary-bg)", borderRadius: 12, padding: 16, border: "1px solid #DDD6FE" }}>
+          <div style={{ background: "var(--primary-bg)", borderRadius: 12, padding: 16, border: "1px solid #e2e2e2" }}>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <i className="bi bi-stars" style={{ color: "var(--primary)" }} aria-hidden="true" />
               <span style={{ fontWeight: 700, fontSize: 13, color: "var(--primary)" }}>HireAI Insight</span>

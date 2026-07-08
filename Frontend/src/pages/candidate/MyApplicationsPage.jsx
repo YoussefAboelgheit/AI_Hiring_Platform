@@ -87,7 +87,7 @@ export default function MyApplicationsPage() {
                         src={app.logo}
                         alt=""
                         style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)" }}
-                        onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&background=EDE9FE&color=7C3AED&size=32`; }}
+                        onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&background=F3F5FB&color=1D2445&size=32`; }}
                       />
                       <span style={{ fontWeight: 600 }}>{app.jobTitle}</span>
                     </div>

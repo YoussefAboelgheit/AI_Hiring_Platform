@@ -200,7 +200,7 @@ export default function ApplicationDetailPage() {
               </div>
 
               {app.sentiment && (
-                <div className="hcard" style={{ padding: 20, background: "linear-gradient(135deg, #F5F0FF, #EDE9FE)" }}>
+                <div className="hcard" style={{ padding: 20, background: "linear-gradient(135deg, #f3f5fb, #f3f5fb)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
                     <i className="bi bi-stars" style={{ color: "var(--primary)" }}></i>
                     <span style={{ fontWeight: 700, fontSize: 13, color: "var(--primary)" }}>AI Sentiment Analysis</span>

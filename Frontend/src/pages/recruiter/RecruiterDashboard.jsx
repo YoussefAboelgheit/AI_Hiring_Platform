@@ -169,7 +169,7 @@ export default function RecruiterDashboard() {
                       </div>
                     </td>
                     <td style={{ fontSize: 13 }}>
-                      <span className="badge p-2 rounded border-0" style={{ backgroundColor: '#F3E8FF', color: '#6B21A8', fontWeight: 600 }}>
+                      <span className="badge p-2 rounded border-0" style={{ backgroundColor: '#f3f5fb', color: '#6B21A8', fontWeight: 600 }}>
                         {app.jobRole}
                       </span>
                     </td>

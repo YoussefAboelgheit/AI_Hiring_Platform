@@ -207,7 +207,7 @@ export default function ApplicantsListPage() {
                           <div style={{ fontWeight: 700, fontSize: 14 }}>{app.candidate?.name || "Unknown"}</div>
                           <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{app.candidate?.email || ""}</div>
                           {!jobId && (
-                            <span className="badge rounded-pill text-bg-purple mt-1">
+                            <span className="badge rounded-pill mt-1" style={{ background: "var(--primary-bg)", color: "var(--primary)" }}>
                               Applied for: {app.jobTitle}
                             </span>
                           )}

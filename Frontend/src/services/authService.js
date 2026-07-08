@@ -13,7 +13,7 @@ export function resolveAvatar(user) {
   if (userImage) return userImage;
   
   const name = user?.name || "User";
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=EDE9FE&color=7C3AED&size=150`;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=F3F5FB&color=1D2445&size=150`;
 }
 
 // 2. معالجة بيانات المستخدم وتوحيد الحقول للفرونت إند

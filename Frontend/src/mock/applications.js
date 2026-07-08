@@ -6,7 +6,7 @@ export const myApplications = [
 ];
 
 export const candidateDashboardStats = [
-  { label: "Active Applications", value: "12", change: "+2 this week", icon: "bi-file-earmark-text", iconBg: "#EDE9FE", iconColor: "#7C3AED" },
+  { label: "Active Applications", value: "12", change: "+2 this week", icon: "bi-file-earmark-text", iconBg: "#f3f5fb", iconColor: "#1d2445" },
   { label: "Pending Assessments", value: "03", change: "Due soon", icon: "bi-clipboard-check", iconBg: "#D1FAE5", iconColor: "#059669", warning: true },
   { label: "Feedback Reports", value: "08", change: "5 unread", icon: "bi-chat-square-text", iconBg: "#F3F4F6", iconColor: "#6B7280" },
 ];

@@ -1,8 +1,8 @@
 export const myJobsStats = [
-  { label: "Active Roles", value: "12", change: "+2 from last month", icon: "bi-lightning-charge", iconBg: "#EDE9FE", iconColor: "#7C3AED" },
-  { label: "Total Applicants", value: "842", change: "14% conversion rate", icon: "bi-people", iconBg: "#EDE9FE", iconColor: "#7C3AED" },
-  { label: "AI Matches Found", value: "156", change: "High quality candidates", icon: "bi-stars", iconBg: "#EDE9FE", iconColor: "#7C3AED" },
-  { label: "Pending Interviews", value: "24", change: "Scheduled this week", icon: "bi-calendar-check", iconBg: "#F5F0FF", iconColor: "#7C3AED", highlight: true },
+  { label: "Active Roles", value: "12", change: "+2 from last month", icon: "bi-lightning-charge", iconBg: "#f3f5fb", iconColor: "#1d2445" },
+  { label: "Total Applicants", value: "842", change: "14% conversion rate", icon: "bi-people", iconBg: "#f3f5fb", iconColor: "#1d2445" },
+  { label: "AI Matches Found", value: "156", change: "High quality candidates", icon: "bi-stars", iconBg: "#f3f5fb", iconColor: "#1d2445" },
+  { label: "Pending Interviews", value: "24", change: "Scheduled this week", icon: "bi-calendar-check", iconBg: "#f3f5fb", iconColor: "#1d2445", highlight: true },
 ];
 
 export const myJobsList = [
@@ -35,7 +35,7 @@ export const aiRecommendation = {
   summary: "Sarah Mitchell demonstrates exceptional proficiency in visual hierarchy and interaction design. Her portfolio and assessment results indicate a 92% retention rate for similar roles. Recommended for immediate interview scheduling.",
   metrics: [
     { title: "Top 1% in Logic", desc: "Scored in the top percentile on cognitive assessment modules.", icon: "bi-lightbulb", color: "#D1FAE5" },
-    { title: "Perfect Cultural Fit", desc: "Strong alignment with company core values and team dynamics.", icon: "bi-heart", color: "#EDE9FE" },
+    { title: "Perfect Cultural Fit", desc: "Strong alignment with company core values and team dynamics.", icon: "bi-heart", color: "#f3f5fb" },
     { title: "High Growth Delta", desc: "Demonstrates rapid learning velocity in technical assessments.", icon: "bi-graph-up", color: "#F3F4F6" },
     { title: "Portfolio Excellence", desc: "Visual execution exceeds industry benchmarks for the role.", icon: "bi-bullseye", color: "#CCFBF1" },
   ],
