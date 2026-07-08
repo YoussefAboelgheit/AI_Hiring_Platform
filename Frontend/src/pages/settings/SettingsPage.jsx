@@ -29,7 +29,7 @@ export default function SettingsPage() {
 
   const isRecruiter = user?.role === "recruiter";
   const dashboardPath = isRecruiter ? "/recruiter/dashboard" : "/candidate/dashboard";
-  const profilePath = isRecruiter ? "/candidate/profile/complete" : "/candidate/profile";
+  const profilePath = isRecruiter ? "/recruiter/profile" : "/candidate/profile";
 
   const { mutate, isPending, isError, error, reset } = useMutation({
     mutationFn: authService.changePassword,

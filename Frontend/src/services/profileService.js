@@ -1,24 +1,20 @@
+import { candidateProfile } from "../mock/profile";
 import { fetchMe, getSessionUser, updateSessionUser, saveCompleteProfile as saveProfileToBackend } from "./authService";
 import { getApiErrorMessage } from "./apiErrors";
 
-// تحويل استجابة /auth/me إلى الشكل الذي تستهلكه صفحة الملف الشخصي
 function mergeProfileWithExtras(user) {
-  const socialLinks = Array.isArray(user.social_links) ? user.social_links : [];
-
   return {
+    ...candidateProfile,
     id: user.id,
-    name: user.name || "",
-    email: user.email || "",
+    name: user.name || candidateProfile.name,
+    email: user.email || candidateProfile.email,
     phone: user.phone || "",
     avatar: user.avatar, // يتم جلبه تلقائياً بواسطة normalizeUser المعدلة
     cv: user.cv || user.CV || null, // تمرير رابط الـ CV الجديد للصفحة
-    title: user.job_title || user.title || "",
-    location: user.location || user.company_location || "",
-    bio: user.about || user.bio || "",
-    portfolio: user.portfolio || socialLinks[0] || "",
-    skills: Array.isArray(user.skills) ? user.skills : [],
-    experience: Array.isArray(user.experience) ? user.experience : [],
-    education: Array.isArray(user.education) ? user.education : [],
+    title: user.title || candidateProfile.title,
+    location: user.location || candidateProfile.location,
+    bio: user.bio || candidateProfile.bio,
+    portfolio: user.portfolio || candidateProfile.portfolio,
   };
 }
 
@@ -29,6 +25,41 @@ export async function getCandidateProfile() {
   } catch (error) {
     const fallback = getSessionUser();
     if (fallback) return mergeProfileWithExtras(fallback);
+    throw Object.assign(new Error(getApiErrorMessage(error)), { cause: error });
+  }
+}
+
+// توحيد بيانات ملف صاحب العمل (HR) القادمة من /auth/me
+function mapRecruiterProfile(user) {
+  return {
+    id: user.id,
+    name: user.name || "",
+    email: user.email || "",
+    role: user.role,
+    jobTitle: user.job_title || "",
+    bio: user.bio || user.about || "",
+    logo: user.company_logo || user.avatar || null,
+    company: {
+      name: user.company_name || "",
+      website: user.company_website || "",
+      size: user.company_size || "",
+      industry: user.industry || "",
+      location: user.company_location || "",
+      description: user.company_description || "",
+      foundedYear: user.founded_year || null,
+    },
+    socialLinks: Array.isArray(user.social_links) ? user.social_links : [],
+    isVerified: Boolean(user.isVerified),
+  };
+}
+
+export async function getRecruiterProfile() {
+  try {
+    const user = await fetchMe();
+    return mapRecruiterProfile(user);
+  } catch (error) {
+    const fallback = getSessionUser();
+    if (fallback) return mapRecruiterProfile(fallback);
     throw Object.assign(new Error(getApiErrorMessage(error)), { cause: error });
   }
 }
