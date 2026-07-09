@@ -147,21 +147,6 @@ export default function LoginPage() {
             )}
           </Formik>
 
-          <div className="auth-divider"><span>Or continue with</span></div>
-
-          <div style={{ display: "flex", gap: 10, marginBottom: 24 }}>
-            {["Google", "LinkedIn"].map((p) => (
-              <button key={p} type="button" className="auth-social-btn">
-                <i
-                  className={`bi bi-${p === "Google" ? "google" : "linkedin"}`}
-                  style={{ color: p === "Google" ? "#EA4335" : "#0A66C2" }}
-                  aria-hidden="true"
-                />{" "}
-                {p}
-              </button>
-            ))}
-          </div>
-
           <div style={{ textAlign: "center", fontSize: 14, color: "var(--text-muted)" }}>
             Don&apos;t have an account?{" "}
             <Link to="/register" style={{ color: "var(--primary)", fontWeight: 700, textDecoration: "none" }}>

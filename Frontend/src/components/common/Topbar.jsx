@@ -1,15 +1,47 @@
+import { useEffect, useState } from "react";
 import { useAuth } from "../../context/useAuth";
 import { useAppShell } from "../../context/useAppShell";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 export default function Topbar({ placeholder = "Search..." }) {
   const { user } = useAuth();
   const { toggleSidebar } = useAppShell();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isCandidateJobs = pathname.startsWith("/candidate/jobs");
+  const [query, setQuery] = useState(() => (isCandidateJobs ? searchParams.get("q") || "" : ""));
+
+  useEffect(() => {
+    if (isCandidateJobs) {
+      setQuery(searchParams.get("q") || "");
+    }
+  }, [isCandidateJobs, searchParams]);
+
   const isCandidate = pathname.startsWith("/candidate");
   const settingsPath = pathname.startsWith("/recruiter")
     ? "/recruiter/settings"
     : "/candidate/settings";
+
+  const submitSearch = () => {
+    const trimmed = query.trim();
+    if (isCandidateJobs) {
+      const next = new URLSearchParams(searchParams);
+      if (trimmed) next.set("q", trimmed);
+      else next.delete("q");
+      navigate({ pathname: "/candidate/jobs", search: next.toString() ? `?${next}` : "" });
+      return;
+    }
+    navigate(trimmed ? `/candidate/jobs?q=${encodeURIComponent(trimmed)}` : "/candidate/jobs");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitSearch();
+    }
+  };
+
   return (
     <header className="topbar">
       <button
@@ -22,7 +54,14 @@ export default function Topbar({ placeholder = "Search..." }) {
       </button>
       <div className="search-box d-none d-md-flex">
         <i className="bi bi-search text-muted" aria-hidden="true" />
-        <input type="search" placeholder={placeholder} aria-label="Search" />
+        <input
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          aria-label="Search"
+        />
       </div>
       <div className="topbar-actions">
         {isCandidate ? (

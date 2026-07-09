@@ -2,22 +2,34 @@
 @import 'bootstrap-icons/font/bootstrap-icons.css';
 
 :root {
-  --primary: #6B21E8;
-  --primary-light: #7C3AED;
-  --primary-dark: #5B17D4;
-  --primary-bg: #F5F0FF;
-  --sidebar-bg: #FFFFFF;
+  /* Brand */
+  --primary: #1d2445;
+  --primary-light: #374172;
+  --primary-dark: #131933;
+  --primary-bg: #f3f5fb;
+
+  /* Layout */
+  --sidebar-bg: #ffffff;
   --sidebar-width: 220px;
   --topbar-height: 64px;
-  --body-bg: #F8F7FC;
-  --text-dark: #1A1A2E;
-  --text-muted: #6B7280;
-  --border: #E5E7EB;
-  --card-shadow: 0 1px 4px rgba(0,0,0,0.07);
-  --success: #10B981;
-  --warning: #F59E0B;
-  --danger: #EF4444;
-  --info: #3B82F6;
+  --body-bg: #f8f9fc;
+
+  /* Text */
+  --text-dark: #1d2445;
+  --text-muted: #6b7280;
+
+  /* Borders */
+  --border: #e2e2e2;
+
+  /* Cards */
+  --card-bg: #ffffff;
+  --card-shadow: 0 2px 8px rgba(29, 36, 69, 0.08);
+
+  /* States */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #3b82f6;
 }
 
 * { box-sizing: border-box; }
@@ -54,22 +66,22 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
   outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 6px;
 }
 .brand-logo { display: block; width: auto; height: auto; max-width: 100%; object-fit: contain; }
-.brand-logo--xs { height: 28px; max-width: 120px; }
-.brand-logo--sm { height: 34px; max-width: 148px; }
-.brand-logo--md { height: 40px; max-width: 172px; }
-.brand-logo--lg { height: 48px; max-width: 204px; }
-.brand-logo--sidebar { height: 42px; max-width: 168px; }
+.brand-logo--xs { height: 28px; max-width: 140px; }
+.brand-logo--sm { height: 34px; max-width: 168px; }
+.brand-logo--md { height: 40px; max-width: 200px; }
+.brand-logo--lg { height: 48px; max-width: 240px; }
+.brand-logo--sidebar { height: 40px; max-width: 180px; }
 
 @media (min-width: 768px) {
-  .brand-logo--sm { height: 38px; max-width: 164px; }
-  .brand-logo--md { height: 44px; max-width: 188px; }
-  .brand-logo--lg { height: 52px; max-width: 220px; }
-  .brand-logo--sidebar { height: 46px; max-width: 176px; }
+  .brand-logo--sm { height: 38px; max-width: 184px; }
+  .brand-logo--md { height: 44px; max-width: 220px; }
+  .brand-logo--lg { height: 52px; max-width: 260px; }
+  .brand-logo--sidebar { height: 44px; max-width: 196px; }
 }
 
 @media (max-width: 575px) {
-  .brand-logo--md { height: 36px; max-width: 156px; }
-  .brand-logo--sidebar { height: 38px; max-width: 152px; }
+  .brand-logo--md { height: 36px; max-width: 180px; }
+  .brand-logo--sidebar { height: 36px; max-width: 168px; }
   .landing-nav { padding: 0 20px; }
 }
 .sidebar-nav .nav-link-disabled { opacity: 0.55; cursor: not-allowed; }
@@ -141,7 +153,7 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 /* Badges */
 .badge-status { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
 .badge-reviewing { background: #FEF3C7; color: #92400E; }
-.badge-shortlisted { background: #EDE9FE; color: #6D28D9; }
+.badge-shortlisted { background: #f3f5fb; color: #1d2445; }
 .badge-interviewing { background: #DBEAFE; color: #1D4ED8; }
 .badge-rejected { background: #FEE2E2; color: #991B1B; }
 .badge-accepted { background: #D1FAE5; color: #065F46; }
@@ -207,7 +219,7 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 .landing-hero-glow {
   position: absolute; top: 0; right: 0; width: 400px; height: 400px;
-  background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(29,36,69,0.1) 0%, transparent 70%);
   border-radius: 50%; pointer-events: none;
 }
 .landing-hero-inner {
@@ -216,7 +228,7 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 .landing-hero-copy { text-align: left; }
 .landing-hero-badge {
   display: inline-flex; align-items: center; gap: 6px;
-  background: #EDE9FE; color: var(--primary); font-size: 12px; font-weight: 700;
+  background: #f3f5fb; color: var(--primary); font-size: 12px; font-weight: 700;
   padding: 5px 12px; border-radius: 20px; margin-bottom: 20px;
 }
 .landing-hero-title {
@@ -293,7 +305,7 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 /* Auth split layout */
 .auth-layout { min-height: 100vh; display: flex; }
 .auth-left {
-  width: 45%; background: linear-gradient(135deg, #5B21B6, #7C3AED);
+  width: 45%; background: linear-gradient(135deg, #131933, #1d2445);
   display: flex; flex-direction: column; justify-content: center;
   padding: 60px; color: #fff; min-height: 100vh;
 }
@@ -336,12 +348,12 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 .role-card.active { border-color: var(--primary); background: var(--primary-bg); color: var(--primary); }
 
 /* AI badge */
-.ai-badge { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(90deg, #7C3AED, #6366F1); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.3px; }
+.ai-badge { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(90deg, #1d2445, #374172); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.3px; }
 
 /* Sidebar credits box */
-.credits-box { margin: 12px; padding: 12px; background: var(--primary-bg); border-radius: 10px; border: 1px solid #DDD6FE; }
+.credits-box { margin: 12px; padding: 12px; background: var(--primary-bg); border-radius: 10px; border: 1px solid #e2e2e2; }
 .credits-box .credits-label { font-size: 11px; color: var(--primary); font-weight: 600; margin-bottom: 6px; }
-.credits-box .credits-bar { height: 5px; border-radius: 5px; background: #DDD6FE; }
+.credits-box .credits-bar { height: 5px; border-radius: 5px; background: #e2e2e2; }
 .credits-box .credits-fill { height: 5px; border-radius: 5px; background: var(--primary); }
 .credits-box .credits-text { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
 
@@ -364,7 +376,7 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 .btn-teal-custom:hover { background: #0F766E; }
 
 /* AI optimization card */
-.ai-optimization-card { background: linear-gradient(135deg, #7C3AED, #6366F1); border: none !important; position: relative; overflow: hidden; }
+.ai-optimization-card { background: linear-gradient(135deg, #1d2445, #374172); border: none !important; position: relative; overflow: hidden; }
 .ai-optimization-card::before {
   content: ""; position: absolute; inset: 0;
   background: radial-gradient(circle at 80% 20%, rgba(255,255,255,0.12) 0%, transparent 50%);

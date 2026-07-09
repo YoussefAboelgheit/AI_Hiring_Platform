@@ -29,6 +29,14 @@ export async function updateUser(id, payload) {
  * Delete a user (Admin or user themselves).
  */
 export async function deleteUser(id) {
-  const { data } = await apiClient.delete(`/users/${id}`);
-  return data;
+  try {
+    const { data } = await apiClient.delete(`/users/${id}`);
+    return data;
+  } catch (error) {
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      "Failed to delete account.";
+    throw Object.assign(new Error(message), { cause: error });
+  }
 }

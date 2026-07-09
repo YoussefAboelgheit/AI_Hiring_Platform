@@ -308,7 +308,7 @@ export async function getMyJobs(recruiterId) {
   const draftJobsCount = jobs.filter((j) => j.status === "Drafted").length;
 
   const stats = [
-    { label: "Active Roles", value: activeJobsCount.toString(), change: "Live listings", icon: "bi-lightning-charge", iconBg: "#EDE9FE", iconColor: "#7C3AED" },
+    { label: "Active Roles", value: activeJobsCount.toString(), change: "Live listings", icon: "bi-lightning-charge", iconBg: "#f3f5fb", iconColor: "#1d2445" },
     { label: "Drafted Roles", value: draftJobsCount.toString(), change: "Saved as drafts", icon: "bi-file-earmark-text", iconBg: "#F3F4F6", iconColor: "#4B5563" },
     { label: "Total Positions", value: jobs.length.toString(), change: "All time posts", icon: "bi-briefcase", iconBg: "#E0F2FE", iconColor: "#0284C7" },
   ];

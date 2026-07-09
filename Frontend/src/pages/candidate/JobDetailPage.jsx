@@ -125,7 +125,7 @@ export default function JobDetailPage() {
                 src={job.logo}
                 alt={job.company}
                 style={{ width: 60, height: 60, borderRadius: 14, objectFit: "contain", border: "1px solid var(--border)", padding: 6 }}
-                onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&background=EDE9FE&color=7C3AED`; }}
+                onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&background=F3F5FB&color=1D2445`; }}
               />
               <div style={{ flex: 1 }}>
                 <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>{job.title}</h1>

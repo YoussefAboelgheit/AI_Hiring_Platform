@@ -25,7 +25,7 @@ const footerColumns = [
     links: [
       { label: "Help Center", href: "#help" },
       { label: "Documentation", href: "#docs" },
-      { label: "Privacy Policy", href: "#privacy" },
+      { label: "Privacy Policy", to: "/privacy" },
       { label: "Terms of Service", href: "#terms" }
     ]
   }
@@ -37,7 +37,7 @@ export default function Footer({ variant = "landing" }) {
       <footer className="page-footer">
         <span>HireAI · © 2026 HireAI Recruitment. All rights reserved.</span>
         <div className="footer-links">
-          <a href="#privacy">Privacy Policy</a>
+          <Link to="/privacy">Privacy Policy</Link>
           <a href="#terms">Terms of Service</a>
           <a href="#help">Help Center</a>
           <a href="#contact">Contact</a>
@@ -82,7 +82,11 @@ export default function Footer({ variant = "landing" }) {
                   <ul className="list-unstyled d-flex flex-column gap-2 mb-0">
                     {col.links.map((link) => (
                       <li key={link.label}>
-                        <a href={link.href} style={styles.colLink}>{link.label}</a>
+                        {link.to ? (
+                          <Link to={link.to} style={styles.colLink}>{link.label}</Link>
+                        ) : (
+                          <a href={link.href} style={styles.colLink}>{link.label}</a>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -129,8 +133,8 @@ const styles = {
     width: 36,
     height: 36,
     borderRadius: "50%",
-    background: "#EDE9FE",
-    color: "#7C3AED",
+    background: "#f3f5fb",
+    color: "#1d2445",
     fontSize: 16,
     textDecoration: "none",
     transition: "background 0.2s",
@@ -159,7 +163,7 @@ const styles = {
   },
   portalLink: {
     fontSize: 13,
-    color: "#7C3AED",
+    color: "#1d2445",
     textDecoration: "none",
     fontWeight: 500,
   },

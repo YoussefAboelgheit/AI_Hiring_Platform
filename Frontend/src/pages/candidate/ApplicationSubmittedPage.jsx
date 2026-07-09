@@ -55,7 +55,7 @@ export default function ApplicationSubmittedPage() {
         </div>
 
         <div style={{ position: "relative", width: 200, height: 200, marginBottom: 32 }}>
-          <div style={{ width: 160, height: 160, borderRadius: "50%", background: "linear-gradient(135deg, #EDE9FE, #DBEAFE)", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ width: 160, height: 160, borderRadius: "50%", background: "linear-gradient(135deg, #f3f5fb, #DBEAFE)", margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <i className="bi bi-person-workspace" style={{ fontSize: 64, color: "var(--primary)" }} aria-hidden="true" />
           </div>
           <span style={{ position: "absolute", top: 10, right: 20, width: 32, height: 32, background: "var(--success)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>

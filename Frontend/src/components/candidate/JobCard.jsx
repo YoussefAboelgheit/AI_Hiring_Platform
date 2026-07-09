@@ -22,7 +22,7 @@ export default function JobCard({ job }) {
           alt={job.company}
           style={{ width: 44, height: 44, borderRadius: 10, objectFit: "contain", border: "1px solid var(--border)", padding: 4 }}
           onError={(e) => {
-            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&background=EDE9FE&color=7C3AED`;
+            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(job.company)}&background=F3F5FB&color=1D2445`;
           }}
         />
         {job.badge && (

@@ -147,7 +147,7 @@ export default function CandidateReviewPage() {
                 const cDesc = Array.isArray(cert) ? cert[1] : (cert.issuer || cert.date);
                 return (
                   <div key={index} style={{ display: "flex", gap: 10, marginBottom: 12, alignItems: "center", background: "var(--body-bg)", padding: "10px 12px", borderRadius: 8 }}>
-                    <div style={{ width: 36, height: 36, background: "#EDE9FE", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <div style={{ width: 36, height: 36, background: "#f3f5fb", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <i className="bi bi-award" style={{ color: "var(--primary)" }}></i>
                     </div>
                     <div>
@@ -178,7 +178,7 @@ export default function CandidateReviewPage() {
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {[["CV Score", cvScore, "#7C3AED"], ["Assessment", assessmentScore, "#059669"]].map(([label, val, color]) => (
+            {[["CV Score", cvScore, "#1d2445"], ["Assessment", assessmentScore, "#059669"]].map(([label, val, color]) => (
               <div key={label} className="hcard" style={{ padding: 16, textAlign: "center" }}>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>{label}</div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: color }}>{Math.round(val)}</div>
@@ -190,7 +190,7 @@ export default function CandidateReviewPage() {
             <button
               type="button"
               onClick={() => navigate("/recruiter/ai-recommendation")}
-              style={{ width: "100%", background: "var(--primary-bg)", color: "var(--primary)", border: "1.5px solid #DDD6FE", borderRadius: 10, padding: 12, fontWeight: 700, cursor: "pointer", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              style={{ width: "100%", background: "var(--primary-bg)", color: "var(--primary)", border: "1.5px solid #e2e2e2", borderRadius: 10, padding: 12, fontWeight: 700, cursor: "pointer", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
             >
               <i className="bi bi-stars"></i> View AI Recommendation
             </button>
@@ -214,7 +214,7 @@ export default function CandidateReviewPage() {
             </button>
           </div>
 
-          <div style={{ background: "var(--primary-bg)", border: "1px solid #DDD6FE", borderRadius: 12, padding: 16 }}>
+          <div style={{ background: "var(--primary-bg)", border: "1px solid #e2e2e2", borderRadius: 12, padding: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
               <i className="bi bi-lightbulb" style={{ color: "var(--primary)" }}></i>
               <span style={{ fontWeight: 700, fontSize: 13, color: "var(--primary)" }}>HireAI Insights</span>

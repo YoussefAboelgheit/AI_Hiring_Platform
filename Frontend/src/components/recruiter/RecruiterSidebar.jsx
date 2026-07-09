@@ -7,10 +7,7 @@ import SidebarLogo from "../common/SidebarLogo";
 const navItems = [
   { to: "/recruiter/dashboard", icon: "bi-grid-fill", label: "Dashboard", end: true },
   { to: "/recruiter/jobs", icon: "bi-briefcase", label: "Jobs", jobsSection: true },
-  { to: "/recruiter/applications", icon: "bi-people", label: "Applications" },
-  { to: "/recruiter/assessment-generator", icon: "bi-clipboard-check", label: "Assessments" },
-  { to: "/recruiter/feedback", icon: "bi-chat-square-text", label: "Feedback" },
-  { to: "/candidate/profile/complete", icon: "bi-person", label: "Profile", profileItem: true },
+  { to: "/recruiter/profile", icon: "bi-person", label: "Profile" },
 ];
 
 
