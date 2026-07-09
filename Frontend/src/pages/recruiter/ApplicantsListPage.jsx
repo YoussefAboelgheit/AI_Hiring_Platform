@@ -192,7 +192,6 @@ export default function ApplicantsListPage() {
                 const assessmentScore = Math.round(app.assessmentScore ?? 0);
                 const candidateId = app._id || app.id;
                 const effectiveJobId = app.jobId || jobId;
-                const summary = app.aiEvaluation?.summary;
 
                 return (
                   <tr key={candidateId || idx}>
@@ -226,17 +225,13 @@ export default function ApplicantsListPage() {
                       <CircleProgress value={assessmentScore} size={60} stroke={5} />
                     </td>
                     <td style={{ maxWidth: 160 }}>
-                      {summary ? (
-                        <button
-                          type="button"
-                          className="btn btn-link btn-sm p-0 fw-bold"
-                          onClick={() => navigate(`/recruiter/feedback/${effectiveJobId}/${candidateId}`)}
-                        >
-                          View Report <i className="bi bi-box-arrow-up-right" aria-hidden="true"></i>
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Not analyzed yet</span>
-                      )}
+                      <button
+                        type="button"
+                        className="btn btn-link btn-sm p-0 fw-bold"
+                        onClick={() => navigate(`/recruiter/feedback/${effectiveJobId}/${candidateId}`)}
+                      >
+                        View Report <i className="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                      </button>
                     </td>
                     <td>
                       <div className="d-flex flex-column gap-1" style={{ minWidth: 128 }}>

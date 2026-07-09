@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getJobById, isJobAvailableForCandidate } from "../../services/jobService";
+import { getJobById, isJobAvailableForCandidate, toggleSaveJob, getSavedJobs, extractSavedJobId } from "../../services/jobService";
 import LoadingState from "../../components/common/LoadingState";
 import EmptyState from "../../components/common/EmptyState";
 import BackButton from "../../components/common/BackButton";
@@ -40,6 +40,8 @@ export default function JobDetailPage() {
   const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saved, setSaved] = useState(false);
+  const [saveLoading, setSaveLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -57,6 +59,31 @@ export default function JobDetailPage() {
     load();
     return () => { cancelled = true; };
   }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSavedJobs()
+      .then((savedJobs) => {
+        if (cancelled) return;
+        const isSaved = savedJobs.some((entry) => extractSavedJobId(entry) === id);
+        setSaved(isSaved);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [id]);
+
+  const handleToggleSave = async () => {
+    setSaveLoading(true);
+    const previous = saved;
+    setSaved(!previous); // optimistic
+    try {
+      await toggleSaveJob(id);
+    } catch {
+      setSaved(previous); // revert on failure
+    } finally {
+      setSaveLoading(false);
+    }
+  };
 
   if (loading) return <LoadingState message="Loading job details..." />;
 
@@ -184,7 +211,16 @@ export default function JobDetailPage() {
             >
               {!isAvailable ? "Applications Closed" : "Apply Now"}
             </button>
-            <button className="btn-outline-custom" style={{ width: "100%" }}>Save Job</button>
+            <button
+              type="button"
+              className={saved ? "btn-primary-custom" : "btn-outline-custom"}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              onClick={handleToggleSave}
+              disabled={saveLoading}
+            >
+              <i className={`bi ${saved ? "bi-bookmark-fill" : "bi-bookmark"}`} aria-hidden="true"></i>
+              {saved ? "Saved" : "Save Job"}
+            </button>
           </div>
           <div className="hcard" style={{ padding: 20 }}>
             <div style={{ fontWeight: 700, marginBottom: 14 }}>Job Overview</div>

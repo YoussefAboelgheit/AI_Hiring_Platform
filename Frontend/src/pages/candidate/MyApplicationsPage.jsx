@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getMyApplications } from "../../services/applicationService";
@@ -8,6 +9,7 @@ import EmptyState from "../../components/common/EmptyState";
 
 export default function MyApplicationsPage() {
   const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = useState("all");
 
   const {
     data: applications = [],
@@ -22,6 +24,11 @@ export default function MyApplicationsPage() {
     staleTime: 60 * 1000,
   });
 
+  const filteredApplications = useMemo(() => {
+    if (statusFilter === "all") return applications;
+    return applications.filter((app) => app.status?.toLowerCase() === statusFilter);
+  }, [applications, statusFilter]);
+
   return (
     <>
       <div className="page-header-row">
@@ -31,12 +38,23 @@ export default function MyApplicationsPage() {
             Track all your job applications and their current status.
           </p>
         </div>
-        {isFetching && !isLoading && (
-          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
-            <i className="bi bi-arrow-repeat me-1" aria-hidden="true" />
-            Refreshing...
-          </span>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {isFetching && !isLoading && (
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+              <i className="bi bi-arrow-repeat me-1" aria-hidden="true" />
+              Refreshing...
+            </span>
+          )}
+          <div className="input-group search-filter-box" style={{ maxWidth: 170 }}>
+            <span className="input-group-text border-0"><i className="bi bi-funnel text-muted"></i></span>
+            <select className="form-select border-0" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="accepted">Accepted</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {isError && (
@@ -61,6 +79,17 @@ export default function MyApplicationsPage() {
             </button>
           }
         />
+      ) : filteredApplications.length === 0 && !isError ? (
+        <EmptyState
+          icon="bi-funnel"
+          title="No applications match this filter"
+          description="Try a different status filter to see the rest of your applications."
+          action={
+            <button type="button" className="btn-outline-custom" onClick={() => setStatusFilter("all")}>
+              Clear Filter
+            </button>
+          }
+        />
       ) : (
         <div className="hcard table-responsive-wrap" style={{ overflow: "hidden" }}>
           <table className="htable">
@@ -75,7 +104,7 @@ export default function MyApplicationsPage() {
               </tr>
             </thead>
             <tbody>
-              {applications.map((app) => (
+              {filteredApplications.map((app) => (
                 <tr
                   key={app.id}
                   style={{ cursor: "pointer" }}
