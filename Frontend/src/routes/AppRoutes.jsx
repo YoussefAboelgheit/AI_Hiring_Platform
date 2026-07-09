@@ -17,6 +17,7 @@ import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
 
 import CandidateDashboard from "../pages/candidate/CandidateDashboard";
 import BrowseJobsPage from "../pages/candidate/BrowseJobsPage";
+import SavedJobsPage from "../pages/candidate/SavedJobsPage";
 import JobDetailsPage from "../pages/recruiter/JobDetailsPage";
 import JobDetailPage from "../pages/candidate/JobDetailPage";
 import ApplyJobPage from "../pages/candidate/ApplyJobPage";
@@ -79,6 +80,7 @@ export default function AppRoutes() {
         <Route path="candidate" element={<CandidateLayout />}>
           <Route path="dashboard" element={<CandidateDashboard />} />
           <Route path="jobs" element={<BrowseJobsPage />} />
+          <Route path="jobs/saved" element={<SavedJobsPage />} />
           <Route path="job/:jobId" element={<JobDetailsPage />} />
           <Route path="jobs/:id" element={<JobDetailPage />} />
           <Route path="jobs/:id/apply" element={<ApplyJobPage />} />

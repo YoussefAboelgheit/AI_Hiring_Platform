@@ -27,7 +27,7 @@ export default function RecruiterDashboard() {
   // الشكل الفعلي: { stats: { activeJobs, newApplications, shortlisted, assessmentsPending }, ... }
   const activeJobsCount = dashboardData?.stats?.activeJobs ?? 0;
   const totalAppsCount = dashboardData?.stats?.newApplications ?? 0;
-  const shortlistedCount = dashboardData?.stats?.shortlisted ?? 0;
+  const acceptedCount = dashboardData?.stats?.accepted ?? 0;
   const inReviewCount = dashboardData?.stats?.assessmentsPending ?? 0;
 
   // جلب البيانات الأخرى مع وضع Fallbacks لحماية الصفحة من الـ Crash
@@ -58,11 +58,11 @@ export default function RecruiterDashboard() {
       iconColor: "#166534"
     },
     {
-      key: "shortlisted",
-      label: "Shortlisted",
-      value: shortlistedCount,
+      key: "accepted",
+      label: "Accepted",
+      value: acceptedCount,
       change: "+8%",
-      icon: "bi-bookmark-check",
+      icon: "bi-check-circle",
       bg: "#FDF2F8",
       iconBg: "#FCE7F3",
       iconColor: "#9D174D"

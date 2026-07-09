@@ -6,6 +6,7 @@ export default function Topbar({ placeholder = "Search..." }) {
   const { user } = useAuth();
   const { toggleSidebar } = useAppShell();
   const { pathname } = useLocation();
+  const isCandidate = pathname.startsWith("/candidate");
   const settingsPath = pathname.startsWith("/recruiter")
     ? "/recruiter/settings"
     : "/candidate/settings";
@@ -24,9 +25,15 @@ export default function Topbar({ placeholder = "Search..." }) {
         <input type="search" placeholder={placeholder} aria-label="Search" />
       </div>
       <div className="topbar-actions">
-        <button type="button" className="topbar-icon-btn d-none d-sm-flex" aria-label="AI assistant">
-          <i className="bi bi-robot" />
-        </button>
+        {isCandidate ? (
+          <Link to="/candidate/jobs/saved" className="topbar-icon-btn d-none d-sm-flex" aria-label="Saved jobs">
+            <i className="bi bi-bookmark-heart" />
+          </Link>
+        ) : (
+          <button type="button" className="topbar-icon-btn d-none d-sm-flex" aria-label="AI assistant">
+            <i className="bi bi-robot" />
+          </button>
+        )}
         <button type="button" className="topbar-icon-btn d-none d-sm-flex" style={{ position: "relative" }} aria-label="Notifications">
           <i className="bi bi-bell" />
           <span className="topbar-notification-dot" />

@@ -49,13 +49,20 @@ export async function getRecruiterDashboard() {
   }
 
   const applications = jobs.flatMap((job) =>
-    (job.applications || []).map((app) => ({
-      ...app,
-      job:
-        app.job && typeof app.job === "object"
-          ? app.job
-          : { _id: job._id, title: job.title },
-    }))
+    (job.applications || []).map((app) => {
+      const nestedJob = app.job && typeof app.job === "object" ? app.job : null;
+      return {
+        ...app,
+        job: {
+          ...nestedJob,
+          _id: nestedJob?._id || job._id,
+          // The application's own nested job object doesn't always include a title
+          // (sometimes it's only partially populated), so we fall back to the
+          // parent job's title — which we always have here — instead of losing it.
+          title: nestedJob?.title || job.title,
+        },
+      };
+    })
   );
 
   const activeJobsCount = jobs.filter((j) => j.status === "Open").length;
@@ -63,7 +70,7 @@ export async function getRecruiterDashboard() {
   const stats = {
     activeJobs: activeJobsCount,
     newApplications: applications.length,
-    shortlisted: applications.filter((a) => a.status?.toLowerCase() === "shortlisted").length,
+    accepted: applications.filter((a) => a.status?.toLowerCase() === "accepted").length,
     assessmentsPending: applications.filter(
       (a) => a.status?.toLowerCase() === "interviewing" || a.status?.toLowerCase() === "pending"
     ).length,

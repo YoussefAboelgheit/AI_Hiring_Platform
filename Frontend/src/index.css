@@ -26,7 +26,7 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 /* Sidebar */
 .sidebar {
   width: var(--sidebar-width);
-  min-height: 100vh;
+  height: 100vh;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--border);
   position: fixed;
@@ -34,6 +34,7 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
   display: flex;
   flex-direction: column;
   z-index: 100;
+  overflow: hidden;
 }
 .sidebar-logo { padding: 16px 16px 8px; border-bottom: 1px solid var(--border); }
 .sidebar-logo .brand-logo-link { width: 100%; }
@@ -75,7 +76,8 @@ body { background: var(--body-bg); font-family: 'Inter', 'Segoe UI', sans-serif;
 .go-pro-box { margin: 12px; padding: 12px; background: var(--body-bg); border-radius: 10px; border: 1px solid var(--border); }
 .go-pro-box .go-pro-label { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; }
 .auth-accent { color: #5EEAD4; }
-.sidebar-nav { padding: 10px 12px; flex: 1; }
+.sidebar-nav { padding: 10px 12px; flex: 1; overflow-y: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.sidebar-nav::-webkit-scrollbar { display: none; width: 0; height: 0; }
 .sidebar-nav .nav-item { margin-bottom: 4px; }
 .sidebar-nav .nav-link {
   display: flex; align-items: center; gap: 10px;
