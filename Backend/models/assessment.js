@@ -36,6 +36,12 @@ const assessmentSchema = new mongoose.Schema(
       enum: ASSESSMENT_STATUSES,
       default: "Drafted",
     },
+    durationMinutes: {
+      type: Number,
+      required: [true, "Assessment duration is required"],
+      min: [5, "Duration must be at least 5 minutes"],
+      max: [180, "Duration cannot exceed 180 minutes"],
+    },
     generatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

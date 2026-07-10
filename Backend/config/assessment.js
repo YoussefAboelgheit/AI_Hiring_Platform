@@ -4,3 +4,5 @@ export const ASSESSMENT_STATUSES = ["Drafted", "Locked"];
 export const DIFFICULTY_LEVELS = ["Auto", "Easy", "Medium", "Hard", "Mixed"];
 export const MIN_QUESTIONS = 1;
 export const MAX_QUESTIONS = 100;
+export const MIN_DURATION_MINUTES = 5;
+export const MAX_DURATION_MINUTES = 180;

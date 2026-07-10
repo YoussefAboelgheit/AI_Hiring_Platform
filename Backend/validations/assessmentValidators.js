@@ -1,5 +1,5 @@
 import { body, param } from "express-validator";
-import { DIFFICULTY_LEVELS, ASSESSMENT_TYPES, MIN_QUESTIONS, MAX_QUESTIONS } from "../config/assessment.js";
+import { DIFFICULTY_LEVELS, ASSESSMENT_TYPES, MIN_QUESTIONS, MAX_QUESTIONS, MIN_DURATION_MINUTES, MAX_DURATION_MINUTES } from "../config/assessment.js";
 
 export const jobIdParamValidator = [
   param("jobId")
@@ -27,6 +27,11 @@ export const generateAssessmentValidator = [
     .optional({ nullable: true })
     .isString().withMessage("Topics must be a string")
     .trim(),
+  body("durationMinutes")
+    .notEmpty().withMessage("durationMinutes is required")
+    .isInt({ min: MIN_DURATION_MINUTES, max: MAX_DURATION_MINUTES })
+    .withMessage(`durationMinutes must be between ${MIN_DURATION_MINUTES} and ${MAX_DURATION_MINUTES}`)
+    .toInt(),
 ];
 
 export const updateAssessmentSettingsValidator = [
@@ -47,6 +52,11 @@ export const updateAssessmentSettingsValidator = [
     .optional({ nullable: true })
     .isString().withMessage("Topics must be a string")
     .trim(),
+  body("durationMinutes")
+    .optional()
+    .isInt({ min: MIN_DURATION_MINUTES, max: MAX_DURATION_MINUTES })
+    .withMessage(`durationMinutes must be between ${MIN_DURATION_MINUTES} and ${MAX_DURATION_MINUTES}`)
+    .toInt(),
 ];
 
 export const addQuestionValidator = [
@@ -94,11 +104,12 @@ export const updateQuestionValidator = [
     .withMessage("Invalid difficulty level"),
 ];
 
-export const submitAnswerValidator = [
-  body("answers")
-    .isArray({ min: 1 }).withMessage("answers must be a non-empty array"),
-  body("answers.*.questionId")
-    .isMongoId().withMessage("Each answer must have a valid questionId"),
-  body("answers.*.selectedAnswer")
-    .notEmpty().withMessage("Each answer must have a selectedAnswer"),
+export const saveAnswerValidator = [
+  body("questionId")
+    .notEmpty().withMessage("questionId is required")
+    .isMongoId().withMessage("Invalid questionId format"),
+  body("selectedAnswer")
+    .notEmpty().withMessage("selectedAnswer is required"),
 ];
+
+export const submitAnswerValidator = [];

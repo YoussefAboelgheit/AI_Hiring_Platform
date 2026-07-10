@@ -2,7 +2,7 @@ import * as assessmentService from "../services/ai/assessment/assessment.service
 
 export const updateAssessmentSettings = async (req, res, next) => {
   try {
-    const { type, questionCount, difficulty, topics } = req.body;
+    const { type, questionCount, difficulty, topics, durationMinutes } = req.body;
     const assessment = await assessmentService.updateAssessmentSettings({
       jobId: req.params.jobId,
       userId: req.user._id,
@@ -10,6 +10,7 @@ export const updateAssessmentSettings = async (req, res, next) => {
       questionCount,
       difficulty,
       topics,
+      durationMinutes,
     });
     return res.status(200).json({ message: "Assessment settings updated successfully.", assessment });
   } catch (err) {
@@ -32,12 +33,13 @@ export const addManualQuestion = async (req, res, next) => {
 
 export const generateAssessment = async (req, res, next) => {
   try {
-    const { questionCount, difficulty, topics } = req.body;
+    const { questionCount, difficulty, topics, durationMinutes } = req.body;
     const assessment = await assessmentService.generateAssessment({
       jobId: req.params.jobId,
       questionCount,
       difficulty,
       topics,
+      durationMinutes,
       userId: req.user._id,
     });
     return res.status(201).json({ message: "Assessment generated successfully.", assessment });
@@ -114,12 +116,26 @@ export const startAssessment = async (req, res, next) => {
   }
 };
 
+export const saveAnswer = async (req, res, next) => {
+  try {
+    const { questionId, selectedAnswer } = req.body;
+    const answer = await assessmentService.saveAnswer(
+      req.params.jobId,
+      req.user._id,
+      questionId,
+      selectedAnswer,
+    );
+    return res.status(200).json({ message: "Answer saved.", answer });
+  } catch (err) {
+    next(err);
+  }
+};
+
 export const submitAssessment = async (req, res, next) => {
   try {
     const result = await assessmentService.submitAssessment(
       req.params.jobId,
       req.user._id,
-      req.body.answers,
     );
     return res.status(200).json({ message: "Assessment submitted successfully.", result });
   } catch (err) {
