@@ -31,7 +31,7 @@ const autoLockAssessment = async (assessment) => {
   return assessment;
 };
 
-export const updateAssessmentSettings = async ({ jobId, userId, type, questionCount, difficulty, topics }) => {
+export const updateAssessmentSettings = async ({ jobId, userId, type, questionCount, difficulty, topics, durationMinutes }) => {
   const job = await getEditableJob(jobId);
 
   let assessment = await Assessment.findOne({ job: jobId });
@@ -44,6 +44,7 @@ export const updateAssessmentSettings = async ({ jobId, userId, type, questionCo
       repositorySize: questionCount ? questionCount * REPOSITORY_MULTIPLIER : 0,
       difficulty: difficulty || "Auto",
       topics: topics || "",
+      durationMinutes,
       status: "Drafted",
       generatedBy: userId,
     });
@@ -51,6 +52,9 @@ export const updateAssessmentSettings = async ({ jobId, userId, type, questionCo
     assessment.type = type ?? assessment.type;
     assessment.difficulty = difficulty ?? assessment.difficulty;
     assessment.topics = topics ?? assessment.topics;
+    if (durationMinutes !== undefined) {
+      assessment.durationMinutes = durationMinutes;
+    }
 
     if (questionCount !== undefined) {
       assessment.questionCount = questionCount;
@@ -68,6 +72,7 @@ export const updateAssessmentSettings = async ({ jobId, userId, type, questionCo
         questionCount: assessment.questionCount,
         difficulty: assessment.difficulty === "Auto" ? undefined : assessment.difficulty,
         topics: assessment.topics || undefined,
+        durationMinutes: assessment.durationMinutes,
         userId,
       });
       return result;
@@ -84,16 +89,7 @@ export const addManualQuestion = async (jobId, userId, questionData) => {
   let assessment = await Assessment.findOne({ job: jobId });
 
   if (!assessment) {
-    assessment = await Assessment.create({
-      job: jobId,
-      type: "MANUAL",
-      questionCount: 0,
-      repositorySize: 0,
-      difficulty: "Auto",
-      topics: "",
-      status: "Drafted",
-      generatedBy: userId,
-    });
+    throw new HTTPError(400, "Please set assessment settings (including duration) before adding questions");
   }
 
   if (assessment.status !== "Drafted") {
@@ -120,7 +116,7 @@ export const addManualQuestion = async (jobId, userId, questionData) => {
   return question;
 };
 
-export const generateAssessment = async ({ jobId, questionCount, difficulty, topics, userId }) => {
+export const generateAssessment = async ({ jobId, questionCount, difficulty, topics, durationMinutes, userId }) => {
   const job = await getEditableJob(jobId);
 
   const repositorySize = questionCount * REPOSITORY_MULTIPLIER;
@@ -151,6 +147,7 @@ export const generateAssessment = async ({ jobId, questionCount, difficulty, top
     assessment.repositorySize = repositorySize;
     assessment.difficulty = difficulty || "Auto";
     assessment.topics = topics || "";
+    assessment.durationMinutes = durationMinutes;
     assessment.status = "Drafted";
     assessment.generatedBy = userId;
     await assessment.save();
@@ -162,6 +159,7 @@ export const generateAssessment = async ({ jobId, questionCount, difficulty, top
       repositorySize,
       difficulty: difficulty || "Auto",
       topics: topics || "",
+      durationMinutes,
       status: "Drafted",
       generatedBy: userId,
     });
@@ -281,6 +279,7 @@ export const regenerateRepository = async (jobId, userId) => {
     questionCount: assessment.questionCount,
     difficulty: assessment.difficulty === "Auto" ? undefined : assessment.difficulty,
     topics: assessment.topics || undefined,
+    durationMinutes: assessment.durationMinutes,
     userId,
   });
 };
@@ -297,16 +296,43 @@ export const startAssessment = async (jobId, userId) => {
     if (candidateAssessment.status === "completed") {
       throw new HTTPError(400, "You have already completed this assessment");
     }
+
+    // Check if the pending attempt has expired
+    if (candidateAssessment.expiresAt && new Date() > candidateAssessment.expiresAt) {
+      candidateAssessment.score = 0;
+      candidateAssessment.submittedAt = new Date();
+      candidateAssessment.status = "completed";
+      await candidateAssessment.save();
+
+      await JobApplication.updateOne(
+        { candidate: userId, job: jobId },
+        { assessmentScore: 0, assessmentStatus: "completed" },
+      );
+
+      throw new HTTPError(410, "Time is up. Assessment has been automatically submitted.");
+    }
+
     const questions = await Question.find({
       _id: { $in: candidateAssessment.selectedQuestionIds },
     }).select("-correctAnswer -__v");
 
-    return { candidateAssessment, questions };
+    return {
+      candidateAssessment,
+      questions,
+      timer: {
+        startedAt: candidateAssessment.startedAt,
+        expiresAt: candidateAssessment.expiresAt,
+        durationMinutes: assessment.durationMinutes,
+      },
+    };
   }
 
   const allQuestions = await Question.find({ assessment: assessment._id });
   const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
   const selected = shuffled.slice(0, assessment.questionCount);
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + assessment.durationMinutes * 60 * 1000);
 
   candidateAssessment = await CandidateAssessment.create({
     candidate: userId,
@@ -314,6 +340,8 @@ export const startAssessment = async (jobId, userId) => {
     assessment: assessment._id,
     selectedQuestionIds: selected.map((q) => q._id),
     status: "pending",
+    startedAt: now,
+    expiresAt: expiresAt,
   });
 
   const questions = selected.map((q) => ({
@@ -325,10 +353,18 @@ export const startAssessment = async (jobId, userId) => {
     difficulty: q.difficulty,
   }));
 
-  return { candidateAssessment, questions };
+  return {
+    candidateAssessment,
+    questions,
+    timer: {
+      startedAt: now,
+      expiresAt: expiresAt,
+      durationMinutes: assessment.durationMinutes,
+    },
+  };
 };
 
-export const submitAssessment = async (jobId, userId, answers) => {
+export const saveAnswer = async (jobId, userId, questionId, selectedAnswer) => {
   const candidateAssessment = await CandidateAssessment.findOne({
     candidate: userId,
     job: jobId,
@@ -337,55 +373,101 @@ export const submitAssessment = async (jobId, userId, answers) => {
 
   if (!candidateAssessment) throw new HTTPError(404, "No pending assessment found");
 
-  const questionIds = candidateAssessment.selectedQuestionIds.map((id) => id.toString());
+  if (candidateAssessment.expiresAt && new Date() > candidateAssessment.expiresAt) {
+    candidateAssessment.score = 0;
+    candidateAssessment.submittedAt = new Date();
+    candidateAssessment.status = "completed";
+    await candidateAssessment.save();
 
-  const questions = await Question.find({
-    _id: { $in: candidateAssessment.selectedQuestionIds },
+    await JobApplication.updateOne(
+      { candidate: userId, job: jobId },
+      { assessmentScore: 0, assessmentStatus: "completed" },
+    );
+
+    throw new HTTPError(410, "Time is up. Assessment has been automatically submitted.");
+  }
+
+  const questionIds = candidateAssessment.selectedQuestionIds.map((id) => id.toString());
+  if (!questionIds.includes(questionId)) {
+    throw new HTTPError(400, `Question ${questionId} is not part of this assessment`);
+  }
+
+  const existing = await CandidateAnswer.findOne({
+    candidateAssessment: candidateAssessment._id,
+    question: questionId,
   });
 
-  const questionMap = {};
-  for (const q of questions) {
-    questionMap[q._id.toString()] = q;
+  if (existing) {
+    existing.selectedAnswer = selectedAnswer;
+    await existing.save();
+    return existing;
   }
+
+  const answer = await CandidateAnswer.create({
+    candidateAssessment: candidateAssessment._id,
+    question: questionId,
+    selectedAnswer,
+    isCorrect: false,
+  });
+
+  return answer;
+};
+
+export const submitAssessment = async (jobId, userId) => {
+  const candidateAssessment = await CandidateAssessment.findOne({
+    candidate: userId,
+    job: jobId,
+    status: "pending",
+  });
+
+  if (!candidateAssessment) throw new HTTPError(404, "No pending assessment found");
+
+  const isExpired = candidateAssessment.expiresAt && new Date() > candidateAssessment.expiresAt;
+
+  const questionIds = candidateAssessment.selectedQuestionIds.map((id) => id.toString());
 
   let score = 0;
-  const answerDocs = [];
+  let total = questionIds.length;
 
-  for (const answer of answers) {
-    if (!questionIds.includes(answer.questionId)) {
-      throw new HTTPError(400, `Question ${answer.questionId} is not part of this assessment`);
-    }
-
-    const question = questionMap[answer.questionId];
-    if (!question) {
-      throw new HTTPError(400, `Question ${answer.questionId} not found`);
-    }
-
-    const isCorrect = question.correctAnswer === answer.selectedAnswer;
-    if (isCorrect) score++;
-
-    answerDocs.push({
+  if (!isExpired) {
+    const savedAnswers = await CandidateAnswer.find({
       candidateAssessment: candidateAssessment._id,
-      question: question._id,
-      selectedAnswer: answer.selectedAnswer,
-      isCorrect,
     });
-  }
 
-  await CandidateAnswer.insertMany(answerDocs);
+    const questions = await Question.find({
+      _id: { $in: candidateAssessment.selectedQuestionIds },
+    });
+
+    const questionMap = {};
+    for (const q of questions) {
+      questionMap[q._id.toString()] = q;
+    }
+
+    for (const savedAnswer of savedAnswers) {
+      const question = questionMap[savedAnswer.question.toString()];
+      if (question) {
+        savedAnswer.isCorrect = question.correctAnswer === savedAnswer.selectedAnswer;
+        if (savedAnswer.isCorrect) score++;
+        await savedAnswer.save();
+      }
+    }
+  }
 
   candidateAssessment.score = score;
   candidateAssessment.submittedAt = new Date();
   candidateAssessment.status = "completed";
   await candidateAssessment.save();
 
-  const total = questionIds.length;
-  const percentage = Math.round((score / total) * 100);
+  const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
 
   await JobApplication.updateOne(
     { candidate: userId, job: jobId },
     { assessmentScore: percentage, assessmentStatus: "completed" },
   );
 
-  return { score, total, percentage };
+  if (isExpired) {
+    return { score, total, percentage, expired: true, message: "Time is up. Assessment has been automatically submitted." };
+  }
+
+  return { score, total, percentage, expired: false };
 };

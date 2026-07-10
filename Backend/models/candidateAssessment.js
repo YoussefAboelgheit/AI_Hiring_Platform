@@ -25,6 +25,14 @@ const candidateAssessmentSchema = new mongoose.Schema(
       type: Number,
       default: null,
     },
+    startedAt: {
+      type: Date,
+      default: null,
+    },
+    expiresAt: {
+      type: Date,
+      default: null,
+    },
     submittedAt: {
       type: Date,
       default: null,

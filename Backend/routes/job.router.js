@@ -33,6 +33,7 @@ import {
   submitAssessment,
   updateAssessmentSettings,
   addManualQuestion,
+  saveAnswer,
 } from "../controllers/assessment.controller.js";
 import authMW from "../middlewares/authMW.js";
 import { authorize } from "../middlewares/authorizeMW.js";
@@ -60,9 +61,14 @@ import {
   submitAnswerValidator,
   updateAssessmentSettingsValidator,
   addQuestionValidator,
+  saveAnswerValidator,
 } from "../validations/assessmentValidators.js";
 import validateResults from "../validations/validateResults.js";
 import Assessment from "../models/assessment.js";
+import CandidateAssessment from "../models/candidateAssessment.js";
+import CandidateAnswer from "../models/candidateAnswer.js";
+import Question from "../models/question.js";
+import JobApplication from "../models/jobApplication.js";
 import Job from "../models/job.js";
 
 const router = Router();
@@ -279,11 +285,20 @@ router.post(
 );
 
 router.post(
+  "/:jobId/assessment/answers",
+  authMW,
+  authorize("candidate"),
+  jobIdParamValidator,
+  saveAnswerValidator,
+  validateResults,
+  saveAnswer,
+);
+
+router.post(
   "/:jobId/assessment/submit",
   authMW,
   authorize("candidate"),
   jobIdParamValidator,
-  submitAnswerValidator,
   validateResults,
   submitAssessment,
 );
@@ -337,5 +352,58 @@ const lockExpiredAssessments = async () => {
 };
 
 setInterval(lockExpiredAssessments, 60 * 1000);
+
+// ── Background Worker: auto-submit expired candidate assessments ──
+
+const expirePendingAssessments = async () => {
+  try {
+    const expiredCandidates = await CandidateAssessment.find({
+      status: "pending",
+      expiresAt: { $lte: new Date() },
+    }).populate({ path: "assessment", select: "job" });
+
+    for (const ca of expiredCandidates) {
+      const savedAnswers = await CandidateAnswer.find({
+        candidateAssessment: ca._id,
+      });
+
+      const questions = await Question.find({
+        _id: { $in: ca.selectedQuestionIds },
+      });
+
+      const questionMap = {};
+      for (const q of questions) {
+        questionMap[q._id.toString()] = q;
+      }
+
+      let score = 0;
+      for (const savedAnswer of savedAnswers) {
+        const question = questionMap[savedAnswer.question.toString()];
+        if (question) {
+          savedAnswer.isCorrect = question.correctAnswer === savedAnswer.selectedAnswer;
+          if (savedAnswer.isCorrect) score++;
+          await savedAnswer.save();
+        }
+      }
+
+      const total = ca.selectedQuestionIds.length;
+      const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
+
+      ca.score = score;
+      ca.submittedAt = new Date();
+      ca.status = "completed";
+      await ca.save();
+
+      await JobApplication.updateOne(
+        { candidate: ca.candidate, job: ca.job },
+        { assessmentScore: percentage, assessmentStatus: "completed" },
+      );
+    }
+  } catch (err) {
+    console.error("Assessment expiry worker failed:", err?.message || err);
+  }
+};
+
+setInterval(expirePendingAssessments, 30 * 1000);
 
 export default router;
