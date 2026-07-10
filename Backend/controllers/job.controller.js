@@ -19,6 +19,7 @@ import {
   closeExpiredJobs,
 } from "../services/jobEnrichment.service.js";
 import { generateAssessment } from "../services/ai/assessment/assessment.service.js";
+import { generateCandidateFeedback } from "../services/candidateFeedback.service.js";
 
 const recruiterPopulate = {
   path: "recruiter",
@@ -797,6 +798,19 @@ export const analyzeJobApplicationForHr = async (req, res, next) => {
       job: sanitizeJob(job),
       application: applicationObject,
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getCandidateFeedbackReport = async (req, res, next) => {
+  try {
+    const feedback = await generateCandidateFeedback({
+      applicationId: req.params.applicationId,
+      candidateId: req.user._id,
+    });
+
+    return res.status(200).json({ feedback });
   } catch (err) {
     next(err);
   }

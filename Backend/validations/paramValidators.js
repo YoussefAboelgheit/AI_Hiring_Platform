@@ -49,3 +49,9 @@ export const commentIdParamValidator = [
     .notEmpty().withMessage("commentId param is required")
     .isMongoId().withMessage("Invalid commentId format"),
 ];
+
+export const applicationIdParamValidator = [
+  param("applicationId")
+    .notEmpty().withMessage("applicationId param is required")
+    .isMongoId().withMessage("Invalid applicationId format"),
+];
