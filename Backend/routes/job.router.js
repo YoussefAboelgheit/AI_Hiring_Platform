@@ -18,6 +18,7 @@ import {
   getMyAppliedJobs,
   getJobEnrichment,
   retryMyApplicationMatch,
+  getCandidateFeedbackReport,
   updateJob,
   adminUpdateJobStatus,
   adminDeleteJob,
@@ -44,6 +45,7 @@ import { uploadCV } from "../middlewares/uploadMW.js";
 import {
   idParamValidator,
   jobApplicationParamsValidator,
+  applicationIdParamValidator,
 } from "../validations/paramValidators.js";
 import {
   updateApplicationStatusValidator, //hr
@@ -152,6 +154,14 @@ router.post(
   idParamValidator,
   validateResults,
   retryMyApplicationMatch
+);
+router.get(
+  "/applications/:applicationId/feedback",
+  authMW,
+  authorize("candidate"),
+  applicationIdParamValidator,
+  validateResults,
+  getCandidateFeedbackReport
 );
 router.get(
   "/:jobId/applications/:applicationId/analysis",

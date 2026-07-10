@@ -79,6 +79,32 @@ const jobApplicationSchema = new mongoose.Schema(
         default: null,
       },
     },
+    candidateFeedback: {
+      strengths: {
+        type: [String],
+        default: [],
+      },
+      weaknesses: {
+        type: [String],
+        default: [],
+      },
+      summary: {
+        type: String,
+        default: "",
+      },
+      howToImprove: {
+        type: String,
+        default: "",
+      },
+      basedOnAssessment: {
+        type: Boolean,
+        default: false,
+      },
+      generatedAt: {
+        type: Date,
+        default: null,
+      },
+    },
     status: {
       type: String,
       enum: {
