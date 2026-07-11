@@ -68,10 +68,10 @@ import {
 import validateResults from "../validations/validateResults.js";
 import Assessment from "../models/assessment.js";
 import CandidateAssessment from "../models/candidateAssessment.js";
-import CandidateAnswer from "../models/candidateAnswer.js";
-import Question from "../models/question.js";
 import JobApplication from "../models/jobApplication.js";
 import Job from "../models/job.js";
+import { gradeAssessment } from "../services/ai/assessment/assessment.service.js";
+
 
 const router = Router();
 
@@ -373,35 +373,13 @@ const expirePendingAssessments = async () => {
     }).populate({ path: "assessment", select: "job" });
 
     for (const ca of expiredCandidates) {
-      const savedAnswers = await CandidateAnswer.find({
-        candidateAssessment: ca._id,
-      });
-
-      const questions = await Question.find({
-        _id: { $in: ca.selectedQuestionIds },
-      });
-
-      const questionMap = {};
-      for (const q of questions) {
-        questionMap[q._id.toString()] = q;
-      }
-
-      let score = 0;
-      for (const savedAnswer of savedAnswers) {
-        const question = questionMap[savedAnswer.question.toString()];
-        if (question) {
-          savedAnswer.isCorrect = question.correctAnswer === savedAnswer.selectedAnswer;
-          if (savedAnswer.isCorrect) score++;
-          await savedAnswer.save();
-        }
-      }
-
-      const total = ca.selectedQuestionIds.length;
+      const { score, total } = await gradeAssessment(ca);
       const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
 
       ca.score = score;
       ca.submittedAt = new Date();
       ca.status = "completed";
+      ca.completionReason = "expired";
       await ca.save();
 
       await JobApplication.updateOne(

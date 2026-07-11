@@ -15,7 +15,10 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const withTimeout = async (promise, timeoutMs, message) => {
   let timeoutId;
   const timeoutPromise = new Promise((_, reject) => {
-    timeoutId = setTimeout(() => reject(new HTTPError(504, message)), timeoutMs);
+    timeoutId = setTimeout(
+      () => reject(new HTTPError(504, message)),
+      timeoutMs,
+    );
   });
 
   try {
@@ -79,7 +82,8 @@ export const callGemini = async (prompt, options = {}) => {
     throw new HTTPError(500, "Gemini API key is not configured.");
   }
 
-  const model = options.model || process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const model =
+    options.model || process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
   const maxAttempts = toPositiveInteger(
     process.env.GEMINI_MAX_ATTEMPTS || process.env.GEMINI_MAX_RETRIES,
     DEFAULT_MAX_ATTEMPTS,
