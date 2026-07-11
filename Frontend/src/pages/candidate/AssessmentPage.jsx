@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import * as assessmentService from "../../services/assessmentService";
 import LoadingState from "../../components/common/LoadingState";
@@ -17,6 +17,7 @@ export default function AssessmentPage() {
   const [result, setResult] = useState(null); // { score, total, percentage } after submit
 
   const [answers, setAnswers] = useState({}); // { [questionId]: selectedAnswer }
+  const savedAnswerIds = useRef(new Set()); // track which answers have been saved to DB
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -30,6 +31,8 @@ export default function AssessmentPage() {
         if (cancelled) return;
         setSession(data.candidateAssessment);
         setQuestions(data.questions || []);
+        setAnswers(data.savedAnswers || {});
+        savedAnswerIds.current = new Set(Object.keys(data.savedAnswers || {}));
       } catch (err) {
         if (cancelled) return;
         const status = err?.response?.status;
@@ -46,6 +49,27 @@ export default function AssessmentPage() {
     return () => { cancelled = true; };
   }, [jobId]);
 
+  // Debounced auto-save: save unsaved answers 2s after last selection
+  useEffect(() => {
+    const unsaved = Object.keys(answers).filter(
+      (id) => !savedAnswerIds.current.has(id),
+    );
+    if (unsaved.length === 0) return;
+
+    const timer = setTimeout(async () => {
+      for (const questionId of unsaved) {
+        try {
+          await assessmentService.saveAnswer(jobId, questionId, answers[questionId]);
+          savedAnswerIds.current.add(questionId);
+        } catch (err) {
+          // silent fail — local state is preserved
+        }
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [answers, jobId]);
+
   const handleSelect = (questionId, optionText) => {
     setAnswers((prev) => ({ ...prev, [questionId]: optionText }));
   };
@@ -61,11 +85,16 @@ export default function AssessmentPage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const payload = Object.entries(answers).map(([questionId, selectedAnswer]) => ({
-        questionId,
-        selectedAnswer,
-      }));
-      const { data } = await assessmentService.submitCandidateAssessment(jobId, payload);
+      // Save any unsaved answers before submitting
+      const unsaved = Object.keys(answers).filter(
+        (id) => !savedAnswerIds.current.has(id),
+      );
+      for (const questionId of unsaved) {
+        await assessmentService.saveAnswer(jobId, questionId, answers[questionId]);
+        savedAnswerIds.current.add(questionId);
+      }
+
+      const { data } = await assessmentService.submitCandidateAssessment(jobId);
       setResult(data.result);
     } catch (err) {
       alert(err?.response?.data?.message || "Failed to submit assessment. Please try again.");
