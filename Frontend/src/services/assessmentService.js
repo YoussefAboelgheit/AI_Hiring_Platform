@@ -41,10 +41,15 @@ export const regenerateQuestion = (questionId) =>
 export const startAssessment = (jobId) =>
   apiClient.post(`/jobs/${jobId}/assessment/start`);
 
+// POST /api/jobs/{jobId}/assessment/answers
+// Save a single answer to the database (called by debounced auto-save)
+export const saveAnswer = (jobId, questionId, selectedAnswer) =>
+  apiClient.post(`/jobs/${jobId}/assessment/answers`, { questionId, selectedAnswer });
+
 // POST /api/jobs/{jobId}/assessment/submit
-// answers: [{ questionId, selectedAnswer }]
-export const submitCandidateAssessment = (jobId, answers) =>
-  apiClient.post(`/jobs/${jobId}/assessment/submit`, { answers });
+// No body needed — backend reads saved answers from DB
+export const submitCandidateAssessment = (jobId) =>
+  apiClient.post(`/jobs/${jobId}/assessment/submit`);
 
 // Candidate Mock Functions
 import { assessmentData } from "../mock/assessments";
