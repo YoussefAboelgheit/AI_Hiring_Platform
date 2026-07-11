@@ -111,7 +111,7 @@ ${text}
 //   }
 
 //   const model = genAI.getGenerativeModel({
-//     model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+//     model: process.env.GEMINI_MODEL || "gemini-flash-lite-latest",
 //   });
 
 //   try {
@@ -140,7 +140,6 @@ ${text}
 //     throw new HTTPError(500, `Gemini request failed: ${err.message}`);
 //   }
 // };
-
 
 export const callGemini = async (prompt) => {
   return await callGeminiJson(prompt);

@@ -37,6 +37,11 @@ const candidateAssessmentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    completionReason: {
+      type: String,
+      enum: ["submitted", "expired", null],
+      default: null,
+    },
     status: {
       type: String,
       enum: ["pending", "completed"],
