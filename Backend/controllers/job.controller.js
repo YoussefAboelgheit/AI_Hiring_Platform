@@ -736,8 +736,7 @@ export const applyToJob = async (req, res, next) => {
         // Date.now() + 3 * 24 * 60 * 60 * 1000,
 
         //@desc test for 2 minutes//------------TEST-------------------------
-        Date.now() + 2 * 60 * 1000,
-        //------------------------------------------------------------------
+        Date.now() + 7* 60 * 1000,
          
       );
       await application.save();
