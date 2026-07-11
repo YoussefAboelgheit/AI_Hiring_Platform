@@ -2,6 +2,7 @@ import SavedJob from "../models/savedJob.js";
 import { sendEmail } from "../util/sendEmail.js";
 import Category from "../models/category.js";
 import Job from "../models/job.js";
+import Assessment from "../models/assessment.js";
 import JobApplication, {
   JOB_DELETED_APPLICATION_STATUS,
 } from "../models/jobApplication.js";
@@ -721,6 +722,23 @@ export const applyToJob = async (req, res, next) => {
       matchingStatus: "pending",
     });
 
+    const lockedAssessment = await Assessment.findOne({
+      job: job._id,
+      status: "Locked",
+    });
+    if (lockedAssessment) {
+      application.assessmentStatus = "not_started";
+      application.assessmentDeadline = new Date(
+        // Date.now() + 3 * 24 * 60 * 60 * 1000,
+
+        //@desc test for 2 minutes//------------TEST-------------------------
+        Date.now() + 2 * 60 * 1000,
+        //------------------------------------------------------------------
+         
+      );
+      await application.save();
+    }
+
     await calculateApplicationMatch(application._id, { uploadedCV });
 
     const populatedApplication = await JobApplication.findById(application._id)
@@ -880,7 +898,7 @@ export const retryMyApplicationMatch = async (req, res, next) => {
 // status change (Admin)
 export const adminUpdateJobStatus = async (req, res, next) => {
 
-  console.log("adminUpdateJobStatus called ✅");
+  console.log("adminUpdateJobStatus called ");
   console.log("params:", req.params);
   console.log("body:", req.body);
   try {

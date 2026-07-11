@@ -57,6 +57,10 @@ const jobApplicationSchema = new mongoose.Schema(
       enum: ["pending", "completed", "not_started", null],
       default: null,
     },
+    assessmentDeadline: {
+      type: Date,
+      default: null,
+    },
     aiEvaluation: {
       strengths: {
         type: [String],
