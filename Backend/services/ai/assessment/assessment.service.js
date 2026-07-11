@@ -376,9 +376,18 @@ export const startAssessment = async (jobId, userId) => {
       _id: { $in: candidateAssessment.selectedQuestionIds },
     }).select("-correctAnswer -__v");
 
+    const savedAnswers = await CandidateAnswer.find({
+      candidateAssessment: candidateAssessment._id,
+    });
+    const savedAnswerMap = {};
+    for (const ans of savedAnswers) {
+      savedAnswerMap[ans.question.toString()] = ans.selectedAnswer;
+    }
+
     return {
       candidateAssessment,
       questions,
+      savedAnswers: savedAnswerMap,
       timer: {
         startedAt: candidateAssessment.startedAt,
         expiresAt: candidateAssessment.expiresAt,
@@ -423,6 +432,7 @@ export const startAssessment = async (jobId, userId) => {
   return {
     candidateAssessment,
     questions,
+    savedAnswers: {},
     timer: {
       startedAt: now,
       expiresAt: expiresAt,
