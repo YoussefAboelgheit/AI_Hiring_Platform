@@ -85,13 +85,18 @@ export default function ApplicationDetailPage() {
           </div>
           <h2 style={{ fontWeight: 800, marginBottom: 12 }}>Application Under Review</h2>
           <p style={{ color: "var(--text-muted)", maxWidth: 460, margin: "0 auto 28px", lineHeight: 1.7 }}>
-            Your application and assessment have been submitted successfully. Our recruitment team is currently
-            reviewing your profile. You will receive an update once a decision has been made.
+            {app.hasAssessment
+              ? app.assessmentCompleted
+                ? "Your application and assessment have been submitted successfully. Our recruitment team is currently reviewing your profile. You will receive an update once a decision has been made."
+                : "Your application has been submitted successfully. This job requires an assessment — please complete it so the recruitment team can review your profile."
+              : "Your application has been submitted successfully. Our recruitment team is currently reviewing your profile. You will receive an update once a decision has been made."}
           </p>
           <div style={{ display: "flex", gap: 12, justifyContent: "center" }}>
-            <button className="btn-primary-custom" onClick={() => navigate(`/candidate/jobs/${app.jobId}/assessment`)}>
-              Take Assessment
-            </button>
+            {app.hasAssessment && !app.assessmentCompleted && (
+              <button className="btn-primary-custom" onClick={() => navigate(`/candidate/jobs/${app.jobId}/assessment`)}>
+                Take Assessment
+              </button>
+            )}
             <button className="btn-outline-custom" onClick={() => navigate("/candidate/applications")}>
               View All Applications
             </button>
@@ -105,9 +110,18 @@ export default function ApplicationDetailPage() {
           <p style={{ color: "var(--text-muted)", maxWidth: 460, margin: "0 auto 28px", lineHeight: 1.7 }}>
             Thank you for your interest. The recruiter has decided not to move forward with your application at this time.
           </p>
-          <button type="button" className="btn-primary-custom" onClick={() => navigate("/candidate/jobs")}>
-            Browse More Jobs
-          </button>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="btn-primary-custom"
+              onClick={() => navigate(`/candidate/feedback?applicationId=${app.id}`)}
+            >
+              <i className="bi bi-stars me-2"></i>View AI Feedback
+            </button>
+            <button type="button" className="btn-outline-custom" onClick={() => navigate("/candidate/jobs")}>
+              Browse More Jobs
+            </button>
+          </div>
         </div>
       )}
 
@@ -232,9 +246,11 @@ export default function ApplicationDetailPage() {
             Congratulations! The recruiter has reviewed your profile and selected you for the next stage.
             You will receive further instructions shortly.
           </p>
-          <button className="btn-primary-custom" onClick={() => navigate(`/candidate/jobs/${app.jobId}/assessment`)}>
-            View Assessment
-          </button>
+          {app.hasAssessment && (
+            <button className="btn-primary-custom" onClick={() => navigate(`/candidate/jobs/${app.jobId}/assessment`)}>
+              {app.assessmentCompleted ? "View Assessment" : "Take Assessment"}
+            </button>
+          )}
         </div>
       )}
     </>

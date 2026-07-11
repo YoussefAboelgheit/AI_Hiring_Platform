@@ -15,10 +15,6 @@ const inputStyle = { width: "100%", border: "1.5px solid var(--border)", borderR
 const labelStyle = { fontSize: 13, fontWeight: 600, marginBottom: 6, display: "block" };
 const errorStyle = { color: "#991B1B", fontSize: 12, marginTop: 4, marginBottom: 8 };
 
-function todayMinDate() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function defaultDeadline() {
   const d = new Date();
   d.setDate(d.getDate() + 30);
@@ -80,21 +76,22 @@ export default function PostJobPage() {
 
   if (categoriesError) {
     return (
-      <>
+      <div className="container py-4">
         <BackButton fallbackTo="/recruiter/jobs" label="Back to Jobs" />
-        <div style={{ background: "#FEE2E2", color: "#991B1B", padding: "12px 16px", borderRadius: 10, fontSize: 14 }}>
+        <div style={{ background: "#FEE2E2", color: "#991B1B", padding: "12px 16px", borderRadius: 10, fontSize: 14, marginTop: 16 }}>
           {categoriesFetchError?.message || "Failed to load categories."}
         </div>
-      </>
+      </div>
     );
   }
 
   if (createJobMutation.isPending) return <LoadingState message="Publishing job..." />;
 
   return (
-    <>
+    <div className="container py-4">
       <BackButton fallbackTo="/recruiter/jobs" label="Back to Jobs" />
-      <div className="page-header-row">
+
+      <div className="page-header-row my-4">
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>Post New Job</h1>
           <p style={{ color: "var(--text-muted)", margin: 0, fontSize: 14 }}>Define parameters and requirements for your next vacancy.</p>
@@ -149,8 +146,10 @@ export default function PostJobPage() {
                 </div>
               )}
 
-              <div className="hcard" style={{ padding: 28, marginBottom: 20 }}>
-                <div style={{ marginBottom: 16 }}>
+              <div className="card" style={{ padding: 32, marginBottom: 20, borderRadius: 12, border: "1px solid var(--border)" }}>
+                
+                {/* Category */}
+                <div className="mb-4">
                   <label style={labelStyle} htmlFor="category">Category</label>
                   <Field as="select" id="category" name="category" style={inputStyle}>
                     <option value="">Select category</option>
@@ -161,48 +160,54 @@ export default function PostJobPage() {
                   <FieldError name="category" />
                 </div>
 
-                <div style={{ marginBottom: 16 }}>
+                {/* Job Title */}
+                <div className="mb-4">
                   <label style={labelStyle} htmlFor="title">Job Title</label>
                   <Field id="title" name="title" placeholder="e.g. Frontend Developer" style={inputStyle} />
                   <FieldError name="title" />
                 </div>
 
-                <div style={{ marginBottom: 16 }}>
+                {/* Description */}
+                <div className="mb-4">
                   <label style={labelStyle} htmlFor="description">Description</label>
                   <Field
                     as="textarea"
                     id="description"
                     name="description"
-                    rows={5}
+                    rows={4}
                     placeholder="Describe the role and responsibilities..."
                     style={{ ...inputStyle, resize: "vertical" }}
                   />
                   <FieldError name="description" />
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }} className="grid-stats-3">
-                  <div>
+                {/* Workplace + Job Type + Location */}
+                <div className="row g-3 mb-4">
+                  <div className="col-md-4">
                     <label style={labelStyle} htmlFor="workplace">Workplace</label>
                     <Field as="select" id="workplace" name="workplace" style={inputStyle}>
                       {WORKPLACES.map((o) => <option key={o} value={o}>{o}</option>)}
                     </Field>
                     <FieldError name="workplace" />
                   </div>
-                  <div>
+
+                  <div className="col-md-4">
                     <label style={labelStyle} htmlFor="jobType">Job Type</label>
                     <Field as="select" id="jobType" name="jobType" style={inputStyle}>
                       {JOB_TYPES.map((o) => <option key={o} value={o}>{o}</option>)}
                     </Field>
                     <FieldError name="jobType" />
                   </div>
-                  <div>
+
+                  <div className="col-md-4">
                     <label style={labelStyle} htmlFor="location">Location</label>
                     <Field id="location" name="location" placeholder="e.g. Cairo, Egypt" style={inputStyle} />
                     <FieldError name="location" />
                   </div>
                 </div>
 
-                <div style={{ marginBottom: 16 }}>
+                {/* Skills */}
+                <div className="mb-4">
                   <label style={labelStyle}>Skills</label>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "10px 12px", border: "1.5px solid var(--border)", borderRadius: 10, minHeight: 44 }}>
                     {values.skills.map((s) => (
@@ -224,7 +229,8 @@ export default function PostJobPage() {
                   <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>Press Enter or use commas to separate tags.</div>
                 </div>
 
-                <div style={{ marginBottom: 16 }}>
+                {/* Requirements */}
+                <div className="mb-4">
                   <label style={labelStyle} htmlFor="requirements">Requirements</label>
                   <Field
                     as="textarea"
@@ -237,16 +243,23 @@ export default function PostJobPage() {
                   <FieldError name="requirements" />
                 </div>
 
-                <div style={{ marginBottom: 16 }}>
-                  <label style={labelStyle} htmlFor="application-end">Application End</label>
-                  <Field id="application-end" name="applicationEnd" type="date" min={todayMinDate()} style={inputStyle} />
+                {/* Application End - هنا التعديل عشان نتحكم في حجمه وما يفرشش */}
+                <div className="mb-4">
+                  <label style={labelStyle} htmlFor="applicationEnd">Application End</label>
+                  <div className="row">
+                    <div className="col-md-4"> {/* خليناه ياخد مساحة تلت الشاشة بالظبط زي تقسيمات الفوق */}
+                      <Field
+                        type="date"
+                        id="applicationEnd"
+                        name="applicationEnd"
+                        style={inputStyle}
+                      />
+                    </div>
+                  </div>
                   <FieldError name="applicationEnd" />
                 </div>
 
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 20, textAlign: "right" }}>
-                  "Post Job" goes live automatically in 5 minutes (editable until then). "Save as Draft" keeps it hidden until you publish it yourself.
-                </div>
-                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 10, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 15, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
                   <button type="button" className="btn-outline-custom" onClick={() => submitJob(true)}>
                     Save as Draft
                   </button>
@@ -254,11 +267,12 @@ export default function PostJobPage() {
                     <i className="bi bi-send me-2" aria-hidden="true" />Post Job
                   </button>
                 </div>
+
               </div>
             </Form>
           );
         }}
       </Formik>
-    </>
+    </div>
   );
 }

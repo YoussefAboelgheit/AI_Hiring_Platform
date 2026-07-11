@@ -100,6 +100,7 @@ export default function MyApplicationsPage() {
                 <th>Workplace</th>
                 <th>Applied</th>
                 <th>Status</th>
+                <th>Assessment</th>
                 <th aria-label="Actions" />
               </tr>
             </thead>
@@ -115,8 +116,8 @@ export default function MyApplicationsPage() {
                       <img
                         src={app.logo}
                         alt=""
-                        style={{ width: 32, height: 32, borderRadius: 8, border: "1px solid var(--border)" }}
-                        onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&background=F3F5FB&color=1D2445&size=32`; }}
+                        style={{ width: 36, height: 36, borderRadius: 8, border: "1px solid var(--border)", objectFit: "cover", flexShrink: 0, background: "#fff" }}
+                        onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(app.company)}&background=F3F5FB&color=1D2445&size=36`; }}
                       />
                       <span style={{ fontWeight: 600 }}>{app.jobTitle}</span>
                     </div>
@@ -125,6 +126,33 @@ export default function MyApplicationsPage() {
                   <td style={{ color: "var(--text-muted)" }}>{app.jobWorkplace || "—"}</td>
                   <td style={{ color: "var(--text-muted)" }}>{app.appliedAt}</td>
                   <td><StatusBadge status={app.status} /></td>
+                  <td>
+                    {!app.hasAssessment ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#059669", fontSize: 12.5, fontWeight: 600 }}>
+                        <i className="bi bi-check-circle-fill" aria-hidden="true" />
+                        Not Required
+                      </span>
+                    ) : app.assessmentCompleted ? (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#059669", fontSize: 12.5, fontWeight: 600 }}>
+                        <i className="bi bi-check-circle-fill" aria-hidden="true" />
+                        Taken
+                      </span>
+                    ) : (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#92400E", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/candidate/jobs/${app.jobId}/assessment`);
+                        }}
+                        title="Click to take the assessment"
+                      >
+                        <i className="bi bi-exclamation-triangle-fill" aria-hidden="true" />
+                        Not Taken
+                      </span>
+                    )}
+                  </td>
                   <td><i className="bi bi-chevron-right text-muted" aria-hidden="true" /></td>
                 </tr>
               ))}

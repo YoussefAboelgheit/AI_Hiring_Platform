@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -24,6 +24,35 @@ function FieldError({ name }) {
     <ErrorMessage name={name}>
       {(msg) => <p style={errorStyle}>{msg}</p>}
     </ErrorMessage>
+  );
+}
+
+// Same 5-minute editing window shown on the Assessment page - a Drafted job can only
+// be edited within 5 minutes of creation, so we surface the same countdown here.
+function formatCountdown(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function EditWindowBanner({ timeLeftMs, isLocked }) {
+  if (isLocked) {
+    return (
+      <div style={{ background: "#FEE2E2", color: "#991B1B", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+        <i className="bi bi-lock-fill" aria-hidden="true" />
+        The editing window has expired - this job can no longer be modified.
+      </div>
+    );
+  }
+
+  if (timeLeftMs === null) return null;
+
+  return (
+    <div style={{ background: "#FEF3C7", color: "#92400E", padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+      <i className="bi bi-clock-history" aria-hidden="true" />
+      {formatCountdown(timeLeftMs)} left to edit this job before it locks automatically.
+    </div>
   );
 }
 
@@ -74,6 +103,26 @@ export default function EditJobPage() {
     },
   });
 
+  // Countdown timer - job is only editable within 5 minutes of creation (same rule as
+  // the Assessment page).
+  const [timeLeftMs, setTimeLeftMs] = useState(null);
+
+  useEffect(() => {
+    if (!job?.editableUntil) {
+      setTimeLeftMs(null);
+      return undefined;
+    }
+    const deadline = new Date(job.editableUntil).getTime();
+    const tick = () => setTimeLeftMs(Math.max(0, deadline - Date.now()));
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [job?.editableUntil]);
+
+  // Only Drafted jobs are subject to the 5-minute window; already-published jobs stay
+  // editable as before (no timer, no lock).
+  const isLocked = job?.status === "Drafted" && timeLeftMs !== null && timeLeftMs <= 0;
+
   if (categoriesLoading || jobLoading) return <LoadingState message="Loading job details..." />;
 
   if (jobError) {
@@ -122,6 +171,8 @@ export default function EditJobPage() {
           <p style={{ color: "var(--text-muted)", margin: 0, fontSize: 14 }}>Update the details of your job posting.</p>
         </div>
       </div>
+
+      <EditWindowBanner timeLeftMs={timeLeftMs} isLocked={isLocked} />
 
       <Formik
         initialValues={editInitialValues}
@@ -262,7 +313,7 @@ export default function EditJobPage() {
 
                 <div style={{ marginBottom: 16 }}>
                   <label style={labelStyle} htmlFor="application-end">Application End</label>
-                  <Field id="application-end" name="applicationEnd" type="date" min={todayMinDate()} style={inputStyle} />
+                  <Field id="application-end" name="applicationEnd" type="date" min={todayMinDate()} style={{ ...inputStyle, width: "auto", maxWidth: 220 }} />
                   <FieldError name="applicationEnd" />
                 </div>
 
@@ -271,6 +322,7 @@ export default function EditJobPage() {
                     <button
                       type="button"
                       className="btn-outline-custom"
+                      disabled={isLocked}
                       onClick={() => {
                         const deadline = values.applicationEnd ? new Date(`${values.applicationEnd}T23:59:59`) : null;
                         if (deadline && deadline < new Date()) {
@@ -283,7 +335,7 @@ export default function EditJobPage() {
                       <i className="bi bi-send me-2" aria-hidden="true" />Publish Now
                     </button>
                   )}
-                  <button type="submit" className="btn-primary-custom">
+                  <button type="submit" className="btn-primary-custom" disabled={isLocked}>
                     <i className="bi bi-check-lg me-2" aria-hidden="true" />Save Changes
                   </button>
                 </div>

@@ -4,6 +4,7 @@ import { getCandidateAIAnalysis } from "../../services/feedbackService";
 import CircleProgress from "../../components/common/CircleProgress";
 import LoadingState from "../../components/common/LoadingState";
 import BackButton from "../../components/common/BackButton";
+import { getErrorMessage } from "../../utils/errorMessages";
 
 export default function RecruiterFeedbackPage() {
   const { jobId, applicationId } = useParams();
@@ -23,7 +24,7 @@ export default function RecruiterFeedbackPage() {
     getCandidateAIAnalysis(jobId, applicationId)
       .then((res) => setData(res))
       .catch((err) => {
-        setError(err?.response?.data?.message || "Couldn't load the AI report for this candidate.");
+        setError(getErrorMessage(err, "Couldn't load the AI report for this candidate."));
       })
       .finally(() => setLoading(false));
   }, [jobId, applicationId]);

@@ -30,9 +30,28 @@ export default function CandidateDashboard() {
     staleTime: 60 * 1000,
   });
 
+  // Real pending-assessments count: only applications whose job is still Open, still
+  // has an assessment attached (hasAssessment, from the backend), and hasn't been
+  // completed yet. A deleted job (no jobId) or a closed job (status !== "Open") is
+  // automatically excluded, so the count drops on its own once a job is removed or closed.
+  // Applications that already got a final decision (Rejected/Accepted) are excluded too —
+  // once the recruiter has decided, there's no point asking the candidate to still take it.
+  const pendingCount = applications.filter(
+    (app) =>
+      app.jobId &&
+      app.jobStatus === "Open" &&
+      app.hasAssessment &&
+      !app.assessmentCompleted &&
+      app.status !== "rejected" &&
+      app.status !== "accepted"
+  ).length;
+
+  // Real feedback-reports count: an AI feedback report only exists once an application
+  // has been rejected (that's when "View AI Feedback" becomes available to the candidate),
+  // so this counts rejected applications instead of using the old static mock number.
+  const feedbackCount = applications.filter((app) => app.status === "rejected").length;
+
   const loading = statsLoading || appsLoading;
-  const pendingAssessments = stats.find((s) => s.label === "Pending Assessments");
-  const pendingCount = pendingAssessments ? parseInt(pendingAssessments.value, 10) || 0 : 0;
   const recentApps = applications.slice(0, 4);
   const activeApplications = applications.filter((app) => app.status !== "rejected").length;
 
@@ -70,10 +89,16 @@ export default function CandidateDashboard() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <div className="stat-label">{s.label}</div>
-                <div className="stat-value">{s.value}</div>
+                <div className="stat-value">
+                  {s.label === "Pending Assessments"
+                    ? String(pendingCount).padStart(2, "0")
+                    : s.label === "Feedback Reports"
+                    ? String(feedbackCount).padStart(2, "0")
+                    : s.value}
+                </div>
                 <div className="stat-change" style={{ color: s.warning ? "var(--danger)" : "var(--success)" }}>
                   <i className={`bi ${s.warning ? "bi-clock" : "bi-arrow-up"} me-1`} aria-hidden="true" />
-                  {s.change}
+                  {s.label === "Feedback Reports" ? "From rejected applications" : s.change}
                 </div>
               </div>
               <div className="stat-icon" style={{ background: s.iconBg }}>
@@ -187,9 +212,9 @@ export default function CandidateDashboard() {
                 type="button"
                 className="btn-outline-custom"
                 style={{ marginTop: 16, width: "100%" }}
-                onClick={() => navigate("/candidate/assessments")}
+                onClick={() => navigate("/candidate/applications")}
               >
-                Browse Open Tests
+                View Assessments
               </button>
             </div>
           ) : (
@@ -210,9 +235,9 @@ export default function CandidateDashboard() {
                 type="button"
                 className="btn-primary-custom"
                 style={{ marginTop: 16, width: "100%" }}
-                onClick={() => navigate("/candidate/assessments")}
+                onClick={() => navigate("/candidate/applications")}
               >
-                Start Assessment
+                View Assessments
               </button>
             </div>
           )}

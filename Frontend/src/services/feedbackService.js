@@ -1,13 +1,14 @@
 import apiClient from "./apiClient";
-import { feedbackReport, recruiterFeedbackReport } from "../mock/feedback";
+import { recruiterFeedbackReport } from "../mock/feedback";
 import { simulateDelay } from "../mock/utils";
 
 export async function getCandidateFeedbackReport(applicationId) {
-  await simulateDelay();
-  // Future: const { data } = await apiClient.get(`/feedback/${applicationId}`);
-  void applicationId;
-  void apiClient;
-  return feedbackReport;
+  try {
+    const { data } = await apiClient.get(`/jobs/applications/${applicationId}/feedback`);
+    return data.feedback;
+  } catch {
+    return null;
+  }
 }
 
 export async function getRecruiterFeedbackReport(candidateId) {

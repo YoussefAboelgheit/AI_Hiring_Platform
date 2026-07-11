@@ -118,6 +118,13 @@ export async function openJob(id) {
 export async function closeJob(id) {
   return updateJob(id, { status: "Closed" });
 }
+// Admin-only: closes any job regardless of owner, via the dedicated admin endpoint.
+export async function adminCloseJob(id) {
+  const adminToken = getAdminAccessToken();
+  const headers = adminToken ? { Authorization: `Bearer ${adminToken}` } : {};
+  const { data } = await apiClient.patch(`/jobs/admin/${id}/status`, { status: "Closed" }, { headers });
+  return data.job;
+}
 export async function deleteJob(id) {
   const adminToken = getAdminAccessToken();
   const headers = adminToken ? { Authorization: `Bearer ${adminToken}` } : {};

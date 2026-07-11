@@ -3,6 +3,7 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
 import { Modal } from "react-bootstrap";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "../../utils/errorMessages";
 import {
   getCategories,
   createCategory,
@@ -63,7 +64,7 @@ export default function CategoryManagementPage() {
       resetForm();
       loadCategories();
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || "Failed to create category");
+      toast.error(getErrorMessage(err, "Failed to create category"));
     } finally {
       setSubmitting(false);
     }
@@ -80,7 +81,7 @@ export default function CategoryManagementPage() {
       setActiveCategory(null);
       loadCategories();
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || "Failed to update category");
+      toast.error(getErrorMessage(err, "Failed to update category"));
     } finally {
       setSubmitting(false);
     }
@@ -95,7 +96,7 @@ export default function CategoryManagementPage() {
       setActiveCategory(null);
       loadCategories();
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || "Failed to remove category");
+      toast.error(getErrorMessage(err, "Failed to remove category"));
     } finally {
       setSubmitting(false);
     }
@@ -148,7 +149,6 @@ export default function CategoryManagementPage() {
           <table className="htable">
             <thead>
               <tr>
-                <th style={{ width: "300px" }}>Category ID</th>
                 <th>Category Name</th>
                 <th>Date Created</th>
                 <th style={{ width: "120px", textAlign: "right" }}>Actions</th>
@@ -157,7 +157,7 @@ export default function CategoryManagementPage() {
             <tbody>
               {filteredCategories.length === 0 ? (
                 <tr>
-                  <td colSpan="4" style={{ textAlign: "center", padding: "32px 0", color: "var(--text-muted)" }}>
+                  <td colSpan="3" style={{ textAlign: "center", padding: "32px 0", color: "var(--text-muted)" }}>
                     <i className="bi bi-tag" style={{ fontSize: 28, display: "block", marginBottom: 8 }} aria-hidden="true" />
                     No categories found.
                   </td>
@@ -165,9 +165,6 @@ export default function CategoryManagementPage() {
               ) : (
                 filteredCategories.map((cat) => (
                   <tr key={cat._id}>
-                    <td style={{ fontFamily: "monospace", fontSize: 12, color: "var(--text-muted)" }}>
-                      {cat._id}
-                    </td>
                     <td>
                       <span className="badge-status badge-shortlisted" style={{ fontSize: 13, padding: "5px 12px", borderRadius: 6 }}>
                         {cat.name}

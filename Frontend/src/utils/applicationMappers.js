@@ -45,12 +45,19 @@ export function mapApplicationForList(application) {
     jobWorkplace: job.workplace || "",
     jobType: job.jobType || "",
     jobLocation: job.location || "",
+    // "Open" = still live. Missing/other values mean the job was closed, or the
+    // application's job reference is gone entirely (job deleted) — job will be {} in that case.
+    jobStatus: job.status || null,
     status: mapStatus(application.status),
     statusLabel: statusLabel(application.status),
     appliedAt: formatAppliedAt(application.createdAt),
-    matchScore: null,
+    matchScore: typeof application.matchScore === "number" ? Math.round(application.matchScore) : null,
     finalScore: null,
     rank: null,
+    // Backend now computes both of these directly per-application, so no extra
+    // per-job /assessment lookup is needed on the frontend anymore.
+    hasAssessment: Boolean(application.hasAssessment),
+    assessmentCompleted: Boolean(application.assessmentCompleted),
   };
 }
 

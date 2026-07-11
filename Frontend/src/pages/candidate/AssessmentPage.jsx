@@ -1,9 +1,15 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import * as assessmentService from "../../services/assessmentService";
 import LoadingState from "../../components/common/LoadingState";
 import EmptyState from "../../components/common/EmptyState";
-import BackButton from "../../components/common/BackButton";
+
+function formatTimer(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 export default function AssessmentPage() {
   const navigate = useNavigate();
@@ -16,62 +22,151 @@ export default function AssessmentPage() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null); // { score, total, percentage } after submit
 
+  const [submitError, setSubmitError] = useState(null);
+  const [saveError, setSaveError] = useState(null);
+
   const [answers, setAnswers] = useState({}); // { [questionId]: selectedAnswer }
-  const savedAnswerIds = useRef(new Set()); // track which answers have been saved to DB
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  useEffect(() => {
-    let cancelled = false;
+  // Tracks the in-flight /assessment/answers call so submit (and reload/expiry)
+  // can wait for the last-picked answer to finish saving.
+  const pendingSaveRef = useRef(Promise.resolve());
 
-    async function load() {
+  // Timer — comes back from /assessment/start as { startedAt, expiresAt, durationMinutes }.
+  // Using the server's expiresAt (not a local countdown started from durationMinutes) means
+  // the remaining time stays correct even if the candidate refreshes or resumes the session.
+  const [timer, setTimer] = useState(null);
+  const [timeLeftMs, setTimeLeftMs] = useState(null);
+  const autoSubmittedRef = useRef(false);
+
+  // React.StrictMode (dev only) intentionally mounts effects twice to catch
+  // impure effects. Without this guard, that fires POST /assessment/start
+  // twice almost simultaneously, which can race the "create session" logic on
+  // the very first visit to a job's assessment and surface a false
+  // "Something went wrong" — even though one of the two calls actually
+  // succeeded and created the session (which is why reloading afterwards
+  // always works: the second call just resumes the already-created session).
+  const startedForJobRef = useRef(null);
+  // Holds the jobId of the currently in-flight/most-recent load() call, used
+  // to detect (at resolve time) whether that call is still the relevant one.
+  const activeJobIdRef = useRef(null);
+
+  useEffect(() => {
+    // Guard against stale updates using the jobId this specific call was made
+    // for (checked against the *current* jobId at resolve time), instead of a
+    // boolean flag captured in the effect's closure. A closure-captured
+    // "cancelled" flag gets flipped to true by StrictMode's dev-only
+    // mount → cleanup → mount cycle before the request even resolves, which
+    // silently dropped the successful response and left the page stuck on
+    // "Loading..." forever (only a manual page refresh — a fresh component
+    // instance — would work, since it landed on the already-created session).
+    async function load(forJobId) {
       setLoading(true);
       setLoadError(null);
       try {
-        const { data } = await assessmentService.startAssessment(jobId);
-        if (cancelled) return;
+        const { data } = await assessmentService.startAssessment(forJobId);
+        if (activeJobIdRef.current !== forJobId) return; // jobId changed since this call started
+
+        const loadedQuestions = data.questions || [];
+        const savedAnswers = data.savedAnswers || {};
+
         setSession(data.candidateAssessment);
-        setQuestions(data.questions || []);
-        setAnswers(data.savedAnswers || {});
-        savedAnswerIds.current = new Set(Object.keys(data.savedAnswers || {}));
+        setQuestions(loadedQuestions);
+        setAnswers(savedAnswers);
+        setTimer(data.timer || null);
+
+        // Resume where the candidate left off: jump to the first question that
+        // doesn't have a saved answer yet, instead of always restarting at Q1.
+        const firstUnanswered = loadedQuestions.findIndex(
+          (q) => !savedAnswers[q._id]
+        );
+        setCurrentIndex(firstUnanswered === -1 ? Math.max(0, loadedQuestions.length - 1) : firstUnanswered);
       } catch (err) {
-        if (cancelled) return;
+        if (activeJobIdRef.current !== forJobId) return;
+        // This call didn't actually reach the server — let the effect run
+        // again (e.g. the jobId changing back).
+        startedForJobRef.current = null;
         const status = err?.response?.status;
         if (status === 400) setLoadError("already_completed");
         else if (status === 403) setLoadError("not_open");
         else if (status === 404) setLoadError("not_found");
         else setLoadError("error");
       } finally {
-        if (!cancelled) setLoading(false);
+        if (activeJobIdRef.current === forJobId) setLoading(false);
       }
     }
 
-    if (jobId) load();
-    return () => { cancelled = true; };
+    if (jobId && startedForJobRef.current !== jobId) {
+      startedForJobRef.current = jobId;
+      activeJobIdRef.current = jobId;
+      load(jobId);
+    }
   }, [jobId]);
 
-  // Debounced auto-save: save unsaved answers 2s after last selection
-  useEffect(() => {
-    const unsaved = Object.keys(answers).filter(
-      (id) => !savedAnswerIds.current.has(id),
-    );
-    if (unsaved.length === 0) return;
-
-    const timer = setTimeout(async () => {
-      for (const questionId of unsaved) {
-        try {
-          await assessmentService.saveAnswer(jobId, questionId, answers[questionId]);
-          savedAnswerIds.current.add(questionId);
-        } catch (err) {
-          // silent fail — local state is preserved
-        }
+  const submitAnswers = async (isAutoSubmit = false) => {
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      // Make sure the last answer the candidate picked has actually finished
+      // saving server-side before we ask the server to grade the assessment.
+      try {
+        await pendingSaveRef.current;
+      } catch {
+        // Already surfaced via setSaveError below; still attempt to submit
+        // with whatever was successfully saved so far.
       }
-    }, 2000);
+      const { data } = await assessmentService.submitCandidateAssessment(jobId);
+      setResult(data.result || { timedOut: isAutoSubmit });
+    } catch (err) {
+      if (isAutoSubmit) {
+        // Time's up — don't let the candidate keep answering, even if submission failed.
+        setResult({ timedOut: true, submitFailed: true });
+      } else {
+        setSubmitError(err?.response?.data?.message || "We couldn't submit your assessment. Please check your connection and try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-    return () => clearTimeout(timer);
-  }, [answers, jobId]);
+  // Countdown tick + auto-submit when time runs out.
+  useEffect(() => {
+    if (!timer?.expiresAt) {
+      setTimeLeftMs(null);
+      return undefined;
+    }
+    const deadline = new Date(timer.expiresAt).getTime();
+
+    const tick = () => {
+      const remaining = deadline - Date.now();
+      setTimeLeftMs(Math.max(0, remaining));
+      if (remaining <= 0 && !autoSubmittedRef.current) {
+        autoSubmittedRef.current = true;
+        submitAnswers(true);
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timer?.expiresAt]);
 
   const handleSelect = (questionId, optionText) => {
+    // Update the UI immediately so the selection feels instant.
     setAnswers((prev) => ({ ...prev, [questionId]: optionText }));
+    setSaveError(null);
+
+    // Persist this answer to the backend right away — NOT after a debounce delay.
+    // A delayed/debounced save can be lost if the candidate reloads or navigates
+    // away before the timer fires, which is exactly what was causing answers to
+    // silently disappear after a quick reload.
+    const savePromise = assessmentService
+      .saveAnswer(jobId, questionId, optionText)
+      .catch((err) => {
+        setSaveError("We couldn't save your last answer. Please check your connection.");
+        throw err;
+      });
+    pendingSaveRef.current = savePromise;
   };
 
   const handleNext = () => {
@@ -82,26 +177,7 @@ export default function AssessmentPage() {
     if (currentIndex > 0) setCurrentIndex((i) => i - 1);
   };
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    try {
-      // Save any unsaved answers before submitting
-      const unsaved = Object.keys(answers).filter(
-        (id) => !savedAnswerIds.current.has(id),
-      );
-      for (const questionId of unsaved) {
-        await assessmentService.saveAnswer(jobId, questionId, answers[questionId]);
-        savedAnswerIds.current.add(questionId);
-      }
-
-      const { data } = await assessmentService.submitCandidateAssessment(jobId);
-      setResult(data.result);
-    } catch (err) {
-      alert(err?.response?.data?.message || "Failed to submit assessment. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const handleSubmit = () => submitAnswers(false);
 
   if (loading) {
     return (
@@ -115,9 +191,13 @@ export default function AssessmentPage() {
     return (
       <div style={{ background: "var(--body-bg)", minHeight: "100vh" }}>
         <EmptyState
-          icon="bi-check-circle"
-          title="Assessment submitted successfully!"
-          description="Your answers have been recorded. You can track the status of your application from My Applications."
+          icon={result.timedOut ? "bi-alarm" : "bi-check-circle"}
+          title={result.timedOut ? "Time's up!" : "Assessment submitted successfully!"}
+          description={
+            result.timedOut
+              ? "Your time ran out, so we submitted your answers automatically. You can track the status of your application from My Applications."
+              : "Your answers have been recorded. You can track the status of your application from My Applications."
+          }
           action={
             <button className="btn-primary-custom" onClick={() => navigate("/candidate/applications")}>
               Back to My Applications
@@ -163,7 +243,6 @@ export default function AssessmentPage() {
   return (
     <div style={{ background: "var(--body-bg)", minHeight: "100vh" }}>
       <div className="assessment-topbar">
-        <BackButton fallbackTo="/candidate/dashboard" label="Exit" flush className="me-3" />
         <span className="d-none d-sm-inline" style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>
           Question <strong style={{ color: "var(--text-dark)" }}>{currentIndex + 1}</strong> of {totalQuestions}
         </span>
@@ -174,6 +253,20 @@ export default function AssessmentPage() {
             <div className="match-bar-fill" style={{ width: `${progress}%` }}></div>
           </div>
         </div>
+        {timeLeftMs !== null && (
+          <div
+            style={{
+              display: "flex", alignItems: "center", gap: 6,
+              background: timeLeftMs <= 60000 ? "#FEE2E2" : "#FEF3C7",
+              color: timeLeftMs <= 60000 ? "#991B1B" : "#92400E",
+              padding: "6px 14px", borderRadius: 20, fontSize: 13, fontWeight: 700,
+              marginInlineStart: "auto",
+            }}
+          >
+            <i className="bi bi-stopwatch-fill" />
+            {formatTimer(timeLeftMs)}
+          </div>
+        )}
       </div>
 
       <div style={{ maxWidth: 760, margin: "48px auto", padding: "0 16px" }}>
@@ -221,6 +314,24 @@ export default function AssessmentPage() {
           }}>
             <i className="bi bi-info-circle-fill"></i>
             Please select an answer to {isLastQuestion ? "submit the assessment" : "continue to the next question"}.
+          </div>
+        )}
+        {submitError && (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            fontSize: 12.5, color: "#991B1B", marginBottom: 8, fontWeight: 600,
+          }}>
+            <i className="bi bi-exclamation-circle-fill"></i>
+            {submitError}
+          </div>
+        )}
+        {saveError && (
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            fontSize: 12.5, color: "#991B1B", marginBottom: 8, fontWeight: 600,
+          }}>
+            <i className="bi bi-exclamation-circle-fill"></i>
+            {saveError}
           </div>
         )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getJobs, deleteJob, updateJob } from "../../services/jobService";
+import { getJobs, deleteJob, adminCloseJob } from "../../services/jobService";
+import { getErrorMessage } from "../../utils/errorMessages";
 
 import LoadingState from "../../components/common/LoadingState";
 import toast from "react-hot-toast";
@@ -9,13 +10,17 @@ export default function JobManagementPage() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deleteTarget, setDeleteTarget] = useState(null); // job pending deletion, or null
+  const [deleting, setDeleting] = useState(false);
+  const [closeTarget, setCloseTarget] = useState(null); // job pending closing, or null
+  const [closing, setClosing] = useState(false);
 
   const loadJobs = async () => {
     try {
       const data = await getJobs();
       setJobs(data);
     } catch (err) {
-      toast.error(err.message || "Failed to load jobs");
+      toast.error(getErrorMessage(err, "Failed to load jobs"));
     } finally {
       setLoading(false);
     }
@@ -25,24 +30,40 @@ export default function JobManagementPage() {
     loadJobs();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this job?")) return;
+  const handleDelete = (job) => setDeleteTarget(job);
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await deleteJob(id);
+      await deleteJob(deleteTarget._id);
       toast.success("Job deleted");
-      setJobs((prev) => prev.filter((j) => j._id !== id));
+      setJobs((prev) => prev.filter((j) => j._id !== deleteTarget._id));
+      setDeleteTarget(null);
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || "Delete failed");
+      toast.error(getErrorMessage(err, "Delete failed"));
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const handleStatusChange = async (id, status) => {
+  // الأدمن يقدر يقفل جوب مفتوح بس (مينفعش يفتحه تاني ولا يرجعه درافت)
+  const handleCloseClick = (job) => setCloseTarget(job);
+
+  const handleConfirmClose = async () => {
+    if (!closeTarget) return;
+    setClosing(true);
     try {
-      await updateJob(id, { status });
-      toast.success("Job status updated");
-      setJobs((prev) => prev.map((j) => (j._id === id ? { ...j, status } : j)));
+      await adminCloseJob(closeTarget._id);
+      toast.success("Job closed");
+      setJobs((prev) =>
+        prev.map((j) => (j._id === closeTarget._id ? { ...j, status: "Closed" } : j))
+      );
+      setCloseTarget(null);
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || "Update failed");
+      toast.error(getErrorMessage(err, "Failed to close job"));
+    } finally {
+      setClosing(false);
     }
   };
 
@@ -73,24 +94,37 @@ export default function JobManagementPage() {
                   <td>{job.recruiter?.company_logo ? (<img src={job.recruiter.company_logo} alt="Company logo" style={{ width: "45px", height: "45px", objectFit: "cover" }} className="rounded shadow-sm" />) : null}</td>
                   <td>{job.category?.name || "Uncategorized"}</td>
                   <td>
-                    <select
-                      value={job.status || "Open"}
-                      onChange={(e) => handleStatusChange(job._id, e.target.value)}
-                      className="form-select form-select-sm"
-                      style={{ width: "120px" }}
+                    <span
+                      className={`badge ${
+                        job.status === "Open"
+                          ? "text-bg-success"
+                          : job.status === "Closed"
+                          ? "text-bg-secondary"
+                          : "text-bg-warning"
+                      }`}
                     >
-                      <option value="Open">Open</option>
-                      <option value="Closed">Closed</option>
-                      <option value="Drafted">Drafted</option>
-                    </select>
+                      {job.status || "Open"}
+                    </span>
                   </td>
                   <td>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={() => handleDelete(job._id)}
-                    >
-                      Delete
-                    </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ width: 76 }}>
+                        {job.status === "Open" && (
+                          <button
+                            className="btn btn-sm btn-outline-secondary w-100"
+                            onClick={() => handleCloseClick(job)}
+                          >
+                            Close
+                          </button>
+                        )}
+                      </div>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleDelete(job)}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -112,6 +146,56 @@ export default function JobManagementPage() {
           </button>
         </div>
       </div>
+
+      {/* ===== Delete confirmation modal ===== */}
+      {deleteTarget && (
+        <div className="modal show d-block" tabIndex="-1" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 420 }}>
+            <div className="modal-content" style={{ borderRadius: 16, border: "none" }}>
+              <div className="modal-body" style={{ padding: 28, textAlign: "center" }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  <i className="bi bi-trash" style={{ color: "#DC2626", fontSize: 20 }} />
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Delete this job?</div>
+                <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: 0 }}>
+                  Are you sure you want to delete "{deleteTarget.title}"? This action cannot be undone.
+                </p>
+              </div>
+              <div className="modal-footer" style={{ border: "none", padding: "0 24px 24px", justifyContent: "center" }}>
+                <button type="button" className="btn btn-light" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</button>
+                <button type="button" className="btn btn-danger" onClick={handleConfirmDelete} disabled={deleting}>
+                  {deleting ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Close job confirmation modal ===== */}
+      {closeTarget && (
+        <div className="modal show d-block" tabIndex="-1" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 420 }}>
+            <div className="modal-content" style={{ borderRadius: 16, border: "none" }}>
+              <div className="modal-body" style={{ padding: 28, textAlign: "center" }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  <i className="bi bi-lock" style={{ color: "#D97706", fontSize: 20 }} />
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Close this job?</div>
+                <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: 0 }}>
+                  Are you sure you want to close "{closeTarget.title}"? Candidates won't be able to apply anymore.
+                </p>
+              </div>
+              <div className="modal-footer" style={{ border: "none", padding: "0 24px 24px", justifyContent: "center" }}>
+                <button type="button" className="btn btn-light" onClick={() => setCloseTarget(null)} disabled={closing}>Cancel</button>
+                <button type="button" className="btn btn-warning" onClick={handleConfirmClose} disabled={closing}>
+                  {closing ? "Closing..." : "Close Job"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

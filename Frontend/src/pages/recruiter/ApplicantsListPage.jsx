@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getApplicantsList, updateJobApplicationStatus } from "../../services/recruiterService";
+import { getAssessment } from "../../services/assessmentService";
 import toast from "react-hot-toast";
 import CircleProgress from "../../components/common/CircleProgress";
 import LoadingState from "../../components/common/LoadingState";
@@ -87,20 +88,63 @@ export default function ApplicantsListPage() {
     if (!jobs.length) return [];
     if (jobId) {
       const job = jobs.find((j) => j._id === jobId);
-      return job ? job.applications.map((app) => ({ ...app, jobTitle: job.title })) : [];
+      return job ? job.applications.map((app) => ({ ...app, jobTitle: job.title, jobId: job._id })) : [];
     }
-    return jobs.flatMap((job) => job.applications.map((app) => ({ ...app, jobTitle: job.title })));
+    return jobs.flatMap((job) => job.applications.map((app) => ({ ...app, jobTitle: job.title, jobId: app.jobId || job._id })));
   }, [jobs, jobId]);
 
+  // Which jobs actually require an assessment (type AI/MANUAL, not the default "NONE").
+  // Only relevant for jobs that require one do we hold candidates back until they've
+  // taken it — jobs with no assessment show every applicant as before.
+  const [jobsWithAssessment, setJobsWithAssessment] = useState({});
+
+  useEffect(() => {
+    const jobIds = [...new Set(displayedApplications.map((app) => app.jobId).filter(Boolean))]
+      .filter((id) => jobsWithAssessment[id] === undefined);
+    if (jobIds.length === 0) return;
+
+    let cancelled = false;
+    jobIds.forEach((id) => {
+      getAssessment(id)
+        .then(({ data: res }) => {
+          if (cancelled) return;
+          const requiresAssessment = Boolean(res?.assessment?.type && res.assessment.type !== "NONE");
+          setJobsWithAssessment((prev) => ({ ...prev, [id]: requiresAssessment }));
+        })
+        .catch(() => {
+          if (!cancelled) setJobsWithAssessment((prev) => ({ ...prev, [id]: false }));
+        });
+    });
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [displayedApplications]);
+
+  // When viewing a single job's applicants, hide the whole Assessment Score column
+  // if that job has no assessment attached. When viewing all jobs mixed together,
+  // keep the column (different jobs may have different assessment setups).
+  const showAssessmentColumn = jobId ? jobsWithAssessment[jobId] !== false : true;
+
+  // Only show candidates who uploaded a CV, and — for jobs that actually require an
+  // assessment — who have completed it. Everyone else stays hidden from the HR view
+  // until they've done what's needed.
+  const eligibleApplications = useMemo(() => {
+    return displayedApplications.filter((app) => {
+      if (!app.CV) return false;
+      if (jobsWithAssessment[app.jobId] && !app.assessmentCompleted) return false;
+      return true;
+    });
+  }, [displayedApplications, jobsWithAssessment]);
+
   const sortedApplications = useMemo(() => {
-    return [...displayedApplications]
+    return [...eligibleApplications]
       .filter((app) => (app.status || "Pending").toLowerCase() !== "rejected")
       .sort((a, b) => {
         const scoreA = ((a.cvScore ?? 0) + (a.skillMatch ?? 0) + (a.assessmentScore ?? 0)) / 3;
         const scoreB = ((b.cvScore ?? 0) + (b.skillMatch ?? 0) + (b.assessmentScore ?? 0)) / 3;
         return scoreB - scoreA;
       });
-  }, [displayedApplications]);
+  }, [eligibleApplications]);
 
   const filteredApplications = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -128,17 +172,6 @@ export default function ApplicantsListPage() {
             {jobId && currentJobTitle ? `${currentJobTitle} - Applicants List` : "Applicants List"}
           </h1>
           <p style={{ color: "var(--text-muted)", margin: 0 }}>Review and filter candidates applying for this position.</p>
-        </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          {jobId && (
-            <button className="btn-primary-custom" onClick={() => navigate(`/recruiter/jobs/${jobId}/assessment`)}>
-              <i className="bi bi-clipboard-check me-2" />
-              Manage Assessment
-            </button>
-          )}
-          <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/email-invitations")}>
-            <i className="bi bi-envelope me-2"></i>Send Invitations
-          </button>
         </div>
       </div>
 
@@ -181,7 +214,7 @@ export default function ApplicantsListPage() {
                 <th>Applicant</th>
                 <th>Status</th>
                 <th className="text-center">CV Score</th>
-                <th className="text-center">Assessment Score</th>
+                {showAssessmentColumn && <th className="text-center">Assessment Score</th>}
                 <th>AI Report</th>
                 <th style={{ minWidth: 132 }}>Actions</th>
               </tr>
@@ -221,9 +254,15 @@ export default function ApplicantsListPage() {
                     <td style={{ textAlign: "center" }}>
                       <CircleProgress value={cvRelevanceScore} size={60} stroke={5} />
                     </td>
-                    <td style={{ textAlign: "center" }}>
-                      <CircleProgress value={assessmentScore} size={60} stroke={5} />
-                    </td>
+                    {showAssessmentColumn && (
+                      <td style={{ textAlign: "center" }}>
+                        {jobsWithAssessment[app.jobId] ? (
+                          <CircleProgress value={assessmentScore} size={60} stroke={5} />
+                        ) : (
+                          <span style={{ color: "var(--text-muted)", fontSize: 13 }}>—</span>
+                        )}
+                      </td>
+                    )}
                     <td style={{ maxWidth: 160 }}>
                       <button
                         type="button"
@@ -239,7 +278,15 @@ export default function ApplicantsListPage() {
                           type="button"
                           className="w-100"
                           style={{ fontSize: 11.5, padding: "5px 8px", border: "none", borderRadius: 8, background: "var(--primary-bg)", color: "var(--primary)", fontWeight: 600, cursor: "pointer" }}
-                          onClick={() => navigate(`/recruiter/candidates/${candidateId}`)}
+                          onClick={() => navigate(`/recruiter/candidates/${app.candidate?._id || candidateId}`, {
+                            state: {
+                              jobId: effectiveJobId,
+                              applicationId: candidateId,
+                              cvScore: cvRelevanceScore,
+                              assessmentScore,
+                              matchScore: app.matchScore ?? app.skillMatch,
+                            },
+                          })}
                         >
                           View Candidate <i className="bi bi-arrow-right ms-1" />
                         </button>

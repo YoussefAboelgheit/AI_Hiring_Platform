@@ -15,6 +15,11 @@ import { getJobById } from "../../services/jobService";
 import LoadingState from "../../components/common/LoadingState";
 import BackButton from "../../components/common/BackButton";
 
+// Candidates need a realistic minimum to actually read and answer questions —
+// the backend rejects anything shorter, so we catch it here first with a clear message
+// instead of letting the raw API error surface to the recruiter.
+const MIN_ASSESSMENT_DURATION_MINUTES = 5;
+
 function formatCountdown(ms) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const m = Math.floor(totalSeconds / 60);
@@ -52,6 +57,50 @@ function EditWindowBanner({ job, timeLeftMs, isLocked }) {
   );
 }
 
+function DurationBadge({ assessment, isLocked, editing, draft, setDraft, onEditStart, onSave, onCancel, saving, error }) {
+  if (editing) {
+    return (
+      <div style={{ marginTop: 8 }}>
+        <form onSubmit={onSave} style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <input
+            type="number" min={MIN_ASSESSMENT_DURATION_MINUTES} max="240" required autoFocus
+            value={draft} onChange={(e) => setDraft(e.target.value)}
+            className="form-control form-control-sm" style={{ width: 90, borderRadius: 8 }}
+          />
+          <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>minutes</span>
+          <button type="submit" className="btn btn-sm btn-primary" disabled={saving} style={{ borderRadius: 8 }}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+          <button type="button" className="btn btn-sm btn-light" onClick={onCancel} style={{ borderRadius: 8 }}>Cancel</button>
+        </form>
+        <FieldError message={error} />
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, fontSize: 12.5, color: "var(--text-muted)", cursor: isLocked ? "default" : "pointer" }}
+      onClick={() => !isLocked && onEditStart()}
+      title={isLocked ? undefined : "Click to change the duration"}
+    >
+      <i className="bi bi-stopwatch" />
+      {assessment?.durationMinutes ? `${assessment.durationMinutes} minute time limit` : "No time limit set"}
+      {!isLocked && <i className="bi bi-pencil" style={{ fontSize: 11 }} />}
+    </div>
+  );
+}
+
+function FieldError({ message }) {
+  if (!message) return null;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#DC2626", fontSize: 12.5, fontWeight: 600, marginTop: 8 }}>
+      <i className="bi bi-exclamation-circle-fill" />
+      {message}
+    </div>
+  );
+}
+
 const tagColors = {
   Easy: { bg: "#D1FAE5", color: "#065F46" },
   Medium: { bg: "#FEF3C7", color: "#92400E" },
@@ -59,20 +108,22 @@ const tagColors = {
   default: { bg: "#f3f5fb", color: "#1d2445" },
 };
 
-function ChangeTypeButton({ onClick, style }) {
+function ChangeTypeButton({ onClick, style, disabled }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       style={{
         display: "inline-flex", alignItems: "center", gap: 6,
         background: "var(--primary-bg)", color: "var(--primary)",
         border: "none", borderRadius: 20, padding: "6px 14px",
-        fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+        fontSize: 12.5, fontWeight: 700, cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
         transition: "background .15s",
         ...style,
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = "#E4D9FC"; }}
+      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = "#E4D9FC"; }}
       onMouseLeave={(e) => { e.currentTarget.style.background = "var(--primary-bg)"; }}
     >
       <i className="bi bi-arrow-left-right" style={{ fontSize: 11 }} />
@@ -102,16 +153,46 @@ export default function AssessmentGeneratorPage() {
   // Lets us show the AI config form (or a brief loading state for Manual/None) without
   // waiting for a refetch, and lets the user pick a *different* type than whatever the
   // backend currently has (e.g. switching from AI back to the choice screen).
-  const [pendingChoice, setPendingChoice] = useState(null); // 'AI' | 'MANUAL' | 'NONE' | null
+  const [pendingChoice, setPendingChoice] = useState(null); // 'AI' | 'MANUAL_SETUP' | 'MANUAL' | null
+
+  // True while the recruiter is deliberately re-picking the assessment type via
+  // "Change Assessment Type", even though an assessment already exists on the backend
+  // (e.g. they cleared out all their Manual questions and now want to switch to AI).
+  // Without this, `mode` below would just fall back to whatever `assessment.type` already is.
+  const [overridingType, setOverridingType] = useState(false);
 
   const [generateConfig, setGenerateConfig] = useState({
     questionCount: 10,
     difficulty: "Medium",
     topics: "",
+    durationMinutes: 30,
   });
+
+  // Duration asked for on the Manual setup screen (before the assessment record is created)
+  const [manualDuration, setManualDuration] = useState(30);
 
   const [questionModalOpen, setQuestionModalOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState(null);
+
+  // Custom delete-confirmation modal — replaces window.confirm(), which renders as an
+  // ugly native "localhost says" browser dialog instead of matching the app's UI.
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const [deletingQuestion, setDeletingQuestion] = useState(false);
+
+  // Inline "edit duration" control for an already-created assessment (AI or Manual)
+  const [editingDuration, setEditingDuration] = useState(false);
+  const [durationDraft, setDurationDraft] = useState(30);
+
+  // Inline validation/error messages shown under each of the three duration-related
+  // forms, instead of letting a raw backend error surface as a native browser alert.
+  const [generateError, setGenerateError] = useState(null);
+  const [manualSetupError, setManualSetupError] = useState(null);
+  const [durationEditError, setDurationEditError] = useState(null);
+
+  // Same idea for the remaining actions on this page — no more native alert() popups.
+  const [chooseError, setChooseError] = useState(null);
+  const [listActionError, setListActionError] = useState(null); // regenerate-all / regenerate-one / delete
+  const [questionModalError, setQuestionModalError] = useState(null);
 
   // Countdown timer — job is only editable within 5 minutes of creation
   const [timeLeftMs, setTimeLeftMs] = useState(null);
@@ -135,14 +216,16 @@ export default function AssessmentGeneratorPage() {
   const questions = data?.questions || [];
 
   // ---- Determine which screen to show ----
-  // 'choose'      — the mandatory first screen: No Assessment / AI / Manual
-  // 'ai-config'   — AI chosen but no questions generated yet: show the config form
-  // 'ai'          — AI assessment with questions: show the question list + AI-only actions
-  // 'manual'      — Manual assessment: show the question list + Add/Edit/Delete only
-  // 'disabled'    — "No Assessment" was chosen: nothing to manage
+  // 'choose'        — the mandatory first screen: No Assessment / AI / Manual
+  // 'ai-config'     — AI chosen but no questions generated yet: show the config form
+  // 'ai'            — AI assessment with questions: show the question list + AI-only actions
+  // 'manual-setup'  — Manual chosen but not (re)created yet: ask for the assessment duration first
+  // 'manual'        — Manual assessment: show the question list + Add/Edit/Delete only
+  // 'disabled'      — "No Assessment" was chosen: nothing to manage
+  const inSetupFlow = notFound || overridingType;
   let mode;
-  if (notFound) {
-    mode = pendingChoice === "AI" ? "ai-config" : pendingChoice === "MANUAL" ? "manual" : "choose";
+  if (inSetupFlow) {
+    mode = pendingChoice === "AI" ? "ai-config" : pendingChoice === "MANUAL_SETUP" ? "manual-setup" : pendingChoice === "MANUAL" ? "manual" : "choose";
   } else if (assessment?.type === "NONE") {
     mode = "disabled";
   } else if (assessment?.type === "AI") {
@@ -155,89 +238,162 @@ export default function AssessmentGeneratorPage() {
 
   const handleChooseType = async (type) => {
     if (type === "AI") {
+      setGenerateError(null);
       setPendingChoice("AI"); // just reveal the config form locally, no API call yet
       return;
     }
     if (type === "MANUAL") {
-      setPendingChoice("MANUAL");
-      if (notFound) {
-        // Bootstrap an empty MANUAL assessment record so Add/Edit/Delete have something to attach to.
-        try {
-          await updateSettingsMut.mutateAsync({
-            jobId,
-            payload: { type: "MANUAL", questionCount: 1, difficulty: "Medium", topics: "" },
-          });
-        } catch (err) {
-          alert(getEditWindowMessage(err, "Failed to start a manual assessment."));
-          setPendingChoice(null);
-        }
-      }
+      // Always ask for the assessment duration first, whether this is the very first
+      // assessment for this job or the recruiter is switching over from AI/None.
+      setManualSetupError(null);
+      setPendingChoice("MANUAL_SETUP");
       return;
     }
     if (type === "NONE") {
+      setChooseError(null);
       try {
         await updateSettingsMut.mutateAsync({
           jobId,
-          payload: { type: "NONE", questionCount: 1, difficulty: "Medium", topics: "" },
+          payload: {
+            type: "NONE",
+            questionCount: 1,
+            difficulty: "Medium",
+            topics: "",
+            durationMinutes: assessment?.durationMinutes || MIN_ASSESSMENT_DURATION_MINUTES,
+          },
         });
+        setOverridingType(false);
+        setPendingChoice(null);
       } catch (err) {
-        alert(getEditWindowMessage(err, "Failed to disable assessment."));
+        setChooseError(getEditWindowMessage(err, err.response?.data?.message || "Failed to disable the assessment. Please try again."));
       }
       return;
     }
   };
 
   const handleChangeType = () => {
+    setGenerateError(null);
+    setManualSetupError(null);
+    setChooseError(null);
+    setOverridingType(true);
     setPendingChoice(null);
   };
 
   const handleGenerate = async (e) => {
     e.preventDefault();
+    const duration = Number(generateConfig.durationMinutes);
+    if (!duration || duration < MIN_ASSESSMENT_DURATION_MINUTES) {
+      setGenerateError(`Assessment duration can't be less than ${MIN_ASSESSMENT_DURATION_MINUTES} minutes.`);
+      return;
+    }
+    setGenerateError(null);
     try {
       const payload = {
         questionCount: Number(generateConfig.questionCount),
         difficulty: generateConfig.difficulty,
         topics: generateConfig.topics,
+        durationMinutes: duration,
       };
       await generateMut.mutateAsync({ jobId, payload });
       setPendingChoice(null);
+      setOverridingType(false);
     } catch (err) {
-      alert(getEditWindowMessage(err, "Failed to generate: " + (err.response?.data?.message || err.message)));
+      setGenerateError(getEditWindowMessage(err, err.response?.data?.message || "Failed to generate the assessment. Please try again."));
+    }
+  };
+
+  // Confirms the duration on the Manual setup screen, then bootstraps/overwrites the
+  // MANUAL assessment record so Add/Edit/Delete have something to attach to.
+  const handleConfirmManualSetup = async (e) => {
+    e.preventDefault();
+    const duration = Number(manualDuration);
+    if (!duration || duration < MIN_ASSESSMENT_DURATION_MINUTES) {
+      setManualSetupError(`Assessment duration can't be less than ${MIN_ASSESSMENT_DURATION_MINUTES} minutes.`);
+      return;
+    }
+    setManualSetupError(null);
+    try {
+      await updateSettingsMut.mutateAsync({
+        jobId,
+        payload: {
+          type: "MANUAL",
+          questionCount: 1,
+          difficulty: "Medium",
+          topics: "",
+          durationMinutes: duration,
+        },
+      });
+      setPendingChoice("MANUAL");
+      setOverridingType(false);
+    } catch (err) {
+      setManualSetupError(getEditWindowMessage(err, err.response?.data?.message || "Failed to start a manual assessment. Please try again."));
+    }
+  };
+
+  const handleSaveDuration = async (e) => {
+    e.preventDefault();
+    const duration = Number(durationDraft);
+    if (!duration || duration < MIN_ASSESSMENT_DURATION_MINUTES) {
+      setDurationEditError(`Assessment duration can't be less than ${MIN_ASSESSMENT_DURATION_MINUTES} minutes.`);
+      return;
+    }
+    setDurationEditError(null);
+    try {
+      await updateSettingsMut.mutateAsync({
+        jobId,
+        payload: { durationMinutes: duration },
+      });
+      setEditingDuration(false);
+    } catch (err) {
+      setDurationEditError(getEditWindowMessage(err, err.response?.data?.message || "Failed to update duration. Please try again."));
     }
   };
 
   const handleRegenerateAssessment = async () => {
+    setListActionError(null);
     try {
       await regenerateAssMut.mutateAsync({ jobId });
     } catch (err) {
-      alert(getEditWindowMessage(err, "Failed to regenerate."));
+      setListActionError(getEditWindowMessage(err, err.response?.data?.message || "Failed to regenerate the assessment. Please try again."));
     }
   };
 
   const handleRegenerateQuestion = async (questionId) => {
+    setListActionError(null);
     try {
       await regenerateQuestionMut.mutateAsync({ questionId, jobId });
     } catch (err) {
-      alert(getEditWindowMessage(err, "Failed to regenerate question."));
+      setListActionError(getEditWindowMessage(err, err.response?.data?.message || "Failed to regenerate this question. Please try again."));
     }
   };
 
   const openAddQuestion = () => {
     setEditingQuestion(null);
+    setQuestionModalError(null);
     setQuestionModalOpen(true);
   };
 
   const openEditQuestion = (q) => {
     setEditingQuestion(q);
+    setQuestionModalError(null);
     setQuestionModalOpen(true);
   };
 
-  const handleDeleteQuestion = async (qId) => {
-    if (!window.confirm("Delete this question?")) return;
+  const handleDeleteQuestion = (qId) => {
+    setListActionError(null);
+    setDeleteConfirmId(qId);
+  };
+
+  const handleConfirmDelete = async () => {
+    setDeletingQuestion(true);
     try {
-      await deleteQuestionMut.mutateAsync({ questionId: qId, jobId });
+      await deleteQuestionMut.mutateAsync({ questionId: deleteConfirmId, jobId });
+      setDeleteConfirmId(null);
     } catch (err) {
-      alert(getEditWindowMessage(err, "Failed to delete question."));
+      setListActionError(getEditWindowMessage(err, err.response?.data?.message || "Failed to delete this question. Please try again."));
+      setDeleteConfirmId(null);
+    } finally {
+      setDeletingQuestion(false);
     }
   };
 
@@ -249,16 +405,32 @@ export default function AssessmentGeneratorPage() {
       formData.get("option2"),
       formData.get("option3"),
       formData.get("option4"),
-    ];
+    ].map((opt) => (opt || "").trim());
+    const correctAnswer = (formData.get("correctAnswer") || "").trim();
+    const question = (formData.get("question") || "").trim();
+
+    // Catch the common mistakes client-side, with a plain-language message,
+    // instead of letting an incomplete/mismatched form hit the API and bounce back
+    // as a raw "Failed to save" error.
+    if (!question || options.some((opt) => !opt)) {
+      setQuestionModalError("Please fill in the question and all four options before saving.");
+      return;
+    }
+    if (!correctAnswer || !options.includes(correctAnswer)) {
+      setQuestionModalError("The correct answer must exactly match one of the four options above.");
+      return;
+    }
+
     const qData = {
-      question: formData.get("question"),
+      question,
       options,
-      correctAnswer: formData.get("correctAnswer"),
+      correctAnswer,
       explanation: formData.get("explanation"),
       topic: formData.get("topic"),
       difficulty: formData.get("difficulty"),
     };
 
+    setQuestionModalError(null);
     try {
       if (editingQuestion) {
         await updateQuestionMut.mutateAsync({ questionId: editingQuestion._id, question: qData, jobId });
@@ -267,7 +439,7 @@ export default function AssessmentGeneratorPage() {
       }
       setQuestionModalOpen(false);
     } catch (err) {
-      alert(getEditWindowMessage(err, "Failed to save question."));
+      setQuestionModalError(getEditWindowMessage(err, err.response?.data?.message || "Please make sure every field is filled in correctly, then try again."));
     }
   };
 
@@ -285,26 +457,29 @@ export default function AssessmentGeneratorPage() {
 
       {/* ===== STEP 1 — mandatory type choice ===== */}
       {mode === "choose" && (
-        <div className="row g-4" style={{ maxWidth: 900 }}>
-          {[
-            { type: "NONE", icon: "bi-slash-circle", title: "No Assessment", desc: "Don't require candidates to take any assessment for this job." },
-            { type: "AI", icon: "bi-stars", title: "AI Assessment", desc: "Let AI generate multiple-choice questions based on your topics and difficulty." },
-            { type: "MANUAL", icon: "bi-pencil-square", title: "Manual Assessment", desc: "Write your own questions from scratch, one at a time." },
-          ].map((opt) => (
-            <div className="col-md-4" key={opt.type}>
-              <button
-                type="button"
-                className="hcard w-100 text-start"
-                style={{ padding: 24, border: "2px solid var(--border)", background: "#fff", cursor: "pointer", height: "100%" }}
-                onClick={() => handleChooseType(opt.type)}
-                disabled={updateSettingsMut.isPending || isLocked}
-              >
-                <i className={`bi ${opt.icon}`} style={{ fontSize: 28, color: "var(--primary)", marginBottom: 12, display: "block" }} />
-                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{opt.title}</div>
-                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{opt.desc}</div>
-              </button>
-            </div>
-          ))}
+        <div style={{ maxWidth: 900 }}>
+          <FieldError message={chooseError} />
+          <div className="row g-4" style={{ marginTop: chooseError ? 4 : 0 }}>
+            {[
+              { type: "NONE", icon: "bi-slash-circle", title: "No Assessment", desc: "Don't require candidates to take any assessment for this job." },
+              { type: "AI", icon: "bi-stars", title: "AI Assessment", desc: "Let AI generate multiple-choice questions based on your topics and difficulty." },
+              { type: "MANUAL", icon: "bi-pencil-square", title: "Manual Assessment", desc: "Write your own questions from scratch, one at a time." },
+            ].map((opt) => (
+              <div className="col-md-4" key={opt.type}>
+                <button
+                  type="button"
+                  className="hcard w-100 text-start"
+                  style={{ padding: 24, border: "2px solid var(--border)", background: "#fff", cursor: "pointer", height: "100%" }}
+                  onClick={() => handleChooseType(opt.type)}
+                  disabled={updateSettingsMut.isPending || isLocked}
+                >
+                  <i className={`bi ${opt.icon}`} style={{ fontSize: 28, color: "var(--primary)", marginBottom: 12, display: "block" }} />
+                  <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{opt.title}</div>
+                  <div style={{ fontSize: 13, color: "var(--text-muted)" }}>{opt.desc}</div>
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -351,7 +526,14 @@ export default function AssessmentGeneratorPage() {
                   <option value="Hard">Hard</option>
                 </select>
               </div>
-              <div className="col-md-12">
+              <div className="col-md-6">
+                <label className="form-label fw-bold" style={{ fontSize: 13 }}>Duration (minutes) <span style={{ color: "#DC2626" }}>*</span></label>
+                <input type="number" min={MIN_ASSESSMENT_DURATION_MINUTES} max="240" required className="form-control" style={{ borderRadius: 10 }}
+                  value={generateConfig.durationMinutes}
+                  onChange={(e) => setGenerateConfig({ ...generateConfig, durationMinutes: e.target.value })} />
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>How long candidates get to complete the assessment once they start it.</div>
+              </div>
+              <div className="col-md-6">
                 <label className="form-label fw-bold" style={{ fontSize: 13 }}>Topics (comma separated)</label>
                 <input type="text" className="form-control" style={{ borderRadius: 10 }}
                   value={generateConfig.topics}
@@ -359,9 +541,47 @@ export default function AssessmentGeneratorPage() {
               </div>
             </div>
 
-            <div style={{ marginTop: 32, display: "flex", justifyContent: "flex-end" }}>
+            <FieldError message={generateError} />
+
+            <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
               <button type="submit" className="btn-primary-custom" disabled={generateMut.isPending || isLocked} style={{ minWidth: 200 }}>
                 {generateMut.isPending ? <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Generating...</> : <><i className="bi bi-magic me-2"></i>Generate Questions</>}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* ===== Manual setup — ask for duration before creating the record ===== */}
+      {mode === "manual-setup" && (
+        <div className="hcard" style={{ padding: 32, maxWidth: 700 }}>
+          <ChangeTypeButton onClick={handleChangeType} style={{ marginBottom: 20 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: "#f3f5fb", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <i className="bi bi-pencil-square" style={{ color: "#1d2445", fontSize: 20 }} />
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>Set Up Manual Assessment</div>
+              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Before you start adding questions, set the time candidates will have to complete it.</div>
+            </div>
+          </div>
+
+          <form onSubmit={handleConfirmManualSetup}>
+            <div className="row g-4">
+              <div className="col-md-6">
+                <label className="form-label fw-bold" style={{ fontSize: 13 }}>Duration (minutes) <span style={{ color: "#DC2626" }}>*</span></label>
+                <input type="number" min={MIN_ASSESSMENT_DURATION_MINUTES} max="240" required className="form-control" style={{ borderRadius: 10 }}
+                  value={manualDuration}
+                  onChange={(e) => setManualDuration(e.target.value)} />
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>How long candidates get to complete the assessment once they start it.</div>
+              </div>
+            </div>
+
+            <FieldError message={manualSetupError} />
+
+            <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+              <button type="submit" className="btn-primary-custom" disabled={updateSettingsMut.isPending} style={{ minWidth: 200 }}>
+                {updateSettingsMut.isPending ? <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Creating...</> : <><i className="bi bi-arrow-right me-2"></i>Continue</>}
               </button>
             </div>
           </form>
@@ -375,12 +595,26 @@ export default function AssessmentGeneratorPage() {
             <div>
               <span className="ai-badge mb-2 d-inline-flex"><i className="bi bi-stars" /> AI-Powered Assessment</span>
               <p style={{ color: "var(--text-muted)", margin: 0 }}>Review and refine the questions generated for this position.</p>
-              <ChangeTypeButton onClick={handleChangeType} style={{ marginTop: 8 }} />
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <ChangeTypeButton onClick={handleChangeType} disabled={isLocked} style={{ marginTop: 8 }} />
+                <DurationBadge
+                  assessment={assessment} isLocked={isLocked}
+                  editing={editingDuration}
+                  draft={durationDraft} setDraft={setDurationDraft}
+                  onEditStart={() => { setDurationDraft(assessment?.durationMinutes || 30); setDurationEditError(null); setEditingDuration(true); }}
+                  onSave={handleSaveDuration}
+                  onCancel={() => { setEditingDuration(false); setDurationEditError(null); }}
+                  saving={updateSettingsMut.isPending}
+                  error={durationEditError}
+                />
+              </div>
             </div>
             <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={handleRegenerateAssessment} disabled={regenerateAssMut.isPending || isLocked}>
               <i className="bi bi-arrow-clockwise me-2" />{regenerateAssMut.isPending ? "Regenerating..." : "Regenerate All Questions"}
             </button>
           </div>
+
+          <FieldError message={listActionError} />
 
           <QuestionList
             questions={questions}
@@ -402,8 +636,22 @@ export default function AssessmentGeneratorPage() {
               <i className="bi bi-pencil-square" /> Manual Assessment
             </span>
             <p style={{ color: "var(--text-muted)", margin: 0 }}>Write and manage your own questions for this position.</p>
-            <ChangeTypeButton onClick={handleChangeType} style={{ marginTop: 8 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <ChangeTypeButton onClick={handleChangeType} disabled={isLocked} style={{ marginTop: 8 }} />
+              <DurationBadge
+                assessment={assessment} isLocked={isLocked}
+                editing={editingDuration}
+                draft={durationDraft} setDraft={setDurationDraft}
+                onEditStart={() => { setDurationDraft(assessment?.durationMinutes || 30); setDurationEditError(null); setEditingDuration(true); }}
+                onSave={handleSaveDuration}
+                onCancel={() => { setEditingDuration(false); setDurationEditError(null); }}
+                saving={updateSettingsMut.isPending}
+                  error={durationEditError}
+              />
+            </div>
           </div>
+
+          <FieldError message={listActionError} />
 
           <QuestionList
             questions={questions}
@@ -463,11 +711,37 @@ export default function AssessmentGeneratorPage() {
                     </div>
                   </div>
                 </form>
+                <FieldError message={questionModalError} />
               </div>
               <div className="modal-footer" style={{ border: "none", padding: "0 24px 24px" }}>
                 <button type="button" className="btn-outline-custom" onClick={() => setQuestionModalOpen(false)}>Cancel</button>
                 <button type="submit" form="questionForm" className="btn-primary-custom" disabled={addQuestionMut.isPending || updateQuestionMut.isPending}>
                   {(addQuestionMut.isPending || updateQuestionMut.isPending) ? "Saving..." : "Save Question"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== Delete confirmation modal — replaces window.confirm() ===== */}
+      {deleteConfirmId && (
+        <div className="modal show d-block" tabIndex="-1" style={{ background: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 420 }}>
+            <div className="modal-content" style={{ borderRadius: 16, border: "none" }}>
+              <div className="modal-body" style={{ padding: 28, textAlign: "center" }}>
+                <div style={{ width: 48, height: 48, borderRadius: 12, background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                  <i className="bi bi-trash" style={{ color: "#DC2626", fontSize: 20 }} />
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Delete this question?</div>
+                <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: 0 }}>This can't be undone.</p>
+              </div>
+              <div className="modal-footer" style={{ border: "none", padding: "0 24px 24px", justifyContent: "center" }}>
+                <button type="button" className="btn-outline-custom" onClick={() => setDeleteConfirmId(null)} disabled={deletingQuestion}>
+                  Cancel
+                </button>
+                <button type="button" className="btn-primary-custom" style={{ background: "#DC2626", borderColor: "#DC2626" }} onClick={handleConfirmDelete} disabled={deletingQuestion}>
+                  {deletingQuestion ? "Deleting..." : "Delete"}
                 </button>
               </div>
             </div>

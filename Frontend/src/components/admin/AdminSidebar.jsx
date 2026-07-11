@@ -51,14 +51,6 @@ export default function AdminSidebar() {
             </div>
           ))}
         </nav>
-        
-        <div className="credits-box">
-          <div className="credits-label">System Admin Panel</div>
-          <div className="credits-bar">
-            <div className="credits-fill" style={{ width: "100%", background: "#10B981" }} />
-          </div>
-          <div className="credits-text">All systems operational</div>
-        </div>
 
         <div className="sidebar-footer">
           <button

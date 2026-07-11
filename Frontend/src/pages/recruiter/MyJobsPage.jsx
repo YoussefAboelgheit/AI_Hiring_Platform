@@ -50,6 +50,67 @@ function JobActionsMenu({ items }) {
   );
 }
 
+// Replaces window.confirm() (an ugly native "localhost says" dialog) with a modal
+// that matches the rest of the app. `tone` picks the icon/button color.
+const confirmModalCopy = {
+  publish: {
+    icon: "bi-upload", tone: "primary",
+    title: "Publish this job?",
+    body: (jobTitle) => `Publish "${jobTitle}" now? It will become visible to candidates immediately.`,
+    confirmLabel: "Publish",
+  },
+  close: {
+    icon: "bi-x-circle", tone: "danger",
+    title: "Close this job?",
+    body: (jobTitle) => `Close "${jobTitle}"? Once closed, it can't be reopened.`,
+    confirmLabel: "Close Job",
+  },
+  delete: {
+    icon: "bi-trash", tone: "danger",
+    title: "Delete this job?",
+    body: (jobTitle) => `Are you sure you want to delete "${jobTitle}"? This action cannot be undone.`,
+    confirmLabel: "Delete",
+  },
+};
+
+function ConfirmActionModal({ action, onCancel, onConfirm, pending }) {
+  if (!action) return null;
+  const copy = confirmModalCopy[action.type];
+  const isDanger = copy.tone === "danger";
+
+  return (
+    <div className="modal show d-block" tabIndex="-1" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 420 }}>
+        <div className="modal-content" style={{ borderRadius: 16, border: "none" }}>
+          <div className="modal-body" style={{ padding: 28, textAlign: "center" }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 12, margin: "0 auto 16px",
+              background: isDanger ? "#FEE2E2" : "var(--primary-bg)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <i className={`bi ${copy.icon}`} style={{ color: isDanger ? "#DC2626" : "var(--primary)", fontSize: 20 }} />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{copy.title}</div>
+            <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: 0 }}>{copy.body(action.jobTitle)}</p>
+          </div>
+          <div className="modal-footer" style={{ border: "none", padding: "0 24px 24px", justifyContent: "center" }}>
+            <button type="button" className="btn-outline-custom" onClick={onCancel} disabled={pending}>Cancel</button>
+            <button
+              type="button"
+              className="btn-primary-custom"
+              style={isDanger ? { background: "#DC2626", borderColor: "#DC2626" } : undefined}
+              onClick={onConfirm}
+              disabled={pending}
+            >
+              {pending ? "Working..." : copy.confirmLabel}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MyJobsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -60,8 +121,14 @@ export default function MyJobsPage() {
   const [publishing, setPublishing] = useState(null);
   const [statusFilter, setStatusFilter] = useState("All");
 
-  const handlePublish = async (jobId, jobTitle) => {
-    if (!window.confirm(`Publish "${jobTitle}" now? It will become visible to candidates immediately.`)) return;
+  // { type: 'publish' | 'close' | 'delete', jobId, jobTitle } | null
+  const [confirmAction, setConfirmAction] = useState(null);
+
+  const handlePublish = (jobId, jobTitle) => setConfirmAction({ type: "publish", jobId, jobTitle });
+  const handleClose = (jobId, jobTitle) => setConfirmAction({ type: "close", jobId, jobTitle });
+  const handleDelete = (jobId, jobTitle) => setConfirmAction({ type: "delete", jobId, jobTitle });
+
+  const runPublish = async (jobId) => {
     setPublishing(jobId);
     try {
       const updated = await openJob(jobId);
@@ -77,8 +144,7 @@ export default function MyJobsPage() {
     }
   };
 
-  const handleClose = async (jobId, jobTitle) => {
-    if (!window.confirm(`Close "${jobTitle}"? Once closed, it can't be reopened.`)) return;
+  const runClose = async (jobId) => {
     setClosing(jobId);
     try {
       const updated = await closeJob(jobId);
@@ -94,8 +160,7 @@ export default function MyJobsPage() {
     }
   };
 
-  const handleDelete = async (jobId, jobTitle) => {
-    if (!window.confirm(`Are you sure you want to delete "${jobTitle}"? This action cannot be undone.`)) return;
+  const runDelete = async (jobId) => {
     setDeleting(jobId);
     try {
       await deleteJob(jobId);
@@ -109,6 +174,15 @@ export default function MyJobsPage() {
     } finally {
       setDeleting(null);
     }
+  };
+
+  const handleConfirmAction = async () => {
+    if (!confirmAction) return;
+    const { type, jobId } = confirmAction;
+    setConfirmAction(null);
+    if (type === "publish") await runPublish(jobId);
+    else if (type === "close") await runClose(jobId);
+    else if (type === "delete") await runDelete(jobId);
   };
 
   useEffect(() => {
@@ -227,6 +301,7 @@ export default function MyJobsPage() {
                         </button>
                         <JobActionsMenu
                           items={[
+                            { label: "View Job", icon: "bi-eye", onClick: () => navigate(`/recruiter/jobs/${job._id}/view`) },
                             { label: "Resume Editing", icon: "bi-pencil", onClick: () => navigate(`/recruiter/jobs/edit/${job._id}`) },
                             { label: "Manage Assessment", icon: "bi-clipboard-check", onClick: () => navigate(`/recruiter/jobs/${job._id}/assessment`) },
                             { label: "Delete", icon: "bi-trash", danger: true, onClick: () => handleDelete(job._id, job.title), disabled: deleting === job._id, pending: deleting === job._id, pendingLabel: "Deleting..." },
@@ -235,10 +310,11 @@ export default function MyJobsPage() {
                       </>
                     ) : job.status === "Closed" ? (
                       <>
-                        <button type="button" className="btn btn-light border btn-sm" onClick={() => navigate(`/recruiter/job/${job._id}`)}>View Applicants</button>
+                        <button type="button" className="btn btn-light border btn-sm" onClick={() => navigate('/recruiter/applications', { state: { jobId: job._id } })}>View Applicants</button>
                         <JobActionsMenu
                           items={[
-                            { label: "Manage Assessment", icon: "bi-clipboard-check", onClick: () => navigate(`/recruiter/jobs/${job._id}/assessment`) },
+                            { label: "View Job", icon: "bi-eye", onClick: () => navigate(`/recruiter/jobs/${job._id}/view`) },
+                            { label: "View Assessment", icon: "bi-clipboard-check", onClick: () => navigate(`/recruiter/jobs/${job._id}/assessment`) },
                             { label: "Delete", icon: "bi-trash", danger: true, onClick: () => handleDelete(job._id, job.title), disabled: deleting === job._id, pending: deleting === job._id, pendingLabel: "Deleting..." },
                           ]}
                         />
@@ -250,7 +326,8 @@ export default function MyJobsPage() {
                         </button>
                         <JobActionsMenu
                           items={[
-                            { label: "Manage Assessment", icon: "bi-clipboard-check", onClick: () => navigate(`/recruiter/jobs/${job._id}/assessment`) },
+                            { label: "View Job", icon: "bi-eye", onClick: () => navigate(`/recruiter/jobs/${job._id}/view`) },
+                            { label: "View Assessment", icon: "bi-clipboard-check", onClick: () => navigate(`/recruiter/jobs/${job._id}/assessment`) },
                             { label: "Close Job", icon: "bi-x-circle", onClick: () => handleClose(job._id, job.title), disabled: closing === job._id, pending: closing === job._id, pendingLabel: "Closing..." },
                             { label: "Delete", icon: "bi-trash", danger: true, onClick: () => handleDelete(job._id, job.title), disabled: deleting === job._id, pending: deleting === job._id, pendingLabel: "Deleting..." },
                           ]}
@@ -264,6 +341,18 @@ export default function MyJobsPage() {
           );
         })}
       </div>
+
+      <ConfirmActionModal
+        action={confirmAction}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={handleConfirmAction}
+        pending={
+          confirmAction?.type === "publish" ? publishing === confirmAction.jobId
+          : confirmAction?.type === "close" ? closing === confirmAction.jobId
+          : confirmAction?.type === "delete" ? deleting === confirmAction.jobId
+          : false
+        }
+      />
     </>
   );
 }

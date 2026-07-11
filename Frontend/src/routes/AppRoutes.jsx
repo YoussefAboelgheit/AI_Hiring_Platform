@@ -105,6 +105,7 @@ export default function AppRoutes() {
           <Route path="jobs/new" element={<PostJobPage />} />
           <Route path="jobs/edit/:id" element={<EditJobPage />} />
           <Route path="jobs" element={<MyJobsPage />} />
+          <Route path="jobs/:id/view" element={<JobDetailsPage />} />
           <Route path="job/:jobId" element={<JobDetailsPage />} />
           <Route path="applications" element={<ApplicantsListPage />} />
           <Route path="candidates/:id" element={<CandidateReviewPage />} />

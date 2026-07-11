@@ -27,8 +27,16 @@ function mapApplicationScores(app, jobTitle) {
     jobTitle: jobTitle ?? app.jobTitle,
     cvScore: app.cvScore ?? matchScore,
     skillMatch: app.skillMatch ?? matchScore,
+    // الـ backend بيرجّع حقل اسمه assessmentStatus ("completed" لو خلّص الامتحان).
+    // ملاحظة: حاليًا في bug في الـ backend إن الحقل ده بيتحط "completed" غلط من
+    // ساعة التقديم على الوظيفة (بدل ما يفضل "pending"/"not_started" لحد ما فعلاً
+    // يعمل submit) — تم إبلاغهم بيه، ولحد ما يتصلح هيفضل الفرونت شايف الكانديت
+    // إنه "completed" حتى لو معملش حاجة. أول ما الباك يصلّح الـ default، الفرونت
+    // هنا هيشتغل صح تلقائيًا من غير أي تعديل تاني.
+    assessmentCompleted: app.assessmentStatus === "completed",
     assessmentScore: app.assessmentScore ?? 0,
   };
+
 }
 
 function sortByMatchScore(applications) {

@@ -265,9 +265,9 @@ export default function ApplyJobPage() {
         <button
           type="button"
           className="btn-primary-custom"
-          style={{ flex: 2 }}
+          style={{ flex: 2, opacity: !canSubmit && !submitting ? 0.6 : 1, cursor: !canSubmit && !submitting ? "not-allowed" : "pointer" }}
           onClick={handleSubmit}
-          disabled={!canSubmit || submitting}
+          disabled={submitting}
         >
           {submitting ? (
             <>

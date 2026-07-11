@@ -3,6 +3,7 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
 import { Modal } from "react-bootstrap";
 import toast from "react-hot-toast";
+import { getErrorMessage } from "../../utils/errorMessages";
 import {
   getAllUsers,
   createUser,
@@ -32,14 +33,10 @@ const createUserSchema = yup.object().shape({
   role: yup
     .string()
     .oneOf(["candidate", "recruiter", "admin"], "Select a valid role")
-    .required("Role is required"),
-  bio: yup
-    .string()
-    .max(300, "Bio cannot exceed 300 characters")
-    .trim()
+    .required("Role is required")
 });
 
-// Yup validations for Edit (Password is optional/omitted)
+// Yup validations for Edit (only Name and Email are editable by admin)
 const editUserSchema = yup.object().shape({
   name: yup
     .string()
@@ -51,15 +48,7 @@ const editUserSchema = yup.object().shape({
     .string()
     .trim()
     .email("Provide a valid email address")
-    .required("Email is required"),
-  role: yup
-    .string()
-    .oneOf(["candidate", "recruiter", "admin"], "Select a valid role")
-    .required("Role is required"),
-  bio: yup
-    .string()
-    .max(300, "Bio cannot exceed 300 characters")
-    .trim()
+    .required("Email is required")
 });
 
 export default function UserManagementPage() {
@@ -114,7 +103,7 @@ export default function UserManagementPage() {
       resetForm();
       loadUsers(1); // Refresh back to page 1
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || "Failed to create user");
+      toast.error(getErrorMessage(err, "Failed to create user"));
     } finally {
       setSubmitting(false);
     }
@@ -125,9 +114,7 @@ export default function UserManagementPage() {
     try {
       const payload = {
         name: values.name.trim(),
-        email: values.email.trim(),
-        role: toBackendRole(values.role),
-        bio: values.bio
+        email: values.email.trim()
       };
       const response = await updateUser(activeUser._id, payload);
       toast.success(response.message || `User "${values.name}" updated successfully`);
@@ -135,7 +122,7 @@ export default function UserManagementPage() {
       setActiveUser(null);
       loadUsers(page); // Stay on current page
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || "Failed to update user");
+      toast.error(getErrorMessage(err, "Failed to update user"));
     } finally {
       setSubmitting(false);
     }
@@ -150,7 +137,7 @@ export default function UserManagementPage() {
       setActiveUser(null);
       loadUsers(page); // Stay on current page
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || "Failed to delete user");
+      toast.error(getErrorMessage(err, "Failed to delete user"));
     } finally {
       setSubmitting(false);
     }
@@ -215,7 +202,6 @@ export default function UserManagementPage() {
                 <th>Profile &amp; Name</th>
                 <th>Email Address</th>
                 <th>Role</th>
-                <th>Bio / Details</th>
                 <th>Joined</th>
                 <th style={{ width: "120px", textAlign: "right" }}>Actions</th>
               </tr>
@@ -223,7 +209,7 @@ export default function UserManagementPage() {
             <tbody>
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: "center", padding: "32px 0", color: "var(--text-muted)" }}>
+                  <td colSpan="5" style={{ textAlign: "center", padding: "32px 0", color: "var(--text-muted)" }}>
                     <i className="bi bi-people" style={{ fontSize: 28, display: "block", marginBottom: 8 }} aria-hidden="true" />
                     No users found on this page.
                   </td>
@@ -253,9 +239,6 @@ export default function UserManagementPage() {
                       <span className={getRoleBadgeClass(u.role)} style={{ fontSize: 12, padding: "4px 10px" }}>
                         {toFrontendRole(u.role)}
                       </span>
-                    </td>
-                    <td style={{ fontSize: 13, color: "var(--text-muted)", maxWidth: "250px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {u.bio || "N/A"}
                     </td>
                     <td style={{ color: "var(--text-muted)", fontSize: 13 }}>
                       {u.createdAt
@@ -340,7 +323,7 @@ export default function UserManagementPage() {
             <h2 className="section-title" style={{ margin: 0, fontSize: 18 }}>Add New User</h2>
           </Modal.Header>
           <Formik
-            initialValues={{ name: "", email: "", password: "", role: "candidate", bio: "" }}
+            initialValues={{ name: "", email: "", password: "", role: "candidate" }}
             validationSchema={createUserSchema}
             onSubmit={handleAddUser}
           >
@@ -368,7 +351,7 @@ export default function UserManagementPage() {
                 </div>
 
                 {/* Role */}
-                <div style={{ marginBottom: 14 }}>
+                <div style={{ marginBottom: 20 }}>
                   <label htmlFor="user-role-add" style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: "block" }}>Access Role</label>
                   <Field id="user-role-add" name="role" as="select" style={{ width: "100%", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 14px", fontSize: 14, outline: "none", background: "white" }}>
                     <option value="candidate">Candidate</option>
@@ -376,13 +359,6 @@ export default function UserManagementPage() {
                     <option value="admin">Administrator</option>
                   </Field>
                   <ErrorMessage name="role">{(msg) => <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{msg}</div>}</ErrorMessage>
-                </div>
-
-                {/* Bio */}
-                <div style={{ marginBottom: 20 }}>
-                  <label htmlFor="user-bio-add" style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: "block" }}>Biography / Notes</label>
-                  <Field id="user-bio-add" name="bio" as="textarea" rows="3" placeholder="Brief description of this profile..." style={{ width: "100%", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 14px", fontSize: 14, outline: "none", resize: "none" }} />
-                  <ErrorMessage name="bio">{(msg) => <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{msg}</div>}</ErrorMessage>
                 </div>
 
                 {/* Footer Buttons */}
@@ -421,9 +397,7 @@ export default function UserManagementPage() {
             <Formik
               initialValues={{
                 name: activeUser.name || "",
-                email: activeUser.email || "",
-                role: toFrontendRole(activeUser.role),
-                bio: activeUser.bio || ""
+                email: activeUser.email || ""
               }}
               validationSchema={editUserSchema}
               onSubmit={handleEditUser}
@@ -442,24 +416,6 @@ export default function UserManagementPage() {
                     <label htmlFor="user-email-edit" style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: "block" }}>Email Address</label>
                     <Field id="user-email-edit" name="email" type="email" placeholder="Enter email address (e.g., name@domain.com)" style={{ width: "100%", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 14px", fontSize: 14, outline: "none" }} />
                     <ErrorMessage name="email">{(msg) => <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{msg}</div>}</ErrorMessage>
-                  </div>
-
-                  {/* Role */}
-                  <div style={{ marginBottom: 14 }}>
-                    <label htmlFor="user-role-edit" style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: "block" }}>Access Role</label>
-                    <Field id="user-role-edit" name="role" as="select" style={{ width: "100%", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 14px", fontSize: 14, outline: "none", background: "white" }}>
-                      <option value="candidate">Candidate</option>
-                      <option value="recruiter">Recruiter (HR)</option>
-                      <option value="admin">Administrator</option>
-                    </Field>
-                    <ErrorMessage name="role">{(msg) => <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{msg}</div>}</ErrorMessage>
-                  </div>
-
-                  {/* Bio */}
-                  <div style={{ marginBottom: 20 }}>
-                    <label htmlFor="user-bio-edit" style={{ fontSize: 13, fontWeight: 600, marginBottom: 6, display: "block" }}>Biography / Notes</label>
-                    <Field id="user-bio-edit" name="bio" as="textarea" rows="3" style={{ width: "100%", border: "1.5px solid var(--border)", borderRadius: 10, padding: "10px 14px", fontSize: 14, outline: "none", resize: "none" }} />
-                    <ErrorMessage name="bio">{(msg) => <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 4 }}>{msg}</div>}</ErrorMessage>
                   </div>
 
                   {/* Footer Buttons */}

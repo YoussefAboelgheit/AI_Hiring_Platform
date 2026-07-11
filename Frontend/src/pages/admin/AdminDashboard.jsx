@@ -73,13 +73,6 @@ export default function AdminDashboard() {
             System overview and data administration panel. Welcome back, {user?.name || "Administrator"}.
           </p>
         </div>
-        <button
-          type="button"
-          className="btn-primary-custom"
-          onClick={() => navigate("/admin/categories")}
-        >
-          <i className="bi bi-tags me-2" aria-hidden="true" /> Manage Categories
-        </button>
       </div>
 
 <div className="row g-4 mb-4">

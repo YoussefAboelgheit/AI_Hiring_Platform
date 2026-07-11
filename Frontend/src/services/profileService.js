@@ -1,12 +1,13 @@
-import { fetchMe, getSessionUser, saveCompleteProfile as saveProfileToBackend } from "./authService";
+import { fetchMe, getSessionUser, saveCompleteProfile as saveProfileToBackend, normalizeUser } from "./authService";
 import { getApiErrorMessage } from "./apiErrors";
+import apiClient from "./apiClient";
 
 function toList(value) {
   return Array.isArray(value) ? value.filter(Boolean) : [];
 }
 
 // توحيد بيانات المستخدم القادمة من /auth/me لكل من المرشح و الـ HR
-function mapProfile(user) {
+export function mapProfile(user) {
   if (!user) return null;
 
   return {
@@ -57,6 +58,17 @@ async function loadProfile() {
 
 export async function getCandidateProfile() {
   return loadProfile();
+}
+
+// يجيب بروفايل مرشح معين بالـ id (بيستخدمه الـ HR لعرض نفس شكل صفحة البروفايل الشخصي بتاعة الكانديديت)
+export async function getUserProfileById(id) {
+  try {
+    const { data } = await apiClient.get(`/users/${id}`);
+    const user = data?.user || data;
+    return mapProfile(normalizeUser(user));
+  } catch (error) {
+    throw Object.assign(new Error(getApiErrorMessage(error)), { cause: error });
+  }
 }
 
 export async function getRecruiterProfile() {

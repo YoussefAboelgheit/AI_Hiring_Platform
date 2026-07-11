@@ -101,7 +101,9 @@ export default function RecruiterDashboard() {
           <div 
             key={card.key} 
             className="hcard stat-card border-0 shadow-sm p-4" 
-            style={{ backgroundColor: card.bg, borderRadius: "16px" }}
+            style={{ backgroundColor: card.bg, borderRadius: "16px", transition: "transform 0.15s ease, box-shadow 0.15s ease", cursor: "default" }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 20px rgba(31,41,55,0.08)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = ""; }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div className="w-100">
@@ -158,7 +160,13 @@ export default function RecruiterDashboard() {
               </thead>
               <tbody>
                 {recentApplications.map((app) => (
-                  <tr key={app.id || app._id} style={{ cursor: "pointer" }} onClick={() => navigate("/recruiter/applications")}>
+                  <tr
+                    key={app.id || app._id}
+                    style={{ cursor: "pointer", transition: "background 0.12s ease" }}
+                    onClick={() => navigate("/recruiter/applications")}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--primary-bg)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  >
                     <td>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <img src={app.profile_image || "https://via.placeholder.com/36"} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }} />
@@ -184,42 +192,38 @@ export default function RecruiterDashboard() {
 
         {/* Right Sidebar */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          
-          {/* Top AI Matches */}
-          <div className="hcard border-0 shadow-sm" style={{ padding: 20, borderRadius: "16px" }}>
+
+          {/* Recommended Candidates */}
+          <div className="hcard border-0 shadow-sm d-flex flex-column" style={{ padding: 20, borderRadius: "16px", flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <span className="section-title fw-bold" style={{ margin: 0, fontSize: 15 }}>Top AI Matches</span>
-              <i className="bi bi-stars" style={{ color: "var(--primary)" }}></i>
+              <span className="section-title fw-bold" style={{ margin: 0, fontSize: 15 }}>Recommended Candidates</span>
+              <i className="bi bi-people" style={{ color: "var(--primary)" }}></i>
             </div>
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Recommended based on skillset & experience</div>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 16 }}>Based on skillset & experience</div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
               {topMatches.length === 0 && (
                 <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", padding: "12px 0" }}>
                   No applicants yet.
                 </div>
               )}
               {topMatches.map((m, i) => (
-                <div key={m.id || m._id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: "var(--body-bg)", borderRadius: 10 }}>
-                  <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", fontWeight: 800 }}>
+                <div key={m.id || m._id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 14px", background: "var(--body-bg)", borderRadius: 10 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", fontWeight: 800, flexShrink: 0 }}>
                     {i + 1}
                   </div>
-                  <img src={m.avatar || "https://via.placeholder.com/36"} alt="" style={{ width: 36, height: 36, borderRadius: "50%" }} />
-                  <div style={{ flex: 1 }}>
+                  <img src={m.avatar || "https://via.placeholder.com/36"} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700, fontSize: 13, color: "var(--primary)" }}>{m.name}</div>
                     <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{m.title}</div>
                   </div>
-                  <div style={{ textAlign: "right" }}>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
                     <div style={{ fontWeight: 800, color: "var(--primary)" }}>{m.match}%</div>
                     <div style={{ fontSize: 10, color: "var(--text-muted)" }}>MATCH SCORE</div>
                   </div>
                 </div>
               ))}
             </div>
-
-            <button type="button" className="btn-outline-custom" style={{ width: "100%", marginTop: 14, fontSize: 13 }} onClick={() => navigate("/recruiter/top-candidates")}>
-              Open Talent Pool
-            </button>
           </div>
 
         </div>
