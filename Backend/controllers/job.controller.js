@@ -152,6 +152,10 @@ function sanitizeApplicationForCandidate(application) {
     applicationObject.parsedResume = sanitizeParsedResume(applicationObject.parsedResume);
   }
 
+  const assessmentStatus = applicationObject.assessmentStatus;
+  applicationObject.hasAssessment = assessmentStatus !== null && assessmentStatus !== undefined;
+  applicationObject.assessmentCompleted = assessmentStatus === "completed";
+
   delete applicationObject.jobSnapshot;
   delete applicationObject.assessmentScore;
   delete applicationObject.assessmentStatus;
