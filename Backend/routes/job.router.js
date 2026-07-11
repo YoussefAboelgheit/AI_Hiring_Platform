@@ -71,6 +71,7 @@ import CandidateAssessment from "../models/candidateAssessment.js";
 import JobApplication from "../models/jobApplication.js";
 import Job from "../models/job.js";
 import { gradeAssessment } from "../services/ai/assessment/assessment.service.js";
+import { sendEmail } from "../util/sendEmail.js";
 
 
 const router = Router();
@@ -336,6 +337,54 @@ router.post(
   jobOwnershipByJobIdMW,
   addManualQuestion,
 );
+
+// ── Background Worker: auto-reject applications past the 3-day assessment deadline ──
+
+const autoRejectExpiredAssessmentApplications = async () => {
+  try {
+    const expiredApps = await JobApplication.find({
+      status: "Pending",
+      assessmentStatus: { $in: ["not_started", "pending"] },
+      assessmentDeadline: { $lte: new Date() },
+    }).populate({
+      path: "candidate",
+      select: "name email",
+    }).populate({
+      path: "job",
+      select: "title",
+    });
+
+    for (const app of expiredApps) {
+      app.status = "Rejected";
+      await app.save();
+
+      try {
+        await sendEmail({
+          to: app.candidate.email,
+          subject: `Update on your application for "${app.job.title}"`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2>Dear ${app.candidate.name},</h2>
+              <p>Thank you for your interest in the <strong>${app.job.title}</strong> position.</p>
+              <p>Unfortunately, your application has been automatically rejected because 
+                 the required assessment was not completed within the 3-day period.</p>
+              <p>We encourage you to apply for future positions that match your profile.</p>
+              <br/>
+              <p>We wish you all the best in your job search.</p>
+              <p><strong>AI Hiring Platform Team</strong></p>
+            </div>
+          `,
+        });
+      } catch (emailErr) {
+        console.error("Failed to send assessment expiry email:", emailErr.message);
+      }
+    }
+  } catch (err) {
+    console.error("Assessment auto-reject worker failed:", err?.message || err);
+  }
+};
+
+setInterval(autoRejectExpiredAssessmentApplications, 60 * 1000);
 
 // ── Background Worker: lock assessments when jobs expire ──
 

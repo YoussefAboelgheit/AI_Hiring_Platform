@@ -367,6 +367,11 @@ export const startAssessment = async (jobId, userId) => {
       );
     }
 
+    await JobApplication.updateOne(
+      { candidate: userId, job: jobId },
+      { $set: { assessmentStatus: "pending" } },
+    );
+
     const questions = await Question.find({
       _id: { $in: candidateAssessment.selectedQuestionIds },
     }).select("-correctAnswer -__v");
@@ -400,6 +405,11 @@ export const startAssessment = async (jobId, userId) => {
     startedAt: now,
     expiresAt: expiresAt,
   });
+
+  await JobApplication.updateOne(
+    { candidate: userId, job: jobId },
+    { $set: { assessmentStatus: "pending" } },
+  );
 
   const questions = selected.map((q) => ({
     _id: q._id,
