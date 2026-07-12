@@ -208,18 +208,20 @@ export default function RecruiterDashboard() {
                 </div>
               )}
               {topMatches.map((m, i) => (
-                <div key={m.id || m._id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 14px", background: "var(--body-bg)", borderRadius: 10 }}>
-                  <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", fontWeight: 800, flexShrink: 0 }}>
+                <div key={m.id || m._id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 14px", background: "var(--body-bg)", borderRadius: 10 }}>
+                  <div style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", fontWeight: 800, flexShrink: 0, marginTop: 2 }}>
                     {i + 1}
                   </div>
                   <img src={m.avatar || "https://via.placeholder.com/36"} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: 13, color: "var(--primary)" }}>{m.name}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{m.title}</div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: "var(--primary)", overflowWrap: "break-word", wordBreak: "break-word", lineHeight: 1.35 }}>
+                      {m.name}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: 2 }}>{m.title}</div>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontWeight: 800, color: "var(--primary)" }}>{m.match}%</div>
-                    <div style={{ fontSize: 10, color: "var(--text-muted)" }}>MATCH SCORE</div>
+                  <div style={{ textAlign: "right", flexShrink: 0, marginInlineStart: 8 }}>
+                    <div style={{ fontWeight: 800, color: "var(--primary)", whiteSpace: "nowrap" }}>{m.match}%</div>
+                    <div style={{ fontSize: 10, color: "var(--text-muted)", whiteSpace: "nowrap" }}>MATCH SCORE</div>
                   </div>
                 </div>
               ))}

@@ -107,7 +107,7 @@ export default function LandingPage() {
                 Revolutionizing Recruitment
               </motion.div>
               <motion.h1 className={s.heroTitle} variants={fadeUp} transition={{ duration: 0.6 }}>
-                AI-Powered <span style={{ color: "var(--primary)" }}>Recruitment</span> Platform
+                AI-Powered <span style={{ color: "#5EEAD4" }}>Recruitment</span> Platform
               </motion.h1>
               <motion.p className={s.heroDesc} variants={fadeUp} transition={{ duration: 0.6 }}>
                 The future of hiring is human-centered and AI-driven. Automate the mundane and focus on what truly matters: finding the perfect fit.
@@ -118,6 +118,7 @@ export default function LandingPage() {
                   onClick={() => navigate("/register")}
                   whileHover={{ scale: 1.03, y: -2 }}
                   whileTap={{ scale: 0.98 }}
+                  style={{ background: "#5EEAD4", color: "#0F172A" }}
                 >
                   Get Started Free <i className="bi bi-arrow-right ms-1" />
                 </motion.button>

@@ -457,7 +457,7 @@ export default function AssessmentGeneratorPage() {
 
       {/* ===== STEP 1 — mandatory type choice ===== */}
       {mode === "choose" && (
-        <div style={{ maxWidth: 900 }}>
+        <div>
           <FieldError message={chooseError} />
           <div className="row g-4" style={{ marginTop: chooseError ? 4 : 0 }}>
             {[
@@ -497,53 +497,81 @@ export default function AssessmentGeneratorPage() {
 
       {/* ===== AI config form (before questions exist) ===== */}
       {mode === "ai-config" && (
-        <div className="hcard" style={{ padding: 32, maxWidth: 700 }}>
-          <ChangeTypeButton onClick={handleChangeType} style={{ marginBottom: 20 }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--primary-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <i className="bi bi-stars" style={{ color: "var(--primary)", fontSize: 20 }} />
-            </div>
-            <div>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>Configure Assessment</div>
-              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Specify the parameters for the AI generation</div>
+        <div className="hcard" style={{ maxWidth: 700, overflow: "hidden" }}>
+          <div style={{ padding: "28px 32px 24px", borderBottom: "1px solid var(--border)" }}>
+            <ChangeTypeButton onClick={handleChangeType} style={{ marginBottom: 20 }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 46, height: 46, borderRadius: 13, background: "linear-gradient(135deg, var(--primary-bg), #e4d9fc)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <i className="bi bi-stars" style={{ color: "var(--primary)", fontSize: 20 }} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 16 }}>Configure Assessment</div>
+                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Tell the AI what to test candidates on — it'll generate the questions for you.</div>
+              </div>
             </div>
           </div>
 
-          <form onSubmit={handleGenerate}>
+          <form onSubmit={handleGenerate} style={{ padding: "24px 32px 32px" }}>
             <div className="row g-4">
               <div className="col-md-6">
-                <label className="form-label fw-bold" style={{ fontSize: 13 }}>Question Count</label>
+                <label className="form-label fw-bold" style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <i className="bi bi-list-ol" style={{ color: "var(--text-muted)", fontSize: 13 }} />Question Count
+                </label>
                 <input type="number" min="1" max="100" className="form-control" style={{ borderRadius: 10 }}
                   value={generateConfig.questionCount}
                   onChange={(e) => setGenerateConfig({ ...generateConfig, questionCount: e.target.value })} />
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>Between 1 and 100 questions.</div>
               </div>
               <div className="col-md-6">
-                <label className="form-label fw-bold" style={{ fontSize: 13 }}>Difficulty</label>
-                <select className="form-select" style={{ borderRadius: 10 }} value={generateConfig.difficulty}
-                  onChange={(e) => setGenerateConfig({ ...generateConfig, difficulty: e.target.value })}>
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
+                <label className="form-label fw-bold" style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <i className="bi bi-bar-chart-steps" style={{ color: "var(--text-muted)", fontSize: 13 }} />Difficulty
+                </label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {["Easy", "Medium", "Hard"].map((level) => {
+                    const active = generateConfig.difficulty === level;
+                    const colors = tagColors[level];
+                    return (
+                      <button
+                        key={level}
+                        type="button"
+                        onClick={() => setGenerateConfig({ ...generateConfig, difficulty: level })}
+                        style={{
+                          flex: 1, padding: "9px 0", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                          border: active ? `1.5px solid ${colors.color}` : "1.5px solid var(--border)",
+                          background: active ? colors.bg : "#fff",
+                          color: active ? colors.color : "var(--text-muted)",
+                          transition: "all .15s",
+                        }}
+                      >
+                        {level}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div className="col-md-6">
-                <label className="form-label fw-bold" style={{ fontSize: 13 }}>Duration (minutes) <span style={{ color: "#DC2626" }}>*</span></label>
+                <label className="form-label fw-bold" style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <i className="bi bi-clock" style={{ color: "var(--text-muted)", fontSize: 13 }} />Duration (minutes) <span style={{ color: "#DC2626" }}>*</span>
+                </label>
                 <input type="number" min={MIN_ASSESSMENT_DURATION_MINUTES} max="240" required className="form-control" style={{ borderRadius: 10 }}
                   value={generateConfig.durationMinutes}
                   onChange={(e) => setGenerateConfig({ ...generateConfig, durationMinutes: e.target.value })} />
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>How long candidates get to complete the assessment once they start it.</div>
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>How long candidates get once they start.</div>
               </div>
               <div className="col-md-6">
-                <label className="form-label fw-bold" style={{ fontSize: 13 }}>Topics (comma separated)</label>
+                <label className="form-label fw-bold" style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}>
+                  <i className="bi bi-tags" style={{ color: "var(--text-muted)", fontSize: 13 }} />Topics
+                </label>
                 <input type="text" className="form-control" style={{ borderRadius: 10 }}
                   value={generateConfig.topics}
                   onChange={(e) => setGenerateConfig({ ...generateConfig, topics: e.target.value })} placeholder="React, JavaScript" />
+                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>Comma separated. Leave blank to let AI choose based on the job.</div>
               </div>
             </div>
 
             <FieldError message={generateError} />
 
-            <div style={{ marginTop: 16, display: "flex", justifyContent: "flex-end" }}>
+            <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "flex-end" }}>
               <button type="submit" className="btn-primary-custom" disabled={generateMut.isPending || isLocked} style={{ minWidth: 200 }}>
                 {generateMut.isPending ? <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Generating...</> : <><i className="bi bi-magic me-2"></i>Generate Questions</>}
               </button>
@@ -609,9 +637,11 @@ export default function AssessmentGeneratorPage() {
                 />
               </div>
             </div>
-            <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={handleRegenerateAssessment} disabled={regenerateAssMut.isPending || isLocked}>
-              <i className="bi bi-arrow-clockwise me-2" />{regenerateAssMut.isPending ? "Regenerating..." : "Regenerate All Questions"}
-            </button>
+            {!isLocked && (
+              <button type="button" className="btn-outline-custom" style={{ fontSize: 13 }} onClick={handleRegenerateAssessment} disabled={regenerateAssMut.isPending}>
+                <i className="bi bi-arrow-clockwise me-2" />{regenerateAssMut.isPending ? "Regenerating..." : "Regenerate All Questions"}
+              </button>
+            )}
           </div>
 
           <FieldError message={listActionError} />
@@ -661,7 +691,7 @@ export default function AssessmentGeneratorPage() {
             isLocked={isLocked}
           />
 
-          <button type="button" className="btn-outline-custom w-100 mt-3" style={{ borderStyle: "dashed", maxWidth: 900 }} onClick={openAddQuestion} disabled={isLocked}>
+          <button type="button" className="btn-outline-custom w-100 mt-3" style={{ borderStyle: "dashed" }} onClick={openAddQuestion} disabled={isLocked}>
             <i className="bi bi-plus me-2" />Add Question
           </button>
         </>
@@ -755,27 +785,29 @@ export default function AssessmentGeneratorPage() {
 function QuestionList({ questions, allowRegenerate, onEdit, onDelete, onRegenerate, regeneratingId, isLocked }) {
   if (questions.length === 0) {
     return (
-      <div className="hcard" style={{ padding: 32, textAlign: "center", maxWidth: 900, color: "var(--text-muted)" }}>
+      <div className="hcard" style={{ padding: 32, textAlign: "center", color: "var(--text-muted)" }}>
         No questions yet.
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, maxWidth: 900 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {questions.map((q, i) => (
         <div key={q._id} className="hcard" style={{ padding: 20, position: "relative" }}>
-          <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 6 }}>
-            {allowRegenerate && (
-              <button onClick={() => onRegenerate(q._id)} className="btn btn-sm btn-light" title="Regenerate via AI" disabled={isLocked || regeneratingId === q._id}>
-                <i className={`bi ${regeneratingId === q._id ? "bi-hourglass-split" : "bi-arrow-clockwise"}`}></i>
-              </button>
-            )}
-            <button onClick={() => onEdit(q)} className="btn btn-sm btn-light" title="Edit" disabled={isLocked}><i className="bi bi-pencil"></i></button>
-            <button onClick={() => onDelete(q._id)} className="btn btn-sm btn-light" title="Delete" disabled={isLocked}><i className="bi bi-trash text-danger"></i></button>
-          </div>
+          {!isLocked && (
+            <div style={{ position: "absolute", top: 16, right: 16, display: "flex", gap: 6 }}>
+              {allowRegenerate && (
+                <button onClick={() => onRegenerate(q._id)} className="btn btn-sm btn-light" title="Regenerate via AI" disabled={regeneratingId === q._id}>
+                  <i className={`bi ${regeneratingId === q._id ? "bi-hourglass-split" : "bi-arrow-clockwise"}`}></i>
+                </button>
+              )}
+              <button onClick={() => onEdit(q)} className="btn btn-sm btn-light" title="Edit"><i className="bi bi-pencil"></i></button>
+              <button onClick={() => onDelete(q._id)} className="btn btn-sm btn-light" title="Delete"><i className="bi bi-trash text-danger"></i></button>
+            </div>
+          )}
           <div style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 700, marginBottom: 8 }}>Question {String(i + 1).padStart(2, "0")}</div>
-          <p style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.6, marginBottom: 10, paddingRight: allowRegenerate ? 120 : 80 }}>{q.question}</p>
+          <p style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.6, marginBottom: 10, paddingRight: isLocked ? 0 : (allowRegenerate ? 120 : 80) }}>{q.question}</p>
           {q.options?.length > 0 && (
             <ul style={{ fontSize: 13, marginBottom: 10, paddingInlineStart: 18 }}>
               {q.options.map((opt) => (
