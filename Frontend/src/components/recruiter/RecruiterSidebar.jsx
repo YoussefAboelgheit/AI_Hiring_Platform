@@ -8,6 +8,7 @@ const navItems = [
   { to: "/recruiter/dashboard", icon: "bi-grid-fill", label: "Dashboard", end: true },
   { to: "/recruiter/jobs", icon: "bi-briefcase", label: "Jobs", jobsSection: true },
   { to: "/recruiter/profile", icon: "bi-person", label: "Profile" },
+  { to: "/recruiter/settings", icon: "bi-gear", label: "Settings" },
 ];
 
 

@@ -85,7 +85,15 @@ export default function LandingPage() {
     <>
       {/* Hero */}
       <section className={`${s.hero} ${s.heroVideo}`}>
-        <video className={s.heroVideoBg} src={authHeroVideo} autoPlay muted loop playsInline />
+        <video
+          className={s.heroVideoBg}
+          src={authHeroVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          aria-hidden="true"
+        />
         <div className={s.heroVideoOverlay} aria-hidden="true" />
         <motion.div
           className={s.heroGlow}
@@ -95,9 +103,9 @@ export default function LandingPage() {
         />
 
         <div className={`container ${s.heroContent}`}>
-          <div className="row align-items-center g-4 g-lg-5">
+          <div className="row justify-content-center">
             <motion.div
-              className={`col-12 col-lg-6 ${s.heroCopy}`}
+              className={`col-12 col-lg-8 text-center ${s.heroCopy}`}
               initial="hidden"
               animate="visible"
               variants={stagger}
@@ -112,7 +120,7 @@ export default function LandingPage() {
               <motion.p className={s.heroDesc} variants={fadeUp} transition={{ duration: 0.6 }}>
                 The future of hiring is human-centered and AI-driven. Automate the mundane and focus on what truly matters: finding the perfect fit.
               </motion.p>
-              <motion.div className={`d-flex flex-wrap gap-3 mb-4 ${s.heroBtns}`} variants={fadeUp} transition={{ duration: 0.6 }}>
+              <motion.div className={`d-flex flex-wrap justify-content-center gap-3 mb-4 ${s.heroBtns}`} variants={fadeUp} transition={{ duration: 0.6 }}>
                 <motion.button
                   className="btn-primary-custom btn-lg-custom"
                   onClick={() => navigate("/register")}
@@ -131,7 +139,7 @@ export default function LandingPage() {
                   View Demo
                 </motion.button>
               </motion.div>
-              <motion.div className={`d-flex align-items-center gap-2 ${s.heroSocial}`} variants={fadeUp} transition={{ duration: 0.6 }}>
+              <motion.div className={`d-flex align-items-center justify-content-center gap-2 ${s.heroSocial}`} variants={fadeUp} transition={{ duration: 0.6 }}>
                 <div className={s.avatarGroup}>
                   {["#1d2445", "#0EA5E9", "#10B981", "#F43F5E"].map((c, i) => (
                     <motion.div
@@ -149,13 +157,6 @@ export default function LandingPage() {
                 </span>
               </motion.div>
             </motion.div>
-            <motion.div
-              className={`col-12 col-lg-6 ${s.heroVisual}`}
-              aria-hidden="true"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-            />
           </div>
         </div>
       </section>
