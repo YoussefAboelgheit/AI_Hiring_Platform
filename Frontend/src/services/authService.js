@@ -145,6 +145,11 @@ export async function confirmForgotPassword({ token, newPassword }) {
   }
 }
 
+export async function resendVerification({ email }) {
+  const { data } = await apiClient.post("/auth/resend-verification-email", { email });
+  return data;
+}
+
 export async function changePassword({ currentPassword, newPassword }) {
   try {
     const { data } = await apiClient.patch("/auth/reset-password", {

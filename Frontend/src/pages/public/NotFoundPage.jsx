@@ -36,9 +36,7 @@ export default function NotFoundPage() {
           <Link to="/" className="btn-primary-custom" style={{ textDecoration: "none" }}>
             Go Home
           </Link>
-          <Link to="/login" className="btn btn-outline-primary" style={{ textDecoration: "none" }}>
-            Sign In
-          </Link>
+ 
         </div>
       </div>
     </div>

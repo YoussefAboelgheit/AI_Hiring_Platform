@@ -7,7 +7,8 @@ const navItems = [
   { to: "/admin/dashboard", icon: "bi-grid-fill", label: "Dashboard", end: true },
   { to: "/admin/categories", icon: "bi-tags", label: "Categories", categorySection: true },
   { to: "/admin/jobs", icon: "bi-briefcase", label: "Manage Jobs", adminJobsSection: true },
-  { to: "/admin/users", icon: "bi-people", label: "Users", usersSection: true }
+  { to: "/admin/users", icon: "bi-people", label: "Users", usersSection: true },
+  { to: "/admin/settings", icon: "bi-gear", label: "Settings" },
 ];
 
 export default function AdminSidebar() {

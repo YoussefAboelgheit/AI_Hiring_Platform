@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
 import { getCandidateJobs } from "../../services/jobService";
 import { getCategories } from "../../services/categoryService";
 import { queryKeys } from "../../constants/queryKeys";
@@ -31,14 +30,8 @@ const DEFAULT_FILTERS = {
 };
 
 export default function BrowseJobsPage() {
-  const [searchParams] = useSearchParams();
-  const navbarSearch = searchParams.get("q") || "";
-  const [filters, setFilters] = useState(() => ({ ...DEFAULT_FILTERS, search: navbarSearch }));
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [draft, setDraft] = useState(DEFAULT_FILTERS);
-
-  useEffect(() => {
-    setFilters((prev) => ({ ...prev, search: navbarSearch, page: 1 }));
-  }, [navbarSearch]);
 
   const {
     data: categories = [],
@@ -64,16 +57,22 @@ export default function BrowseJobsPage() {
   });
 
   const jobs = (data?.jobs ?? []).map(mapJobForCard);
+  const hasMore = data?.hasMore ?? false;
 
   const updateDraft = (patch) => setDraft((prev) => ({ ...prev, ...patch }));
 
   const applyFilters = () => {
-    setFilters({ ...draft, search: navbarSearch, page: 1 });
+    setFilters({ ...draft, page: 1 });
   };
 
   const clearFilters = () => {
     setDraft(DEFAULT_FILTERS);
-    setFilters({ ...DEFAULT_FILTERS, search: navbarSearch });
+    setFilters({ ...DEFAULT_FILTERS });
+  };
+
+  const goToPage = (page) => {
+    setFilters((prev) => ({ ...prev, page }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSearchKeyDown = (e) => {
@@ -93,6 +92,18 @@ export default function BrowseJobsPage() {
 
       <div className="hcard jobs-filters-bar" style={{ padding: "16px 20px", marginBottom: 24 }}>
         <div className="jobs-filters-grid">
+          <div style={{ position: "relative" }}>
+            <i className="bi bi-search" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", fontSize: 14 }} />
+            <input
+              type="text"
+              value={draft.search}
+              onChange={(e) => updateDraft({ search: e.target.value })}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Search jobs by title, skills, or keywords..."
+              aria-label="Search jobs"
+              style={{ ...selectStyle, paddingLeft: 34 }}
+            />
+          </div>
           <input
             type="text"
             value={draft.location}
@@ -191,6 +202,29 @@ export default function BrowseJobsPage() {
             {jobs.map((job) => (
               <JobCard key={job.id} job={job} />
             ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 28 }}>
+            <button
+              type="button"
+              className="btn-outline-custom"
+              disabled={filters.page <= 1}
+              onClick={() => goToPage(filters.page - 1)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: filters.page <= 1 ? 0.4 : 1 }}
+            >
+              <i className="bi bi-chevron-left" /> Previous
+            </button>
+            <span style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>
+              Page {filters.page}
+            </span>
+            <button
+              type="button"
+              className="btn-outline-custom"
+              disabled={!hasMore}
+              onClick={() => goToPage(filters.page + 1)}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, opacity: !hasMore ? 0.4 : 1 }}
+            >
+              Next <i className="bi bi-chevron-right" />
+            </button>
           </div>
         </>
       )}

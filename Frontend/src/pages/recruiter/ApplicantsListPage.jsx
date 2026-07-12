@@ -201,6 +201,15 @@ export default function ApplicantsListPage() {
           </h1>
           <p style={{ color: "var(--text-muted)", margin: 0 }}>Review and filter candidates applying for this position.</p>
         </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          {jobId && (
+            <button className="btn-primary-custom" onClick={() => navigate(`/recruiter/jobs/${jobId}/assessment`)}>
+              <i className="bi bi-clipboard-check me-2" />
+              Manage Assessment
+            </button>
+          )}
+
+        </div>
       </div>
 
       <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">

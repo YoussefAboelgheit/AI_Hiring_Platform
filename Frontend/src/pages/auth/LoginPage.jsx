@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as yup from "yup";
@@ -9,6 +9,8 @@ import BrandLogo from "../../components/common/BrandLogo";
 import BackButton from "../../components/common/BackButton";
 import ForgotPasswordModal from "../../components/auth/ForgotPasswordModal";
 import { getHomeForRole } from "../../routes/rolePaths";
+import * as authService from "../../services/authService";
+import toast from "react-hot-toast";
 import styles from "./LoginPage.module.css";
 
 //   Yup Schema  
@@ -23,7 +25,10 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [show, setShow] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState("");
+  const [resendingVerification, setResendingVerification] = useState(false);
   const successMessage = location.state?.message;
+  const lastEmailRef = useRef("");
 
   //  React Query Mutation 
   const { mutate, isPending, isError, error } = useMutation({
@@ -46,7 +51,32 @@ export default function LoginPage() {
         { replace: true }
       );
     },
+    onError: (err) => {
+      const errData = err?.response?.data;
+      const errMsg = errData?.message || "";
+      if (
+        (err?.response?.status === 403 && errMsg.toLowerCase().includes("verify your email")) ||
+        errMsg.toLowerCase().includes("verify your email before logging in")
+      ) {
+        setVerifyEmail(lastEmailRef.current);
+      } else {
+        setVerifyEmail("");
+      }
+    },
   });
+
+  const handleResendVerification = async () => {
+    if (!verifyEmail) return;
+    setResendingVerification(true);
+    try {
+      const result = await authService.resendVerification({ email: verifyEmail });
+      toast.success(result.message || "Verification email sent.");
+    } catch (err) {
+      toast.error(err.message || "Failed to resend verification email.");
+    } finally {
+      setResendingVerification(false);
+    }
+  };
 
   return (
     <>
@@ -70,8 +100,35 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Server Error */}
-          {isError && (
+          {/* Unverified Email Banner */}
+          {verifyEmail && (
+            <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                <i className="bi bi-exclamation-triangle" style={{ color: "#EA580C", fontSize: 18, flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <p style={{ color: "#9A3412", fontSize: 13, fontWeight: 600, marginBottom: 4 }}>
+                    Email not verified
+                  </p>
+                  <p style={{ color: "#9A3412", fontSize: 13, marginBottom: 10 }}>
+                    Please verify your email address before signing in. Check your inbox for a verification link
+                    or resend the email below.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-primary-custom"
+                    style={{ fontSize: 13, padding: "7px 16px" }}
+                    disabled={resendingVerification}
+                    onClick={handleResendVerification}
+                  >
+                    {resendingVerification ? "Sending..." : "Resend Verification Email"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Server Error (non-verification) */}
+          {isError && !verifyEmail && (
             <div style={{ background: "#FEE2E2", color: "#991B1B", padding: "10px 14px", borderRadius: 10, fontSize: 13, marginBottom: 16 }}>
               {error?.message || "Login failed. Please try again."}
             </div>
@@ -81,7 +138,11 @@ export default function LoginPage() {
           <Formik
             initialValues={{ email: "", password: "" }}
             validationSchema={schema}
-            onSubmit={(values) => mutate(values)}
+            onSubmit={(values) => {
+              lastEmailRef.current = values.email;
+              setVerifyEmail("");
+              mutate(values);
+            }}
           >
             {() => (
               <Form>
@@ -119,10 +180,7 @@ export default function LoginPage() {
 
                 {/* Remember + Forgot */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, fontSize: 13 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)" }}>
-                    <input type="checkbox" id="remember" />
-                    <label htmlFor="remember" style={{ cursor: "pointer" }}>Keep me logged in for 30 days</label>
-                  </div>
+ 
                   <button
                     type="button"
                     onClick={() => setForgotOpen(true)}
