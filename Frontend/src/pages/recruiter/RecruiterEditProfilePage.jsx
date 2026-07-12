@@ -144,9 +144,7 @@ export default function RecruiterEditProfilePage() {
           <div className="hcard" style={{ padding: 24 }}>
             <div style={{ fontWeight: 700, marginBottom: 16 }}>Company Details</div>
             <div style={{ display: "grid", gap: 16 }}>
-              <Field label="Contact Name">
-                <input className="form-control" name="name" value={form.name} onChange={handleChange} placeholder="Your name" />
-              </Field>
+ 
 
               <Field label="Company Name">
                 <input className="form-control" name="company_name" value={form.company_name} onChange={handleChange} placeholder="e.g. Assiut Team" />

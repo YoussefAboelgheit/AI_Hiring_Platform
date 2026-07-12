@@ -30,12 +30,10 @@ export default function RegisterPage() {
   const { mutate, isPending, isError, error } = useMutation({
 
     mutationFn: (formData) => register({ ...formData, role }),
-    onSuccess: (result) => {
-      navigate("/login", {
+    onSuccess: (result, variables) => {
+      navigate("/verify-email", {
         replace: true,
-        state: {
-          message: result.message || "Account created successfully. Please log in.",
-        },
+        state: { email: variables.email },
       });
     },
   });

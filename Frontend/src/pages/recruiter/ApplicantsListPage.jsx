@@ -136,9 +136,7 @@ export default function ApplicantsListPage() {
               Manage Assessment
             </button>
           )}
-          <button type="button" className="btn-primary-custom" style={{ fontSize: 13 }} onClick={() => navigate("/recruiter/email-invitations")}>
-            <i className="bi bi-envelope me-2"></i>Send Invitations
-          </button>
+
         </div>
       </div>
 

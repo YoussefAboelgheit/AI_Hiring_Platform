@@ -10,7 +10,7 @@ export default function CandidateLayout() {
       <div className="app-shell">
         <CandidateSidebar />
         <div className="main-layout">
-          <Topbar placeholder="Search for opportunities..." />
+          <Topbar />
           <main className="page-content">
             <Outlet />
           </main>

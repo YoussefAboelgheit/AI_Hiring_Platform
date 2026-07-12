@@ -26,7 +26,7 @@ const footerColumns = [
       { label: "Help Center", href: "#help" },
       { label: "Documentation", href: "#docs" },
       { label: "Privacy Policy", to: "/privacy" },
-      { label: "Terms of Service", href: "#terms" }
+      { label: "Terms of Service", to: "/terms" }
     ]
   }
 ];
@@ -38,9 +38,8 @@ export default function Footer({ variant = "landing" }) {
         <span>HireAI · © 2026 HireAI Recruitment. All rights reserved.</span>
         <div className="footer-links">
           <Link to="/privacy">Privacy Policy</Link>
-          <a href="#terms">Terms of Service</a>
-          <a href="#help">Help Center</a>
-          <a href="#contact">Contact</a>
+          <Link to="/terms">Terms of Service</Link>
+ 
         </div>
       </footer>
     );

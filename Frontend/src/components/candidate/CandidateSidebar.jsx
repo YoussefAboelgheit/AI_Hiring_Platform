@@ -9,8 +9,6 @@ const navItems = [
   { to: "/candidate/jobs", icon: "bi-briefcase", label: "Jobs" },
   { to: "/candidate/jobs/saved", icon: "bi-bookmark-heart", label: "Saved Jobs" },
   { to: "/candidate/applications", icon: "bi-file-text", label: "Applications" },
-  { to: "/candidate/applications", icon: "bi-clipboard-check", label: "Assessments" },
-  { to: "/candidate/feedback", icon: "bi-chat-square-text", label: "Feedback" },
   { to: "/candidate/profile", icon: "bi-person", label: "Profile" },
   { to: "/candidate/settings", icon: "bi-gear", label: "Settings" },
 ];
