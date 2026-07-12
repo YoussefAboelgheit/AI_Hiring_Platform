@@ -106,7 +106,7 @@ router.delete(
 router.patch(
   "/:jobId/applications/:applicationId/status",
   authMW,
-  authorize("hr","admin"),
+  authorize("hr"),
   jobApplicationParamsValidator,
   updateApplicationStatusValidator,
   validateResults,
@@ -477,5 +477,34 @@ const expirePendingAssessments = async () => {
 };
 
 setInterval(expirePendingAssessments, 30 * 1000);
+
+
+// ── Background Worker: auto-close expired jobs ──
+const closeExpiredJobs = async () => {
+  try {
+    const now = new Date();
+
+    const result = await Job.updateMany(
+      {
+        applicationEnd: { $lte: now },  
+        status: "Open",                  
+      },
+      {
+        $set: { status: "Closed" }
+      }
+    );
+
+    if (result.modifiedCount > 0) {
+      console.log(`Auto-closed ${result.modifiedCount} expired job(s)`);
+    }
+  } catch (err) {
+    console.error("Auto-close jobs worker failed:", err?.message || err);
+  }
+};
+
+setInterval(closeExpiredJobs, 60 * 60 * 1000);
+
+// بيتشغل كمان وقت تشغيل السيرفر عشان يعالج أي وظايف فاتت
+closeExpiredJobs();
 
 export default router;

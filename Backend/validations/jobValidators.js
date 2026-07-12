@@ -216,11 +216,18 @@ export const applyToJobValidator = [
 
 //job status
 
+//التغيير - الأدمن بس يقدر يعمل Closed
 export const updateJobStatusValidator = [
   body("status")
     .notEmpty().withMessage("Status is required")
-    .isIn(JOB_STATUSES).withMessage("Status must be Open, Closed, or Drafted"),
+    .equals("Closed").withMessage("Admin can only close jobs"),
 ];
+
+// export const updateJobStatusValidator = [
+//   body("status")
+//     .notEmpty().withMessage("Status is required")
+//     .isIn(JOB_STATUSES).withMessage("Status must be Open, Closed, or Drafted"),
+// ];
 
 // jobapplicaton status 
 

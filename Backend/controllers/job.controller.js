@@ -956,7 +956,7 @@ export const updateApplicationStatus = async (req, res, next) => {
     const job = await Job.findById(jobId);
     if (!job) return next(new HTTPError(404, "Job not found"));
 
-    if (req.user.role !== "admin" && job.recruiter.toString() !== req.user._id.toString()) {
+    if ( job.recruiter.toString() !== req.user._id.toString()) {
       return next(
         new HTTPError(403, "You can only manage applications for your own jobs")
       );
