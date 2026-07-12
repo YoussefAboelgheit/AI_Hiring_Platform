@@ -85,7 +85,15 @@ export default function LandingPage() {
     <>
       {/* Hero */}
       <section className={`${s.hero} ${s.heroVideo}`}>
-        <video className={s.heroVideoBg} src={authHeroVideo} autoPlay muted loop playsInline />
+        <video
+          className={s.heroVideoBg}
+          src={authHeroVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          aria-hidden="true"
+        />
         <div className={s.heroVideoOverlay} aria-hidden="true" />
         <motion.div
           className={s.heroGlow}
@@ -95,67 +103,58 @@ export default function LandingPage() {
         />
 
         <div className={`container ${s.heroContent}`}>
-          <div className="row align-items-center g-4 g-lg-5">
-            <motion.div
-              className={`col-12 col-lg-6 ${s.heroCopy}`}
-              initial="hidden"
-              animate="visible"
-              variants={stagger}
-            >
-              <motion.div className={s.badge} variants={fadeUp} transition={{ duration: 0.55 }}>
-                <i className="bi bi-stars me-2" style={{ color: "var(--primary)" }} />
-                Revolutionizing Recruitment
-              </motion.div>
-              <motion.h1 className={s.heroTitle} variants={fadeUp} transition={{ duration: 0.6 }}>
-                AI-Powered <span style={{ color: "var(--primary)" }}>Recruitment</span> Platform
-              </motion.h1>
-              <motion.p className={s.heroDesc} variants={fadeUp} transition={{ duration: 0.6 }}>
-                The future of hiring is human-centered and AI-driven. Automate the mundane and focus on what truly matters: finding the perfect fit.
-              </motion.p>
-              <motion.div className={`d-flex flex-wrap gap-3 mb-4 ${s.heroBtns}`} variants={fadeUp} transition={{ duration: 0.6 }}>
-                <motion.button
-                  className="btn-primary-custom btn-lg-custom"
-                  onClick={() => navigate("/register")}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Get Started Free <i className="bi bi-arrow-right ms-1" />
-                </motion.button>
-                <motion.button
-                  className={`btn-outline-custom btn-lg-custom ${s.btnOutlineLight}`}
-                  onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  View Demo
-                </motion.button>
-              </motion.div>
-              <motion.div className={`d-flex align-items-center gap-2 ${s.heroSocial}`} variants={fadeUp} transition={{ duration: 0.6 }}>
-                <div className={s.avatarGroup}>
-                  {["#1d2445", "#0EA5E9", "#10B981", "#F43F5E"].map((c, i) => (
-                    <motion.div
-                      key={c}
-                      className={s.avatar}
-                      style={{ background: c, marginLeft: i ? -10 : 0 }}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.5 + i * 0.08, type: "spring", stiffness: 260 }}
-                    />
-                  ))}
-                </div>
-                <span className={s.heroSocialText} style={{ fontSize: 13 }}>
-                  <strong className={s.heroSocialStrong}>Join 500+ companies</strong> already hiring smarter
-                </span>
-              </motion.div>
+          <motion.div
+            className={s.heroCentered}
+            initial="hidden"
+            animate="visible"
+            variants={stagger}
+          >
+            <motion.div className={s.badge} variants={fadeUp} transition={{ duration: 0.55 }}>
+              <i className="bi bi-stars me-2" style={{ color: "#A5B4FC" }} />
+              Revolutionizing Recruitment
             </motion.div>
-            <motion.div
-              className={`col-12 col-lg-6 ${s.heroVisual}`}
-              aria-hidden="true"
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-            />
-          </div>
+            <motion.h1 className={s.heroTitle} variants={fadeUp} transition={{ duration: 0.6 }}>
+              AI-Powered <span className={s.heroAccent}>Recruitment</span> Platform
+            </motion.h1>
+            <motion.p className={s.heroDesc} variants={fadeUp} transition={{ duration: 0.6 }}>
+              The future of hiring is human-centered and AI-driven. Automate the mundane and focus on what truly matters: finding the perfect fit.
+            </motion.p>
+            <motion.div className={`d-flex flex-wrap gap-3 justify-content-center mb-4 ${s.heroBtns}`} variants={fadeUp} transition={{ duration: 0.6 }}>
+              <motion.button
+                className="btn-primary-custom btn-lg-custom"
+                onClick={() => navigate("/register")}
+                whileHover={{ scale: 1.03, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                Get Started Free <i className="bi bi-arrow-right ms-1" />
+              </motion.button>
+              <motion.button
+                className={`btn-outline-custom btn-lg-custom ${s.btnOutlineLight}`}
+                onClick={() => document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" })}
+                whileHover={{ scale: 1.03, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                View Demo
+              </motion.button>
+            </motion.div>
+            <motion.div className={`d-flex align-items-center justify-content-center gap-2 ${s.heroSocial}`} variants={fadeUp} transition={{ duration: 0.6 }}>
+              <div className={s.avatarGroup}>
+                {["#1d2445", "#0EA5E9", "#10B981", "#F43F5E"].map((c, i) => (
+                  <motion.div
+                    key={c}
+                    className={s.avatar}
+                    style={{ background: c, marginLeft: i ? -10 : 0 }}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 + i * 0.08, type: "spring", stiffness: 260 }}
+                  />
+                ))}
+              </div>
+              <span className={s.heroSocialText} style={{ fontSize: 13 }}>
+                <strong className={s.heroSocialStrong}>Join 500+ companies</strong> already hiring smarter
+              </span>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
