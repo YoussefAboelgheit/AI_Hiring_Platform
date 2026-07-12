@@ -35,6 +35,8 @@ import {
   updateAssessmentSettings,
   addManualQuestion,
   saveAnswer,
+  reportViolation,
+  getViolations,
 } from "../controllers/assessment.controller.js";
 import authMW from "../middlewares/authMW.js";
 import { authorize } from "../middlewares/authorizeMW.js";
@@ -64,6 +66,7 @@ import {
   updateAssessmentSettingsValidator,
   addQuestionValidator,
   saveAnswerValidator,
+  reportViolationValidator,
 } from "../validations/assessmentValidators.js";
 import validateResults from "../validations/validateResults.js";
 import Assessment from "../models/assessment.js";
@@ -312,6 +315,25 @@ router.post(
   jobIdParamValidator,
   validateResults,
   submitAssessment,
+);
+
+router.post(
+  "/:jobId/assessment/violations",
+  authMW,
+  authorize("candidate"),
+  jobIdParamValidator,
+  reportViolationValidator,
+  validateResults,
+  reportViolation,
+);
+
+router.get(
+  "/:jobId/assessment/violations",
+  authMW,
+  authorize("hr", "admin"),
+  jobIdParamValidator,
+  validateResults,
+  getViolations,
 );
 
 // ── Assessment Settings & Manual Questions (HR) ──

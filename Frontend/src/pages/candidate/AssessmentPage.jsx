@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import * as assessmentService from "../../services/assessmentService";
 import LoadingState from "../../components/common/LoadingState";
 import EmptyState from "../../components/common/EmptyState";
+import useAntiCheating from "../../hooks/useAntiCheating";
+import AssessmentWarningModal from "../../components/assessment/AssessmentWarningModal";
 
 function formatTimer(ms) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -11,9 +13,18 @@ function formatTimer(ms) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function isMobileOrTablet() {
+  return /Mobi|Android|iPad|iPhone|iPod|Tablet|Silk/i.test(navigator.userAgent);
+}
+
 export default function AssessmentPage() {
   const navigate = useNavigate();
   const { jobId } = useParams();
+
+  const [phase, setPhase] = useState("instructions");
+  const [instructionsAccepted, setInstructionsAccepted] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState(null);
+  const isMobileDevice = useRef(isMobileOrTablet());
 
   const [session, setSession] = useState(null); // candidateAssessment
   const [questions, setQuestions] = useState([]);
@@ -50,6 +61,38 @@ export default function AssessmentPage() {
   // Holds the jobId of the currently in-flight/most-recent load() call, used
   // to detect (at resolve time) whether that call is still the relevant one.
   const activeJobIdRef = useRef(null);
+
+  const submitAnswersRef = useRef(null);
+
+  // ─── Anti-cheating ─────────────────────────────────────────
+
+  const {
+    showWarning,
+    latestViolation,
+    startMonitoring,
+    stopMonitoring,
+    dismissWarning,
+    clearLatestViolation,
+  } = useAntiCheating({
+    jobId,
+    onAutoSubmit: () => {
+      autoSubmittedRef.current = true;
+      submitAnswersRef.current?.(true);
+    },
+  });
+
+  // Start monitoring when questions are loaded in assessment phase
+  useEffect(() => {
+    if (phase === "assessment" && questions.length > 0) {
+      const cleanup = startMonitoring();
+      return () => {
+        if (cleanup) cleanup();
+        stopMonitoring();
+      };
+    }
+  }, [phase, questions.length, startMonitoring, stopMonitoring]);
+
+  // ─── Assessment loading ───────────────────────────────────
 
   useEffect(() => {
     // Guard against stale updates using the jobId this specific call was made
@@ -96,12 +139,14 @@ export default function AssessmentPage() {
       }
     }
 
-    if (jobId && startedForJobRef.current !== jobId) {
+    if (jobId && phase === "assessment" && startedForJobRef.current !== jobId) {
       startedForJobRef.current = jobId;
       activeJobIdRef.current = jobId;
       load(jobId);
     }
-  }, [jobId]);
+  }, [jobId, phase]);
+
+  // ─── Submit / Auto-submit ─────────────────────────────────
 
   const submitAnswers = async (isAutoSubmit = false) => {
     setSubmitting(true);
@@ -117,6 +162,9 @@ export default function AssessmentPage() {
       }
       const { data } = await assessmentService.submitCandidateAssessment(jobId);
       setResult(data.result || { timedOut: isAutoSubmit });
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
     } catch (err) {
       if (isAutoSubmit) {
         // Time's up — don't let the candidate keep answering, even if submission failed.
@@ -128,6 +176,8 @@ export default function AssessmentPage() {
       setSubmitting(false);
     }
   };
+
+  submitAnswersRef.current = submitAnswers;
 
   // Countdown tick + auto-submit when time runs out.
   useEffect(() => {
@@ -150,6 +200,18 @@ export default function AssessmentPage() {
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timer?.expiresAt]);
+
+  // ─── Handlers ─────────────────────────────────────────────
+
+  const handleStartAssessment = async () => {
+    setFullscreenError(null);
+    try {
+      await document.documentElement.requestFullscreen();
+      setPhase("assessment");
+    } catch {
+      setFullscreenError("Fullscreen permission is required.");
+    }
+  };
 
   const handleSelect = (questionId, optionText) => {
     // Update the UI immediately so the selection feels instant.
@@ -178,6 +240,104 @@ export default function AssessmentPage() {
   };
 
   const handleSubmit = () => submitAnswers(false);
+
+  // ─── Render: Instructions Phase ────────────────────────────
+
+  if (phase === "instructions") {
+    return (
+      <div style={{ background: "var(--body-bg)", minHeight: "100vh" }}>
+        <div style={{ maxWidth: 640, margin: "0 auto", padding: "48px 16px" }}>
+          {isMobileDevice.current ? (
+            <div style={{ textAlign: "center", paddingTop: 60 }}>
+              <i className="bi bi-phone" style={{ fontSize: 48, color: "var(--text-muted)", marginBottom: 16 }} />
+              <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>
+                This assessment can only be completed on a desktop or laptop.
+              </h2>
+              <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
+                Please switch to a desktop or laptop computer to take this assessment.
+              </p>
+              <button className="btn-outline-custom" onClick={() => navigate("/candidate/dashboard")}>
+                Back to Dashboard
+              </button>
+            </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 32 }}>
+                <i className="bi bi-shield-check" style={{ fontSize: 40, color: "var(--primary)", marginBottom: 12 }} />
+                <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 8 }}>Assessment Instructions</h1>
+                <p style={{ color: "var(--text-muted)", fontSize: 14, margin: 0 }}>
+                  Please read the following rules carefully before starting the assessment.
+                </p>
+              </div>
+
+              <div className="hcard" style={{ padding: "24px 28px", marginBottom: 28 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Assessment Rules</h3>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+                  {[
+                    { icon: "bi-laptop", text: "This assessment must be completed on a desktop or laptop." },
+                    { icon: "bi-tablet", text: "Mobile devices and tablets are not supported." },
+                    { icon: "bi-arrows-expand", text: "Fullscreen mode is required." },
+                    { icon: "bi-window-dock", text: "Leaving the assessment tab will be recorded." },
+                    { icon: "bi-fullscreen-exit", text: "Exiting fullscreen will be recorded." },
+                    { icon: "bi-hand-index", text: "Right-click is disabled during the assessment." },
+                    { icon: "bi-files", text: "Copy, paste, and cut are disabled during the assessment." },
+                    { icon: "bi-terminal", text: "Developer tools shortcuts (F12, Ctrl+Shift+I) are blocked." },
+                    { icon: "bi-exclamation-triangle", text: "Suspicious actions will be reported to HR." },
+                    { icon: "bi-x-circle", text: "Excessive violations will automatically submit the assessment." },
+                  ].map((rule, i) => (
+                    <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                      <i className={`bi ${rule.icon}`} style={{ color: "var(--primary)", fontSize: 18, flexShrink: 0, marginTop: 1 }} />
+                      <span style={{ fontSize: 14, lineHeight: 1.5 }}>{rule.text}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <label
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, cursor: "pointer",
+                  padding: "12px 16px", borderRadius: 10, border: "2px solid var(--border)",
+                  marginBottom: 20, fontSize: 14,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={instructionsAccepted}
+                  onChange={(e) => setInstructionsAccepted(e.target.checked)}
+                  style={{ width: 18, height: 18, cursor: "pointer" }}
+                />
+                I have read and understood the assessment rules.
+              </label>
+
+              {fullscreenError && (
+                <div
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    fontSize: 13, color: "#991B1B", marginBottom: 16,
+                    padding: "10px 14px", background: "#FEE2E2", borderRadius: 8,
+                  }}
+                >
+                  <i className="bi bi-exclamation-circle-fill" />
+                  {fullscreenError}
+                </div>
+              )}
+
+              <button
+                className="btn-primary-custom"
+                style={{ padding: "12px 36px", fontSize: 15, width: "100%" }}
+                disabled={!instructionsAccepted}
+                onClick={handleStartAssessment}
+              >
+                Start Assessment
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Render: Assessment Phase ──────────────────────────────
 
   if (loading) {
     return (
@@ -242,6 +402,19 @@ export default function AssessmentPage() {
 
   return (
     <div style={{ background: "var(--body-bg)", minHeight: "100vh" }}>
+      {showWarning ? (
+        <AssessmentWarningModal
+          show={showWarning}
+          onHide={dismissWarning}
+          showThreshold
+        />
+      ) : (
+        <AssessmentWarningModal
+          show={!!latestViolation}
+          onHide={clearLatestViolation}
+          violation={latestViolation}
+        />
+      )}
       <div className="assessment-topbar">
         <span className="d-none d-sm-inline" style={{ fontSize: 14, color: "var(--text-muted)", fontWeight: 500 }}>
           Question <strong style={{ color: "var(--text-dark)" }}>{currentIndex + 1}</strong> of {totalQuestions}
