@@ -11,4 +11,8 @@ export const queryKeys = {
   assessments: {
     detail: (jobId) => ["assessments", jobId],
   },
+  chat: {
+    conversations: ["chat", "conversations"],
+    detail: (id) => ["chat", "conversations", id],
+  },
 };

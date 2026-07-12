@@ -17,6 +17,7 @@ import categoryRouter from "./routes/category.router.js";
 import cvRouter from "./routes/cv.router.js";
 //@desc import embeddings
 import embeddingsRouter from "./routes/embeddings.router.js";
+import chatRouter from "./routes/chat.router.js";
 const app = express();
 
 //@desc Swagger documentation by abanoub please don't delete
@@ -76,6 +77,8 @@ app.use("/api/embeddings", embeddingsRouter);
 
 //categories
 app.use("/api/categories", categoryRouter);
+
+app.use("/api/chat", chatRouter);
 
 app.use(notFoundMW);
 app.use(errorHandlingMW);
