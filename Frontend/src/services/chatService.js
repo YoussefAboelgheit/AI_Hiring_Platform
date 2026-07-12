@@ -14,3 +14,6 @@ export const sendMessage = (conversationId, content) =>
 
 export const endInterview = (conversationId) =>
   apiClient.post(`/chat/conversations/${conversationId}/end`);
+
+export const deleteConversation = (id) =>
+  apiClient.delete(`/chat/conversations/${id}`);

@@ -55,9 +55,9 @@ function JobActionsMenu({ items }) {
 const confirmModalCopy = {
   publish: {
     icon: "bi-upload", tone: "primary",
-    title: "Publish this job?",
-    body: (jobTitle) => `Publish "${jobTitle}" now? It will become visible to candidates immediately.`,
-    confirmLabel: "Publish",
+    title: "Publish Job",
+    body: (jobTitle) => `Are you sure you want to publish "${jobTitle}" now?`,
+    confirmLabel: "Publish Now",
   },
   close: {
     icon: "bi-x-circle", tone: "danger",
@@ -91,7 +91,22 @@ function ConfirmActionModal({ action, onCancel, onConfirm, pending }) {
               <i className={`bi ${copy.icon}`} style={{ color: isDanger ? "#DC2626" : "var(--primary)", fontSize: 20 }} />
             </div>
             <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>{copy.title}</div>
-            <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: 0 }}>{copy.body(action.jobTitle)}</p>
+            {action.type === "publish" ? (
+              <>
+                <p style={{ color: "var(--text-muted)", fontSize: 13.5, marginBottom: 12 }}>
+                  {copy.body(action.jobTitle)}
+                </p>
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>Once published:</div>
+                <ul style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 13, margin: 0, paddingInlineStart: 20, lineHeight: 1.8 }}>
+                  <li>The job will become visible to candidates immediately.</li>
+                  <li>You will no longer be able to edit this job.</li>
+                  <li>The assessment linked to this job will be locked.</li>
+                  <li>This action cannot be undone.</li>
+                </ul>
+              </>
+            ) : (
+              <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: 0, whiteSpace: "pre-line" }}>{copy.body(action.jobTitle)}</p>
+            )}
           </div>
           <div className="modal-footer" style={{ border: "none", padding: "0 24px 24px", justifyContent: "center" }}>
             <button type="button" className="btn-outline-custom" onClick={onCancel} disabled={pending}>Cancel</button>

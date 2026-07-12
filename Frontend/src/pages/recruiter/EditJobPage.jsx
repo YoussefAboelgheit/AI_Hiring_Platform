@@ -56,10 +56,50 @@ function EditWindowBanner({ timeLeftMs, isLocked }) {
   );
 }
 
+function PublishConfirmModal({ show, onCancel, onConfirm, pending }) {
+  if (!show) return null;
+
+  return (
+    <div className="modal show d-block" tabIndex="-1" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 420 }}>
+        <div className="modal-content" style={{ borderRadius: 16, border: "none" }}>
+          <div className="modal-body" style={{ padding: 28, textAlign: "center" }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 12, margin: "0 auto 16px",
+              background: "var(--primary-bg)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <i className="bi bi-upload" style={{ color: "var(--primary)", fontSize: 20 }} />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Publish Job</div>
+            <p style={{ color: "var(--text-muted)", fontSize: 13.5, marginBottom: 12 }}>
+              Are you sure you want to publish this job now?
+            </p>
+            <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>Once published:</div>
+            <ul style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 13, margin: 0, paddingInlineStart: 20, lineHeight: 1.8 }}>
+              <li>The job will become visible to candidates immediately.</li>
+              <li>You will no longer be able to edit this job.</li>
+              <li>The assessment linked to this job will be locked.</li>
+              <li>This action cannot be undone.</li>
+            </ul>
+          </div>
+          <div className="modal-footer" style={{ border: "none", padding: "0 24px 24px", justifyContent: "center" }}>
+            <button type="button" className="btn-outline-custom" onClick={onCancel} disabled={pending}>Cancel</button>
+            <button type="button" className="btn-primary-custom" onClick={onConfirm} disabled={pending}>
+              {pending ? "Publishing..." : "Publish Now"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EditJobPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [skillInput, setSkillInput] = useState("");
+  const [showPublishModal, setShowPublishModal] = useState(false);
 
   const {
     data: categories = [],
@@ -95,7 +135,8 @@ export default function EditJobPage() {
   const publishJobMutation = useMutation({
     mutationFn: () => openJob(id),
     onSuccess: () => {
-      toast.success("Job is now live!");
+      setShowPublishModal(false);
+      toast.success("Job published successfully.");
       navigate("/recruiter/jobs");
     },
     onError: (err) => {
@@ -329,7 +370,7 @@ export default function EditJobPage() {
                           toast.error("Can't publish this job — its application deadline has already passed. Please update the deadline first.");
                           return;
                         }
-                        publishJobMutation.mutate();
+                        setShowPublishModal(true);
                       }}
                     >
                       <i className="bi bi-send me-2" aria-hidden="true" />Publish Now
@@ -344,6 +385,12 @@ export default function EditJobPage() {
           );
         }}
       </Formik>
+      <PublishConfirmModal
+        show={showPublishModal}
+        onCancel={() => setShowPublishModal(false)}
+        onConfirm={() => publishJobMutation.mutate()}
+        pending={publishJobMutation.isPending}
+      />
     </>
   );
 }

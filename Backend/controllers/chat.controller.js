@@ -60,3 +60,15 @@ export const getConversation = async (req, res, next) => {
     next(err);
   }
 };
+
+export const deleteConversation = async (req, res, next) => {
+  try {
+    const result = await chatService.deleteConversation(
+      req.params.id,
+      req.user._id,
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
