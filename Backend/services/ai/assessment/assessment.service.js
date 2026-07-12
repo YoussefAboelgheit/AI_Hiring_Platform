@@ -2,10 +2,11 @@ import Assessment from "../../../models/assessment.js";
 import Question from "../../../models/question.js";
 import CandidateAssessment from "../../../models/candidateAssessment.js";
 import CandidateAnswer from "../../../models/candidateAnswer.js";
+import AssessmentViolation from "../../../models/assessmentViolation.js";
 import Job from "../../../models/job.js";
 import JobApplication from "../../../models/jobApplication.js";
 import HTTPError from "../../../util/httpError.js";
-import { REPOSITORY_MULTIPLIER } from "../../../config/assessment.js";
+import { REPOSITORY_MULTIPLIER, MAX_VIOLATIONS } from "../../../config/assessment.js";
 import { getProvider } from "../providers/providerFactory.js";
 import { buildGeneratePrompt } from "../prompts/generateAssessment.prompt.js";
 import { buildRegeneratePrompt } from "../prompts/regenerateQuestion.prompt.js";
@@ -347,7 +348,7 @@ export const startAssessment = async (jobId, userId) => {
     job: jobId,
   });
   if (candidateAssessment) {
-    if (candidateAssessment.status === "completed") {
+    if (candidateAssessment.status === "completed" || candidateAssessment.status === "auto_submitted") {
       throw new HTTPError(400, "You have already completed this assessment");
     }
 
@@ -551,7 +552,7 @@ export const submitAssessment = async (jobId, userId) => {
   if (!candidateAssessment)
     throw new HTTPError(404, "No assessment found for this job");
 
-  if (candidateAssessment.status === "completed") {
+  if (candidateAssessment.status === "completed" || candidateAssessment.status === "auto_submitted") {
     const total = candidateAssessment.selectedQuestionIds.length;
     const percentage = total > 0
       ? Math.round((candidateAssessment.score / total) * 100)
@@ -562,6 +563,7 @@ export const submitAssessment = async (jobId, userId) => {
       total,
       percentage,
       expired: candidateAssessment.completionReason === "expired",
+      autoSubmitted: candidateAssessment.completionReason === "auto_submitted",
     };
   }
 
@@ -576,4 +578,110 @@ export const submitAssessment = async (jobId, userId) => {
   );
 
   return { ...result, expired: isExpired };
+};
+
+export const reportViolation = async (jobId, userId, type) => {
+  const candidateAssessment = await CandidateAssessment.findOne({
+    candidate: userId,
+    job: jobId,
+    status: "pending",
+  });
+
+  if (!candidateAssessment) {
+    throw new HTTPError(404, "No pending assessment found");
+  }
+
+  if (
+    candidateAssessment.expiresAt &&
+    new Date() > candidateAssessment.expiresAt
+  ) {
+    const { score, total } = await gradeAssessment(candidateAssessment);
+    await completeAssessment(
+      candidateAssessment, userId, jobId, score, total, "expired",
+    );
+    throw new HTTPError(
+      410,
+      "Time is up. Assessment has been automatically submitted.",
+    );
+  }
+
+  const assessment = await Assessment.findById(candidateAssessment.assessment);
+
+  await AssessmentViolation.create({
+    attempt: candidateAssessment._id,
+    candidate: userId,
+    assessment: assessment?._id,
+    type,
+  });
+
+  candidateAssessment.violationCount = (candidateAssessment.violationCount || 0) + 1;
+
+  const currentCount = candidateAssessment.violationCount;
+  const shouldWarn = currentCount >= MAX_VIOLATIONS;
+  const shouldAutoSubmit = currentCount > MAX_VIOLATIONS;
+
+  if (shouldAutoSubmit) {
+    candidateAssessment.isFlagged = true;
+    candidateAssessment.terminationReason = "EXCEEDED_ALLOWED_VIOLATIONS";
+    candidateAssessment.status = "auto_submitted";
+    candidateAssessment.completionReason = "auto_submitted";
+    candidateAssessment.submittedAt = new Date();
+
+    const { score, total } = await gradeAssessment(candidateAssessment);
+    candidateAssessment.score = score;
+    await candidateAssessment.save();
+
+    const percentage = total > 0 ? Math.round((score / total) * 100) : 0;
+    await JobApplication.updateOne(
+      { candidate: userId, job: jobId },
+      { assessmentScore: percentage, assessmentStatus: "completed" },
+    );
+
+    return {
+      violationCount: currentCount,
+      maxViolations: MAX_VIOLATIONS,
+      shouldWarn,
+      autoSubmitted: true,
+    };
+  }
+
+  if (currentCount >= MAX_VIOLATIONS) {
+    candidateAssessment.isFlagged = true;
+  }
+
+  await candidateAssessment.save();
+
+  return {
+    violationCount: currentCount,
+    maxViolations: MAX_VIOLATIONS,
+    shouldWarn,
+    autoSubmitted: false,
+  };
+};
+
+export const getAssessmentViolations = async (jobId) => {
+  const assessment = await Assessment.findOne({ job: jobId });
+  if (!assessment) throw new HTTPError(404, "Assessment not found for this job");
+
+  const violations = await AssessmentViolation.find({
+    assessment: assessment._id,
+  })
+    .populate("candidate", "name email")
+    .sort({ timestamp: -1 });
+
+  const grouped = {};
+  for (const v of violations) {
+    const candidateId = v.candidate?._id?.toString() || v.candidate?.toString();
+    if (!grouped[candidateId]) {
+      grouped[candidateId] = {
+        candidate: v.candidate,
+        violations: [],
+        totalCount: 0,
+      };
+    }
+    grouped[candidateId].violations.push(v);
+    grouped[candidateId].totalCount++;
+  }
+
+  return Object.values(grouped);
 };

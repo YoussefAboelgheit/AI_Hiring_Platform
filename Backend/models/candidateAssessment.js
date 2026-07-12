@@ -39,13 +39,26 @@ const candidateAssessmentSchema = new mongoose.Schema(
     },
     completionReason: {
       type: String,
-      enum: ["submitted", "expired", null],
+      enum: ["submitted", "expired", "auto_submitted", null],
       default: null,
     },
     status: {
       type: String,
-      enum: ["pending", "completed"],
+      enum: ["pending", "completed", "auto_submitted"],
       default: "pending",
+    },
+    violationCount: {
+      type: Number,
+      default: 0,
+    },
+    isFlagged: {
+      type: Boolean,
+      default: false,
+    },
+    terminationReason: {
+      type: String,
+      enum: ["EXCEEDED_ALLOWED_VIOLATIONS", null],
+      default: null,
     },
   },
   { timestamps: true }

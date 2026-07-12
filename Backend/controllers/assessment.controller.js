@@ -142,3 +142,28 @@ export const submitAssessment = async (req, res, next) => {
     next(err);
   }
 };
+
+export const reportViolation = async (req, res, next) => {
+  try {
+    const { type } = req.body;
+    const result = await assessmentService.reportViolation(
+      req.params.jobId,
+      req.user._id,
+      type,
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getViolations = async (req, res, next) => {
+  try {
+    const result = await assessmentService.getAssessmentViolations(
+      req.params.jobId,
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};

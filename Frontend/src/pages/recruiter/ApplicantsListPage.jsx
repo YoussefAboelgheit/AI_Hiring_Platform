@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getApplicantsList, updateJobApplicationStatus } from "../../services/recruiterService";
 import { getAssessment } from "../../services/assessmentService";
+import { getJobViolations } from "../../services/assessmentViolation.service";
 import toast from "react-hot-toast";
 import CircleProgress from "../../components/common/CircleProgress";
 import LoadingState from "../../components/common/LoadingState";
@@ -27,6 +28,7 @@ export default function ApplicantsListPage() {
   const [updatingStatus, setUpdatingStatus] = useState({});
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [violationsMap, setViolationsMap] = useState({});
 
   const handleStatusUpdate = async (jobId, applicationId, newStatus) => {
     if (!jobId || !applicationId) return;
@@ -119,6 +121,32 @@ export default function ApplicantsListPage() {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [displayedApplications]);
+
+  // Fetch violations for the applicant jobs that have assessments
+  useEffect(() => {
+    const jobIds = [...new Set(displayedApplications.map((app) => app.jobId).filter(Boolean))]
+      .filter((id) => jobsWithAssessment[id]);
+    if (jobIds.length === 0) return;
+
+    let cancelled = false;
+    jobIds.forEach((id) => {
+      getJobViolations(id)
+        .then(({ data }) => {
+          if (cancelled) return;
+          const map = {};
+          for (const entry of data) {
+            const candidateId = entry.candidate?._id;
+            if (candidateId) {
+              map[candidateId] = entry;
+            }
+          }
+          setViolationsMap((prev) => ({ ...prev, ...map }));
+        })
+        .catch(() => {});
+    });
+
+    return () => { cancelled = true; };
+  }, [displayedApplications, jobsWithAssessment]);
 
   // When viewing a single job's applicants, hide the whole Assessment Score column
   // if that job has no assessment attached. When viewing all jobs mixed together,
@@ -215,6 +243,7 @@ export default function ApplicantsListPage() {
                 <th>Status</th>
                 <th className="text-center">CV Score</th>
                 {showAssessmentColumn && <th className="text-center">Assessment Score</th>}
+                {showAssessmentColumn && <th className="text-center">Cheating Flags</th>}
                 <th>AI Report</th>
                 <th style={{ minWidth: 132 }}>Actions</th>
               </tr>
@@ -261,6 +290,41 @@ export default function ApplicantsListPage() {
                         ) : (
                           <span style={{ color: "var(--text-muted)", fontSize: 13 }}>—</span>
                         )}
+                      </td>
+                    )}
+                    {showAssessmentColumn && (
+                      <td style={{ textAlign: "center", fontSize: 13 }}>
+                        {(() => {
+                          const candidateId = app.candidate?._id;
+                          const violationEntry = candidateId ? violationsMap[candidateId] : null;
+                          if (!violationEntry || violationEntry.totalCount === 0) {
+                            return <span style={{ color: "var(--text-muted)" }}>No cheating detected</span>;
+                          }
+                          const grouped = {};
+                          for (const v of violationEntry.violations) {
+                            grouped[v.type] = (grouped[v.type] || 0) + 1;
+                          }
+                          const lastTimestamp = violationEntry.violations[0]?.timestamp;
+                          const formattedDate = lastTimestamp
+                            ? new Date(lastTimestamp).toLocaleString("en-GB", {
+                                day: "numeric", month: "long", year: "numeric",
+                                hour: "2-digit", minute: "2-digit", second: "2-digit",
+                              })
+                            : "";
+                          const tooltipLines = Object.entries(grouped).map(
+                            ([type, count]) => `${type}: ${count} occurrence${count > 1 ? "s" : ""}`
+                          );
+                          if (formattedDate) tooltipLines.push(`Last: ${formattedDate}`);
+                          return (
+                            <span title={tooltipLines.join("\n")} style={{ cursor: "help" }}>
+                              {Object.entries(grouped).map(([type, count]) => (
+                                <span key={type} style={{ display: "inline-block", margin: "0 2px" }}>
+                                  🚩 {type} x{count}
+                                </span>
+                              ))}
+                            </span>
+                          );
+                        })()}
                       </td>
                     )}
                     <td style={{ maxWidth: 160 }}>

@@ -113,3 +113,10 @@ export const saveAnswerValidator = [
 ];
 
 export const submitAnswerValidator = [];
+
+export const reportViolationValidator = [
+  body("type")
+    .notEmpty().withMessage("Violation type is required")
+    .isIn(["TAB_SWITCH", "FULLSCREEN_EXIT", "COPY", "PASTE", "CUT", "RIGHT_CLICK", "DRAG_START", "DEVTOOLS_SHORTCUT"])
+    .withMessage("Invalid violation type"),
+];
