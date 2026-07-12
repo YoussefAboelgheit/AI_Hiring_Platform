@@ -10,6 +10,7 @@ const navItems = [
   { to: "/candidate/jobs/saved", icon: "bi-bookmark-heart", label: "Saved Jobs" },
   { to: "/candidate/applications", icon: "bi-file-text", label: "Applications" },
   { to: "/candidate/profile", icon: "bi-person", label: "Profile" },
+  { to: "/candidate/chat", icon: "bi-chat-dots", label: "AI Chat" },
   { to: "/candidate/settings", icon: "bi-gear", label: "Settings" },
 ];
 

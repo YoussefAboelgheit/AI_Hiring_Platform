@@ -26,6 +26,7 @@ import ApplyJobPage from "../pages/candidate/ApplyJobPage";
 import MyApplicationsPage from "../pages/candidate/MyApplicationsPage";
 import ApplicationDetailPage from "../pages/candidate/ApplicationDetailPage";
 import AssessmentPage from "../pages/candidate/AssessmentPage";
+import ChatPage from "../pages/candidate/ChatPage";
 import AIFeedbackPage from "../pages/candidate/AIFeedbackPage";
 import CandidateProfilePage from "../pages/candidate/CandidateProfilePage";
 import CandidateEditProfilePage from "../pages/candidate/CandidateEditProfilePage";
@@ -82,6 +83,7 @@ export default function AppRoutes() {
         </Route>
 
         <Route path="candidate/jobs/:jobId/assessment" element={<AssessmentPage />} />
+        <Route path="candidate/chat" element={<ChatPage />} />
 
         <Route path="candidate" element={<CandidateLayout />}>
           <Route path="dashboard" element={<CandidateDashboard />} />
