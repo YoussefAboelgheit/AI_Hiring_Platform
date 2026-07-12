@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useParams, useNavigate } from "react-router-dom";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   useAssessment,
   useGenerateAssessment,
@@ -11,9 +11,10 @@ import {
   useDeleteQuestion,
   useRegenerateQuestion,
 } from "../../hooks/useAssessment";
-import { getJobById } from "../../services/jobService";
+import { getJobById, openJob } from "../../services/jobService";
 import LoadingState from "../../components/common/LoadingState";
 import BackButton from "../../components/common/BackButton";
+import toast from "react-hot-toast";
 
 // Candidates need a realistic minimum to actually read and answer questions —
 // the backend rejects anything shorter, so we catch it here first with a clear message
@@ -132,8 +133,48 @@ function ChangeTypeButton({ onClick, style, disabled }) {
   );
 }
 
+function PublishConfirmModal({ show, onCancel, onConfirm, pending }) {
+  if (!show) return null;
+
+  return (
+    <div className="modal show d-block" tabIndex="-1" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: 420 }}>
+        <div className="modal-content" style={{ borderRadius: 16, border: "none" }}>
+          <div className="modal-body" style={{ padding: 28, textAlign: "center" }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 12, margin: "0 auto 16px",
+              background: "var(--primary-bg)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <i className="bi bi-upload" style={{ color: "var(--primary)", fontSize: 20 }} />
+            </div>
+            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Publish Job</div>
+            <p style={{ color: "var(--text-muted)", fontSize: 13.5, marginBottom: 12 }}>
+              Are you sure you want to publish this job now?
+            </p>
+            <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-muted)", marginBottom: 8 }}>Once published:</div>
+            <ul style={{ textAlign: "left", color: "var(--text-muted)", fontSize: 13, margin: 0, paddingInlineStart: 20, lineHeight: 1.8 }}>
+              <li>The job will become visible to candidates immediately.</li>
+              <li>The job will no longer be editable.</li>
+              <li>The assessment will be locked.</li>
+              <li>This action cannot be undone.</li>
+            </ul>
+          </div>
+          <div className="modal-footer" style={{ border: "none", padding: "0 24px 24px", justifyContent: "center" }}>
+            <button type="button" className="btn-outline-custom" onClick={onCancel} disabled={pending}>Cancel</button>
+            <button type="button" className="btn-primary-custom" onClick={onConfirm} disabled={pending}>
+              {pending ? "Publishing..." : "Publish Now"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AssessmentGeneratorPage() {
   const { jobId } = useParams();
+  const navigate = useNavigate();
   const { data, isLoading, error } = useAssessment(jobId);
   const { data: job } = useQuery({
     queryKey: ["job", jobId],
@@ -148,6 +189,18 @@ export default function AssessmentGeneratorPage() {
   const updateQuestionMut = useUpdateQuestion();
   const deleteQuestionMut = useDeleteQuestion();
   const regenerateQuestionMut = useRegenerateQuestion();
+
+  const publishJobMutation = useMutation({
+    mutationFn: () => openJob(jobId),
+    onSuccess: () => {
+      setShowPublishModal(false);
+      toast.success("Job published successfully.");
+      navigate("/recruiter/jobs");
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Failed to publish job. Please try again.");
+    },
+  });
 
   // The user's in-flight choice on the "pick a type" screen, before the backend confirms it.
   // Lets us show the AI config form (or a brief loading state for Manual/None) without
@@ -178,6 +231,8 @@ export default function AssessmentGeneratorPage() {
   // ugly native "localhost says" browser dialog instead of matching the app's UI.
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [deletingQuestion, setDeletingQuestion] = useState(false);
+
+  const [showPublishModal, setShowPublishModal] = useState(false);
 
   // Inline "edit duration" control for an already-created assessment (AI or Manual)
   const [editingDuration, setEditingDuration] = useState(false);
@@ -489,9 +544,16 @@ export default function AssessmentGeneratorPage() {
           <i className="bi bi-slash-circle" style={{ fontSize: 36, color: "var(--text-muted)", marginBottom: 16, display: "block" }} />
           <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>Assessment disabled</div>
           <p style={{ color: "var(--text-muted)", marginBottom: 20 }}>Candidates applying to this job won't be asked to take an assessment.</p>
-          <button type="button" className="btn-outline-custom" onClick={handleChangeType} disabled={isLocked}>
-            Change Assessment Type
-          </button>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button type="button" className="btn-outline-custom" onClick={handleChangeType} disabled={isLocked}>
+              Change Assessment Type
+            </button>
+            {job?.status === "Drafted" && !isLocked && (
+              <button type="button" className="btn-primary-custom" onClick={() => setShowPublishModal(true)} disabled={publishJobMutation.isPending}>
+                <i className="bi bi-send me-2" />Publish Now
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -625,6 +687,14 @@ export default function AssessmentGeneratorPage() {
             regeneratingId={regenerateQuestionMut.isPending ? regenerateQuestionMut.variables?.questionId : null}
             isLocked={isLocked}
           />
+
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", maxWidth: 900, marginTop: 20 }}>
+            {job?.status === "Drafted" && !isLocked && (
+              <button type="button" className="btn-outline-custom" onClick={() => setShowPublishModal(true)} disabled={publishJobMutation.isPending}>
+                <i className="bi bi-send me-2" />Publish Now
+              </button>
+            )}
+          </div>
         </>
       )}
 
@@ -664,6 +734,25 @@ export default function AssessmentGeneratorPage() {
           <button type="button" className="btn-outline-custom w-100 mt-3" style={{ borderStyle: "dashed", maxWidth: 900 }} onClick={openAddQuestion} disabled={isLocked}>
             <i className="bi bi-plus me-2" />Add Question
           </button>
+
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", maxWidth: 900, marginTop: 20 }}>
+            {job?.status === "Drafted" && !isLocked && (
+              <button
+                type="button"
+                className="btn-outline-custom"
+                onClick={() => {
+                  if (questions.length === 0) {
+                    toast.error("You must add at least one question before publishing.");
+                    return;
+                  }
+                  setShowPublishModal(true);
+                }}
+                disabled={publishJobMutation.isPending || questions.length === 0}
+              >
+                <i className="bi bi-send me-2" />Publish Now
+              </button>
+            )}
+          </div>
         </>
       )}
 
@@ -748,6 +837,13 @@ export default function AssessmentGeneratorPage() {
           </div>
         </div>
       )}
+
+      <PublishConfirmModal
+        show={showPublishModal}
+        onCancel={() => setShowPublishModal(false)}
+        onConfirm={() => publishJobMutation.mutate()}
+        pending={publishJobMutation.isPending}
+      />
     </>
   );
 }

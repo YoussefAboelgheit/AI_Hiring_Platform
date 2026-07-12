@@ -20,6 +20,7 @@ import {
   retryMyApplicationMatch,
   getCandidateFeedbackReport,
   updateJob,
+  publishJobDraft,
   adminUpdateJobStatus,
   adminDeleteJob,
 } from "../controllers/job.controller.js";
@@ -223,6 +224,18 @@ router.delete(
   validateResults,
   jobOwnershipMW,
   deleteJob
+);
+
+// ── Publish Job (HR) ──
+
+router.patch(
+  "/:jobId/publish",
+  authMW,
+  authorize("hr"),
+  jobIdParamValidator,
+  validateResults,
+  jobOwnershipByJobIdMW,
+  publishJobDraft
 );
 
 // ── Assessment Management (HR) ──

@@ -150,3 +150,16 @@ export const getConversation = async (conversationId, candidateId) => {
 
   return conversation;
 };
+
+export const deleteConversation = async (conversationId, candidateId) => {
+  const conversation = await ChatConversation.findOneAndDelete({
+    _id: conversationId,
+    candidate: candidateId,
+  });
+
+  if (!conversation) {
+    throw new HTTPError(404, "Conversation not found");
+  }
+
+  return { message: "Conversation deleted successfully" };
+};

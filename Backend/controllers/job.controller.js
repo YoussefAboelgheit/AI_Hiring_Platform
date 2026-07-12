@@ -520,12 +520,6 @@ export const updateJob = async (req, res, next) => {
       const { status } = req.body;
       // HR wants to publish the draft → transition to Open
       if (status === "Open") {
-        // Timed drafts (saveAsDraft: false) cannot be manually published; must wait 5-min auto-publish
-        if (req.job.editableUntil) {
-          return next(
-            new HTTPError(400, "This draft will auto-publish after the 5-minute editing period. Only persistent drafts (saveAsDraft: true) can be published manually."),
-          );
-        }
         // Reject publish if applicationEnd is in the past
         if (req.job.applicationEnd && new Date() > req.job.applicationEnd) {
           return next(
@@ -1094,6 +1088,40 @@ export const getMySavedJobs = async (req, res, next) => {
       success: true,
       results: savedJobs.length,
       data: savedJobs,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const publishJobDraft = async (req, res, next) => {
+  try {
+    if (req.job.status !== "Drafted") {
+      return next(
+        new HTTPError(400, `Cannot publish a job with status "${req.job.status}". Only drafted jobs can be published.`),
+      );
+    }
+
+    if (req.job.editableUntil && new Date() > req.job.editableUntil) {
+      await publishJob(req.job);
+      return next(
+        new HTTPError(400, "The 5-minute draft editing period has expired. The job has been published."),
+      );
+    }
+
+    if (req.job.applicationEnd && new Date() > req.job.applicationEnd) {
+      return next(
+        new HTTPError(400, "Cannot publish a job with an application end date in the past. Update the application end date first, then publish."),
+      );
+    }
+
+    await publishJob(req.job);
+    const job = await Job.findById(req.job._id)
+      .populate(recruiterPopulate)
+      .populate(categoryPopulate);
+    return res.status(200).json({
+      message: "Job published successfully.",
+      job: sanitizeJob(job),
     });
   } catch (err) {
     next(err);

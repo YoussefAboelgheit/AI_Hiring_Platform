@@ -13,6 +13,7 @@ import {
   endInterview,
   getConversations,
   getConversation,
+  deleteConversation,
 } from "../controllers/chat.controller.js";
 
 const router = Router();
@@ -58,6 +59,15 @@ router.post(
   conversationIdParamValidator,
   validateResults,
   endInterview,
+);
+
+router.delete(
+  "/conversations/:id",
+  authMW,
+  authorize("candidate"),
+  conversationIdParamValidator,
+  validateResults,
+  deleteConversation,
 );
 
 export default router;

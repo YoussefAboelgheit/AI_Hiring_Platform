@@ -1,5 +1,6 @@
 import Job from "../models/job.js";
 import JobApplication from "../models/jobApplication.js";
+import Assessment from "../models/assessment.js";
 import { parseJobWithAI } from "./jobParser.service.js";
 import {
   cosineSimilarity,
@@ -134,6 +135,11 @@ export const publishJob = async (job) => {
       acceptApplications: true,
       editableUntil: null,
     });
+
+    await Assessment.updateOne(
+      { job: job._id, status: "Drafted" },
+      { status: "Locked" },
+    );
   } catch (error) {
     console.error("Job publishing pipeline failed:", error?.message ?? error);
 
@@ -145,6 +151,11 @@ export const publishJob = async (job) => {
       acceptApplications: true,
       editableUntil: null,
     });
+
+    await Assessment.updateOne(
+      { job: job._id, status: "Drafted" },
+      { status: "Locked" },
+    );
   }
 };
 

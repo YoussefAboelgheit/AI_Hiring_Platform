@@ -36,6 +36,8 @@ export default function ChatPage() {
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [creating, setCreating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -160,6 +162,29 @@ export default function ChatPage() {
     }
   };
 
+  const handleDelete = (id, title) => {
+    setDeleteTarget({ id, title });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const { id } = deleteTarget;
+    setDeleting(id);
+    try {
+      await chatService.deleteConversation(id);
+      if (activeId === id) {
+        setActiveId(null);
+        setMessages([]);
+      }
+      setConversations((prev) => prev.filter((c) => c._id !== id));
+      setDeleteTarget(null);
+    } catch {
+      // ignore
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   const openNewChat = async () => {
     setShowNewChat(true);
     setNewChatType("general");
@@ -239,14 +264,17 @@ export default function ChatPage() {
                   padding: "12px 20px", cursor: "pointer", borderBottom: "1px solid var(--border)",
                   background: activeId === c._id ? "var(--primary-bg)" : "#fff",
                   transition: "background 0.15s",
+                  position: "relative",
                 }}
+                onMouseEnter={(e) => { e.currentTarget.querySelector(".chat-delete-btn").style.opacity = 1; }}
+                onMouseLeave={(e) => { e.currentTarget.querySelector(".chat-delete-btn").style.opacity = 0; }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                   <i className={`bi ${typeIcon(c.type)}`} style={{ color: "var(--primary)", fontSize: 14 }} />
                   <span style={{ fontWeight: 600, fontSize: 13, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {c.title}
                   </span>
-                  <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0, marginRight: 24 }}>
                     {formatDate(c.updatedAt)}
                   </span>
                 </div>
@@ -258,6 +286,20 @@ export default function ChatPage() {
                     Completed
                   </span>
                 )}
+                <button
+                  className="chat-delete-btn"
+                  onClick={(e) => { e.stopPropagation(); handleDelete(c._id, c.title); }}
+                  disabled={deleting === c._id}
+                  style={{
+                    position: "absolute", top: 8, right: 8, opacity: 0,
+                    transition: "opacity 0.15s",
+                    background: "none", border: "none", padding: "4px 6px",
+                    color: "#DC2626", fontSize: 14, cursor: "pointer",
+                  }}
+                  title="Delete conversation"
+                >
+                  <i className="bi bi-trash" />
+                </button>
               </div>
             ))
           )}
@@ -403,21 +445,7 @@ export default function ChatPage() {
             }}
           >
             <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", gap: 8, alignItems: "flex-end" }}>
-              {isMockInterview && (
-                <button
-                  className="btn"
-                  onClick={handleEndInterview}
-                  disabled={sending}
-                  style={{
-                    padding: "8px 12px", borderRadius: 8, background: "#FEE2E2",
-                    color: "#991B1B", fontWeight: 600, fontSize: 12, border: "none",
-                    flexShrink: 0,
-                  }}
-                  title="End interview and get summary"
-                >
-                  <i className="bi bi-stop-fill me-1" /> End
-                </button>
-              )}
+
               <div style={{ flex: 1, position: "relative" }}>
                 <textarea
                   ref={inputRef}
@@ -568,6 +596,56 @@ export default function ChatPage() {
                 onClick={handleNewChat}
               >
                 {creating ? "Creating..." : "Start"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 2100, padding: 16,
+          }}
+          onClick={() => setDeleteTarget(null)}
+        >
+          <div
+            className="hcard"
+            style={{ maxWidth: 400, width: "100%", padding: "28px 24px", textAlign: "center" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{
+              width: 48, height: 48, borderRadius: 12, margin: "0 auto 16px",
+              background: "#FEE2E2",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <i className="bi bi-trash" style={{ color: "#DC2626", fontSize: 20 }} />
+            </div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
+              Delete Conversation
+            </h3>
+            <p style={{ color: "var(--text-muted)", fontSize: 13.5, marginBottom: 24 }}>
+              Are you sure you want to delete "<strong>{deleteTarget.title}</strong>"? This cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              <button
+                className="btn-outline-custom"
+                style={{ padding: "8px 20px", fontSize: 13 }}
+                onClick={() => setDeleteTarget(null)}
+                disabled={deleting === deleteTarget.id}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-primary-custom"
+                style={{ padding: "8px 20px", fontSize: 13, background: "#DC2626", borderColor: "#DC2626" }}
+                disabled={deleting === deleteTarget.id}
+                onClick={confirmDelete}
+              >
+                {deleting === deleteTarget.id ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
