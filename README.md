@@ -134,8 +134,6 @@ npm test
 ---
 
 ## 7. Authors
-## 👥 Authors
-
 ### Youssef Aboelgheit
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-0A66C2?logo=linkedin&logoColor=white)](https://www.linkedin.com/in/youssef-aboelgheit/)
 [![GitHub](https://img.shields.io/badge/GitHub-Profile-181717?logo=github&logoColor=white)](https://github.com/YoussefAboelgheit)
