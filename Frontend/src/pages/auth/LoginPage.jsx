@@ -8,6 +8,7 @@ import AuthHeroPanel from "../../components/auth/AuthHeroPanel";
 import BrandLogo from "../../components/common/BrandLogo";
 import BackButton from "../../components/common/BackButton";
 import ForgotPasswordModal from "../../components/auth/ForgotPasswordModal";
+import ResendVerificationModal from "../../components/auth/ResendVerificationModal";
 import { getHomeForRole } from "../../routes/rolePaths";
 import * as authService from "../../services/authService";
 import toast from "react-hot-toast";
@@ -25,6 +26,7 @@ export default function LoginPage() {
   const { login } = useAuth();
   const [show, setShow] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [verifyModalOpen, setVerifyModalOpen] = useState(false);
   const [verifyEmail, setVerifyEmail] = useState("");
   const [resendingVerification, setResendingVerification] = useState(false);
   const successMessage = location.state?.message;
@@ -208,10 +210,30 @@ export default function LoginPage() {
               Register
             </Link>
           </div>
+
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <button
+              type="button"
+              onClick={() => setVerifyModalOpen(true)}
+              style={{
+                color: "var(--primary)",
+                fontSize: 13,
+                fontWeight: 600,
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                textDecoration: "underline",
+              }}
+            >
+              Didn&apos;t receive the verification email? Send Verification Email
+            </button>
+          </div>
         </div>
       </div>
 
       <ForgotPasswordModal show={forgotOpen} onHide={() => setForgotOpen(false)} />
+      <ResendVerificationModal show={verifyModalOpen} onHide={() => setVerifyModalOpen(false)} />
     </>
   );
 }
