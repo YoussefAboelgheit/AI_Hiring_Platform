@@ -26,13 +26,13 @@ export default function AboutPage() {
           <div className="row justify-content-center">
             <div className="col-12 col-lg-8 text-center">
               <div className="landing-hero-badge">
-                <i className="bi bi-info-circle" aria-hidden="true" /> About HireAI
+                <i className="bi bi-info-circle" aria-hidden="true" /> About Joblio
               </div>
               <h1 className="landing-hero-title">
                 Building the Future of <span style={{ color: "var(--primary)" }}>Intelligent Hiring</span>
               </h1>
               <p className="landing-hero-desc mx-auto" style={{ maxWidth: 640 }}>
-                HireAI is an AI-powered recruitment platform that helps companies find, evaluate, and hire top talent — while giving every candidate a fair, transparent experience.
+                Joblio is an AI-powered recruitment platform that helps companies find, evaluate, and hire top talent — while giving every candidate a fair, transparent experience.
               </p>
             </div>
           </div>
@@ -68,7 +68,7 @@ export default function AboutPage() {
         <div className="container">
           <div className="text-center mb-5">
             <h2 className="section-heading">AI Recruitment Benefits</h2>
-            <p className="text-muted">Why modern teams choose HireAI for their hiring pipeline.</p>
+            <p className="text-muted">Why modern teams choose Joblio for their hiring pipeline.</p>
           </div>
           <div className="row g-4">
             {content.benefits.map((b) => (
@@ -90,7 +90,7 @@ export default function AboutPage() {
         <div className="container">
           <div className="cta-banner">
             <h2 className="text-white fw-bold mb-3">Ready to transform your hiring?</h2>
-            <p className="text-white-75 mb-4">Join thousands of companies and candidates already using HireAI.</p>
+            <p className="text-white-75 mb-4">Join thousands of companies and candidates already using Joblio.</p>
             <div className="d-flex flex-wrap gap-3 justify-content-center">
               <button type="button" className="btn-cta-primary" onClick={() => navigate("/register")}>Get Started</button>
               <button type="button" className="btn-cta-outline" onClick={() => navigate("/")}>Back to Home</button>

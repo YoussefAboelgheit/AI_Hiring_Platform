@@ -11,7 +11,7 @@ function normalizeJob(raw) {
   return {
     id: raw._id,
     title: raw.title || "Untitled",
-    company: raw.recruiter?.name || raw.recruiter?.username || "HireAI Recruiter",
+    company: raw.recruiter?.name || raw.recruiter?.username || "Joblio Recruiter",
     logo: raw.recruiter?.profile_image || raw.recruiter?.company_logo || "",
     location: raw.location || "Remote",
     type: raw.jobType || "",

@@ -1,4 +1,4 @@
-export default function CircleProgress({ value = 0, size = 100, stroke = 8, color = "#6B21E8" }) {
+export default function CircleProgress({ value = 0, size = 100, stroke = 8, color = "#0F766E" }) {
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const offset = circ - (value / 100) * circ;

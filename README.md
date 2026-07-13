@@ -8,25 +8,23 @@
 
 ## Table of Contents
 
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Architecture Overview](#architecture-overview)
-- [Database Models](#database-models)
-- [API Documentation](#api-documentation)
-- [Environment Variables](#environment-variables)
-- [Installation](#installation)
-- [Running Tests](#running-tests)
-- [AI Features](#ai-features)
-- [Assessment Flow](#assessment-flow)
-- [Anti-Cheating System](#anti-cheating-system)
-- [Security](#security)
-- [Development Guidelines](#development-guidelines)
-- [Deployment](#deployment)
-- [Troubleshooting](#troubleshooting)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
+- [Features](#features) — Registration, JWT auth, email verification, candidate/recruiter/admin capabilities, AI CV parsing, job matching, assessments, chat, and anti-cheating
+- [Tech Stack](#tech-stack) — React 19, Express 4, MongoDB, Google Gemini AI, Ollama/OpenAI embeddings, Supabase Storage, JWT auth, and supporting libraries
+
+
+- [Environment Variables](#environment-variables) — All required and optional config: server, JWT, email, Supabase, Gemini, Ollama, embedding, and parser settings
+- [Installation](#installation) — Prerequisites, dependency setup, .env configuration, running backend/frontend, seeding data, and running tests
+
+- [AI Features](#ai-features) — Resume parsing, job parsing, embedding generation, cosine similarity matching, assessment generation, candidate analysis, candidate feedback, and AI chat/mock interview
+- [Assessment Flow](#assessment-flow) — Complete flow from job creation through assessment config, publishing, candidate application, quiz taking, auto-grading, and HR review
+- [Anti-Cheating System](#anti-cheating-system) — 8 monitored violation types, 3-strike auto-submit rule, fullscreen enforcement, violation logging and HR review
+- [Security](#security) — JWT dual-token auth, bcrypt hashing, token blacklisting, httpOnly cookies, RBAC, input validation, CORS, score visibility controls
+- [Development Guidelines](#development-guidelines) — Folder organization, naming conventions, ES modules, middleware patterns, AI service isolation, Git workflow
+
+- [Troubleshooting](#troubleshooting) — MongoDB connection issues, missing env vars, frontend API issues, build failures, AI/email/job auto-publish troubleshooting
+- [Roadmap](#roadmap) — Planned enhancements: video interviews, WebSockets, analytics dashboard, calendar integration, multi-language support, HRIS integration
+
+- [License](#license) — All Rights Reserved (proprietary and confidential)
 
 ---
 

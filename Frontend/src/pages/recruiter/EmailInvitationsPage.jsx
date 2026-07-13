@@ -66,7 +66,7 @@ export default function EmailInvitationsPage() {
           <div style={{ background: "var(--primary-bg)", borderRadius: 12, padding: 16, border: "1px solid #e2e2e2" }}>
             <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
               <i className="bi bi-stars" style={{ color: "var(--primary)" }} aria-hidden="true" />
-              <span style={{ fontWeight: 700, fontSize: 13, color: "var(--primary)" }}>HireAI Insight</span>
+              <span style={{ fontWeight: 700, fontSize: 13, color: "var(--primary)" }}>Joblio Insight</span>
             </div>
             <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>{data.aiInsight}</p>
           </div>
@@ -100,7 +100,7 @@ export default function EmailInvitationsPage() {
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{data.assessmentDuration}</div>
               </div>
             </div>
-            <a href="#portal" style={{ color: "var(--primary)", fontWeight: 600, fontSize: 13 }}>Access HireAI Portal</a>
+            <a href="#portal" style={{ color: "var(--primary)", fontWeight: 600, fontSize: 13 }}>Access Joblio Portal</a>
           </div>
           <div style={{ display: "flex", gap: 16, marginBottom: 20, fontSize: 13 }}>
             <label style={{ display: "flex", alignItems: "center", gap: 6 }}><input type="checkbox" defaultChecked /> Send copy to me</label>

@@ -11,7 +11,7 @@ export default function AuthHeroPanel() {
           Start hiring <span className="auth-accent">smarter</span> today.
         </h2>
         <p className="auth-subtext">
-          Join over 5,000+ companies using HireAI to automate their recruitment workflow and find the perfect human match through intelligent data.
+          Join over 500+ companies using HireAI to automate their recruitment workflow and find the perfect human match through intelligent data.
         </p>
       </div>
       <div className="hero-illustration-wrap">
