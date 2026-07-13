@@ -33,7 +33,7 @@ export default function Topbar() {
           <div className="d-none d-sm-block">
             <div className="name">{user?.name || "User"}</div>
             <div className="role">
-              {user?.role === "Recruiter" ? "Company" : user?.role === "Candidate" ? "Candidate":"Admin"}
+              {user?.role === "recruiter" ? "Company" : user?.role === "candidate" ? "Candidate" : "Admin"}
             </div>
           </div>
         </div>
