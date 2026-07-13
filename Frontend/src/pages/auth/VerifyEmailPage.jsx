@@ -146,13 +146,6 @@ export default function VerifyEmailPage() {
                     ? `Resend available in ${cooldown}s`
                     : "Resend Verification Email"}
               </button>
-              <button
-                type="button"
-                className="btn-outline-custom w-100 mb-3"
-                onClick={() => setShowEmailInput(true)}
-              >
-                Use a different email
-              </button>
             </div>
           )}
 

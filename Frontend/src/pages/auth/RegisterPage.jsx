@@ -13,7 +13,18 @@ import styles from "./RegisterPage.module.css";
 const schema = yup.object({
   name: yup.string().trim().required("Full name is required"),
   email: yup.string().email("Enter a valid email").required("Email is required"),
-  password: yup.string().min(8, "Password must be at least 8 characters").required("Password is required"),
+  password: yup
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .matches(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .matches(/[a-z]/, "Password must contain at least one lowercase letter")
+    .matches(/[0-9]/, "Password must contain at least one number")
+    .matches(/[^a-zA-Z0-9]/, "Password must contain at least one special character")
+    .required("Password is required"),
+  confirmPassword: yup
+    .string()
+    .oneOf([yup.ref("password")], "Passwords do not match")
+    .required("Please confirm your password"),
   terms: yup.boolean().oneOf([true], "You must accept the terms"),
 });
 
@@ -24,12 +35,13 @@ export default function RegisterPage() {
   const { register } = useAuth();
   const [role, setRole] = useState("candidate");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   //  React Query Mutation 
 
   const { mutate, isPending, isError, error } = useMutation({
 
-    mutationFn: (formData) => register({ ...formData, role }),
+    mutationFn: ({ name, email, password }) => register({ name, email, password, role }),
     onSuccess: (result, variables) => {
       navigate("/verify-email", {
         replace: true,
@@ -82,7 +94,7 @@ export default function RegisterPage() {
 
           {/* ── 3. Formik ── */}
           <Formik
-            initialValues={{ name: "", email: "", password: "", terms: false }}
+            initialValues={{ name: "", email: "", password: "", confirmPassword: "", terms: false }}
             validationSchema={schema}
             onSubmit={(values) => mutate(values)}
           >
@@ -92,8 +104,9 @@ export default function RegisterPage() {
                 {[
                   { label: "Full Name",     key: "name",     icon: "bi-person",   type: "text" },
                   { label: "Email Address", key: "email",    icon: "bi-envelope", type: "email" },
-                  { label: "Password",      key: "password", icon: "bi-lock",     type: showPassword ? "text" : "password", toggle: true },
-                ].map(({ label, key, icon, type, toggle }) => (
+                  { label: "Password",      key: "password", icon: "bi-lock",     type: showPassword ? "text" : "password", toggle: true, toggleState: showPassword, setToggle: setShowPassword },
+                  { label: "Confirm Password", key: "confirmPassword", icon: "bi-lock", type: showConfirmPassword ? "text" : "password", toggle: true, toggleState: showConfirmPassword, setToggle: setShowConfirmPassword },
+                ].map(({ label, key, icon, type, toggle, toggleState, setToggle }) => (
                   <div key={key}>
                     <div className={styles.floatingInputWrap}>
                       <i className={`bi ${icon} ${styles.inputIcon}`} aria-hidden="true" />
@@ -108,10 +121,10 @@ export default function RegisterPage() {
                         <button
                           type="button"
                           className={styles.btnTogglePassword}
-                          onClick={() => setShowPassword(!showPassword)}
+                          onClick={() => setToggle(!toggleState)}
                           aria-label="Toggle password"
                         >
-                          <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`} />
+                          <i className={`bi ${toggleState ? "bi-eye-slash" : "bi-eye"}`} />
                         </button>
                       )}
                     </div>
