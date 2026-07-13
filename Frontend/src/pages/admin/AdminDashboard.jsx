@@ -24,7 +24,7 @@ export default function AdminDashboard() {
         ]);
         setCategoriesCount(cats.length);
         setUsersCount(users.total || (users.users?.length ?? 0));
-        setJobsCount(jobs.length);
+        setJobsCount(jobs.total ?? jobs.jobs?.length ?? 0);
       } catch (err) {
         console.error("Error loading dashboard data:", err);
       } finally {

@@ -103,7 +103,7 @@ export default function ApplicationSubmittedPage() {
         {hasAssessment && (
           <p style={{ color: "#92400E", fontSize: 12.5, marginBottom: 16, display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
             <i className="bi bi-info-circle-fill" aria-hidden="true" />
-            This job requires an assessment — recruiters won't see your application until it's completed.
+            This job requires an assessment — the company won't see your application until it's completed. You can complete it within 3 days.
           </p>
         )}
 
@@ -143,7 +143,7 @@ export default function ApplicationSubmittedPage() {
                 </div>
                 <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Leave without completing the assessment?</div>
                 <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: 0 }}>
-                  This job requires an assessment. If you leave now without completing it, the recruiter won't be able to see your application.
+                  This job requires an assessment. You can complete it within 3 days, otherwise the company won't be able to see your application.
                 </p>
               </div>
               <div className="modal-footer" style={{ border: "none", padding: "0 24px 24px", justifyContent: "center" }}>

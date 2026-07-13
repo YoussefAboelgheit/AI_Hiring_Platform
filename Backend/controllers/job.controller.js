@@ -253,6 +253,15 @@ export const getAllJobs = async (req, res, next) => {
       baseFilter = { recruiter: req.user._id, status: "Closed" };
     }
 
+    const page  = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 50);
+
+    // Count total matching documents (same filters, no pagination)
+    const countFeatures = new APIFeatures(Job.find(baseFilter), req.query)
+      .filter()
+      .search(["title", "description", "requirements", "location", "skills"]);
+    const total = await Job.countDocuments(countFeatures.query.getFilter());
+
     const features = new APIFeatures(Job.find(baseFilter), req.query)
       .filter()
       .search(["title", "description", "requirements", "location", "skills"])
@@ -262,8 +271,9 @@ export const getAllJobs = async (req, res, next) => {
       .populate([recruiterPopulate, categoryPopulate]);
 
     const jobs = await features.query;
+    const pages = Math.ceil(total / limit);
 
-    return res.status(200).json({ jobs: jobs.map(sanitizeJob) });
+    return res.status(200).json({ total, page, pages, jobs: jobs.map(sanitizeJob) });
   } catch (err) {
     next(err);
   }

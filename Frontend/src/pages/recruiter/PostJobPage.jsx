@@ -63,7 +63,7 @@ export default function PostJobPage() {
         toast.success("Job saved as draft. Publish it whenever you're ready.");
         navigate("/recruiter/jobs");
       } else {
-        toast.success("Job posted! It will go live automatically in 45 minutes — edit it now if you need to.");
+        toast.success("Job posted! It will go live automatically in 30 minutes — edit it now if you need to.");
         navigate(`/recruiter/jobs/${job._id}/assessment`);
       }
     },
