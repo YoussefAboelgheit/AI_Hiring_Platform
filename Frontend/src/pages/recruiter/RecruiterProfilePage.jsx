@@ -115,25 +115,6 @@ export default function RecruiterProfilePage() {
             </p>
           </div>
 
-          <div className="hcard" style={{ padding: 24 }}>
-            <div style={{ fontWeight: 700, marginBottom: 16 }}>Contact Person</div>
-            <div style={{ display: "grid", gap: 12 }}>
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Name</div>
-                <div style={{ fontWeight: 600 }}>{profile.name || "\u2014"}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Email</div>
-                <div style={{ fontWeight: 600 }}>{profile.email || "\u2014"}</div>
-              </div>
-              {profile.phone && (
-                <div>
-                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>Phone</div>
-                  <div style={{ fontWeight: 600 }}>{profile.phone}</div>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </>
