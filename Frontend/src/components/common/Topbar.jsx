@@ -13,14 +13,14 @@ export default function Topbar() {
   const settingsPath = isAdmin
     ? "/admin/settings"
     : isCandidate
-    ? "/candidate/settings"
-    : "/recruiter/settings";
+      ? "/candidate/settings"
+      : "/recruiter/settings";
 
   const profilePath = isAdmin
     ? "/admin/profile"
     : isCandidate
-    ? "/candidate/profile"
-    : "/recruiter/profile";
+      ? "/candidate/profile"
+      : "/recruiter/profile";
 
   return (
     <header className="topbar">
@@ -51,11 +51,7 @@ export default function Topbar() {
             <div className="name">{user?.name || "User"}</div>
 
             <div className="role">
-              {user?.role === "Recruiter"
-                ? "Company"
-                : user?.role === "Candidate"
-                ? "Candidate"
-                : "Admin"}
+              {user?.role === "recruiter" ? "Company" : user?.role === "candidate" ? "Candidate" : "Admin"}
             </div>
           </div>
         </Link>
