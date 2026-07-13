@@ -102,7 +102,7 @@ export default function RegisterPage() {
               <Form>
                 {/* Fields */}
                 {[
-                  { label: "Full Name",     key: "name",     icon: "bi-person",   type: "text" },
+                  { label: role === "recruiter" ? "Company Name" : "Full Name", key: "name", icon: role === "recruiter" ? "bi-building" : "bi-person", type: "text" },
                   { label: "Email Address", key: "email",    icon: "bi-envelope", type: "email" },
                   { label: "Password",      key: "password", icon: "bi-lock",     type: showPassword ? "text" : "password", toggle: true, toggleState: showPassword, setToggle: setShowPassword },
                   { label: "Confirm Password", key: "confirmPassword", icon: "bi-lock", type: showConfirmPassword ? "text" : "password", toggle: true, toggleState: showConfirmPassword, setToggle: setShowConfirmPassword },

@@ -1,5 +1,5 @@
 export function mapJobForCard(job) {
-  const company = job.recruiter?.name || "HireAI Recruiter";
+  const company = job.recruiter?.company_name || job.recruiter?.name || "HireAI Recruiter";
 
   return {
     id: job._id,

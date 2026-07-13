@@ -12,7 +12,9 @@ export function resolveAvatar(user) {
 
   if (userImage) return userImage;
   
-  const name = user?.name || "User";
+  const name = (user?.role === "hr" || user?.role === "recruiter")
+    ? (user?.company_name || user?.name || "Company")
+    : (user?.name || "User");
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=F3F5FB&color=1D2445&size=150`;
 }
 
@@ -22,12 +24,17 @@ export function normalizeUser(user) {
 
   const role = toFrontendRole(user.role);
 
+  const displayName = role === "recruiter"
+    ? (user.company_name || user.name || "Company")
+    : (user.name || "User");
+
   return {
     ...user,
     id: user._id || user.id,
     role,
-    avatar: resolveAvatar(user), // قراءة الرابط الصحيح للصورة
-    cv: user.CV || user.cv || null, // قراءة الرابط الصحيح للـ CV
+    name: displayName,
+    avatar: resolveAvatar(user),
+    cv: user.CV || user.cv || null,
     title: user.title || (role === "recruiter" ? "Recruiter" : "Candidate"),
     bio: user.bio || "",
     phone: user.phone || "",
@@ -40,12 +47,16 @@ export function getSessionUser() {
 
 export async function register({ name, email, password, role }) {
   try {
-    const { data } = await apiClient.post("/auth/register", {
+    const payload = {
       name: name.trim(),
       email: email.trim(),
       password,
       role: toBackendRole(role),
-    });
+    };
+    if (role === "recruiter") {
+      payload.company_name = name.trim();
+    }
+    const { data } = await apiClient.post("/auth/register", payload);
 
     return { success: true, message: data.message };
   } catch (error) {

@@ -34,7 +34,7 @@ function statusLabel(status) {
 export function mapApplicationForList(application) {
   const job = application.job || {};
   const recruiter = job.recruiter || {};
-  const company = recruiter.name || "HireAI Recruiter";
+  const company = recruiter.company_name || recruiter.name || "HireAI Recruiter";
 
   return {
     id: application._id,

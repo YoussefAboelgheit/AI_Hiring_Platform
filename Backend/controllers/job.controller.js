@@ -24,7 +24,7 @@ import { generateCandidateFeedback } from "../services/candidateFeedback.service
 
 const recruiterPopulate = {
   path: "recruiter",
-  select: "name email role company_logo profile_image",
+  select: "name email role company_logo profile_image company_name",
 };
 
 const categoryPopulate = {

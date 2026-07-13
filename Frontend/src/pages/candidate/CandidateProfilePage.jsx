@@ -32,7 +32,7 @@ export default function CandidateProfilePage() {
 
   const skills = profile.skills.map(formatSkill).filter(Boolean);
   const education = profile.education.map(formatEducation).filter((e) => e.degree || e.school);
-  const socialLinks = profile.socialLinks.map(formatSocialLink).filter(Boolean);
+  const socialLinks = [...(profile.socialLinks || []), ...(profile.attachments || [])].map(formatSocialLink).filter(Boolean);
   const aboutText = profile.about || profile.bio;
 
   const contactRows = [

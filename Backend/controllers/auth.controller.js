@@ -45,7 +45,7 @@ const setRefreshCookie = (res, refreshToken) => {
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role, company_name } = req.body;
 console.log("body:", req.body);
 console.log("role:", role);
 
@@ -76,6 +76,7 @@ console.log("role:", role);
       email,
       password,
       role: userRole,
+      company_name: company_name || "",
       company_logo: companyLogoUrl,
       profile_image: profileImageUrl,
       CV: cvUrl,
