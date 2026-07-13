@@ -32,7 +32,12 @@ export default function SettingsPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const isRecruiter = user?.role === "recruiter";
-  const dashboardPath = isRecruiter ? "/recruiter/dashboard" : "/candidate/dashboard";
+  const isAdmin = user?.role === "admin";
+  const dashboardPath = isAdmin
+    ? "/admin/dashboard"
+    : isRecruiter
+      ? "/recruiter/dashboard"
+      : "/candidate/dashboard";
   const profilePath = isRecruiter ? "/recruiter/profile/edit" : "/candidate/profile/edit";
 
   const { mutate, isPending, isError, error, reset } = useMutation({
@@ -182,49 +187,51 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Danger zone */}
-        <div className="hcard" style={{ padding: 24, borderColor: "#FECACA" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#991B1B" }}>Delete Account</h2>
-          <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 16 }}>
-            Permanently delete your account and associated data. This action cannot be undone.
-          </p>
+        {/* Danger zone — not available for admin accounts */}
+        {!isAdmin && (
+          <div className="hcard" style={{ padding: 24, borderColor: "#FECACA" }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: "#991B1B" }}>Delete Account</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 16 }}>
+              Permanently delete your account and associated data. This action cannot be undone.
+            </p>
 
-          {isDeleteError && (
-            <div style={{ background: "#FEE2E2", color: "#991B1B", padding: "10px 14px", borderRadius: 10, fontSize: 13, marginBottom: 16 }}>
-              {deleteError?.message || "Failed to delete account."}
-            </div>
-          )}
+            {isDeleteError && (
+              <div style={{ background: "#FEE2E2", color: "#991B1B", padding: "10px 14px", borderRadius: 10, fontSize: 13, marginBottom: 16 }}>
+                {deleteError?.message || "Failed to delete account."}
+              </div>
+            )}
 
-          {confirmDelete && (
-            <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#991B1B", marginBottom: 16 }}>
-              Click <strong>Confirm Delete</strong> to permanently remove your account.
-            </div>
-          )}
+            {confirmDelete && (
+              <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "12px 14px", fontSize: 13, color: "#991B1B", marginBottom: 16 }}>
+                Click <strong>Confirm Delete</strong> to permanently remove your account.
+              </div>
+            )}
 
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="btn btn-danger"
-              onClick={handleDeleteAccount}
-              disabled={isDeleting}
-            >
-              {isDeleting
-                ? "Deleting..."
-                : confirmDelete
-                  ? "Confirm Delete"
-                  : "Delete Account"}
-            </button>
-            {confirmDelete && !isDeleting && (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <button
                 type="button"
-                className="btn btn-outline-secondary"
-                onClick={() => setConfirmDelete(false)}
+                className="btn btn-danger"
+                onClick={handleDeleteAccount}
+                disabled={isDeleting}
               >
-                Cancel
+                {isDeleting
+                  ? "Deleting..."
+                  : confirmDelete
+                    ? "Confirm Delete"
+                    : "Delete Account"}
               </button>
-            )}
+              {confirmDelete && !isDeleting && (
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setConfirmDelete(false)}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );
