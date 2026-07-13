@@ -8,7 +8,7 @@ The platform connects **candidates** and **recruiters** through an intelligent, 
 
 ## 1. Overview
 
-HireAI streamlines recruitment by replacing manual screening with AI-driven automation. Candidates browse and apply to jobs, while their CVs are parsed by Gemini AI into structured data. Vector embeddings (via Ollama or OpenAI) enable semantic matching between resumes and job descriptions, producing a 0–100 match score. HR teams can generate AI-powered assessments with anti-cheating proctoring, analyze candidates, and send automated feedback.
+Joblio streamlines recruitment by replacing manual screening with AI-driven automation. Candidates browse and apply to jobs, while their CVs are parsed by Gemini AI into structured data. Vector embeddings (via Ollama or OpenAI) enable semantic matching between resumes and job descriptions, producing a 0–100 match score. HR teams can generate AI-powered assessments with anti-cheating proctoring, analyze candidates, and send automated feedback.
 
 The system uses a **Controller-Service-Repository** architecture on Express.js with MongoDB persistence, JWT dual-token authentication, Supabase file storage, and background workers for publishing, expiry, and enrichment tasks.
 
