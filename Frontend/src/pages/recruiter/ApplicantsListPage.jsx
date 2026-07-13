@@ -340,6 +340,7 @@ export default function ApplicantsListPage() {
                       <button
                         type="button"
                         className="btn btn-link btn-sm p-0 fw-bold"
+                        style={{ color: "var(--accent-teal-dark)" }}
                         onClick={() => navigate(`/recruiter/feedback/${effectiveJobId}/${candidateId}`)}
                       >
                         View Report <i className="bi bi-box-arrow-up-right" aria-hidden="true"></i>
@@ -349,8 +350,8 @@ export default function ApplicantsListPage() {
                       <div className="d-flex flex-column gap-1" style={{ minWidth: 128 }}>
                         <button
                           type="button"
-                          className="w-100"
-                          style={{ fontSize: 11.5, padding: "5px 8px", border: "none", borderRadius: 8, background: "var(--primary-bg)", color: "var(--primary)", fontWeight: 600, cursor: "pointer" }}
+                          className="w-100 view-candidate-btn"
+                          style={{ fontSize: 11.5, padding: "6px 8px", border: "none", borderRadius: 8, background: "var(--accent-teal-dark)", color: "#fff", fontWeight: 600, cursor: "pointer", transition: "background 0.15s" }}
                           onClick={() => navigate(`/recruiter/candidates/${app.candidate?._id || candidateId}`, {
                             state: {
                               jobId: effectiveJobId,

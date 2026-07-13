@@ -10,7 +10,7 @@ export default function TermsOfServicePage() {
               </div>
               <h1 className="landing-hero-title">Terms of Service</h1>
               <p className="landing-hero-desc mx-auto" style={{ maxWidth: 640 }}>
-                These terms govern your use of the HireAI recruitment platform. Please read them carefully.
+                These terms govern your use of the Joblio recruitment platform. Please read them carefully.
               </p>
               <p className="text-muted small mb-0">Last updated: July 12, 2026</p>
             </div>
@@ -24,8 +24,8 @@ export default function TermsOfServicePage() {
             <div className="col-12 col-lg-8">
               <div className="hcard p-4 p-lg-5">
                 <p className="text-muted lh-lg mb-4">
-                  Welcome to HireAI (the "Platform"), an AI-powered recruitment platform operated by
-                  HireAI ("we", "us", or "our"). These Terms of Service ("Terms") govern your access to
+                  Welcome to Joblio (the "Platform"), an AI-powered recruitment platform operated by
+                  Joblio ("we", "us", or "our"). These Terms of Service ("Terms") govern your access to
                   and use of the Platform, including all features, AI services, and content available
                   through the Platform. By registering for or using the Platform, you agree to be bound
                   by these Terms. If you do not agree, you must not use the Platform.
@@ -35,7 +35,7 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="fs-5 fw-bold mb-2">1. Acceptance of Terms</h2>
                   <p className="text-muted mb-0 lh-lg">
-                    By creating an account, accessing, or using HireAI in any way, you confirm that
+                    By creating an account, accessing, or using Joblio in any way, you confirm that
                     you have read, understood, and agree to be bound by these Terms, our Privacy
                     Policy, and any other policies referenced herein. If you are using the Platform on
                     behalf of an organisation, you represent that you have the authority to bind that
@@ -93,7 +93,7 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="fs-5 fw-bold mb-2">4. User Roles</h2>
                   <p className="text-muted mb-0 lh-lg">
-                    HireAI supports three distinct user roles, each with different capabilities and
+                    Joblio supports three distinct user roles, each with different capabilities and
                     responsibilities:
                   </p>
                   <h3 className="fs-6 fw-bold mt-3 mb-1">4.1 Candidate</h3>
@@ -115,7 +115,7 @@ export default function TermsOfServicePage() {
                   <p className="text-muted mb-0 lh-lg">
                     Administrators manage the Platform at a system level. Administrators may view,
                     create, edit, and delete user accounts; manage job categories; and oversee all
-                    job listings. Administrator access is granted solely by HireAI.
+                    job listings. Administrator access is granted solely by Joblio.
                   </p>
                 </section>
 
@@ -212,7 +212,7 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="fs-5 fw-bold mb-2">9. AI Features Disclaimer</h2>
                   <p className="text-muted mb-0 lh-lg">
-                    HireAI uses artificial intelligence, including Google Gemini, to provide the
+                    Joblio uses artificial intelligence, including Google Gemini, to provide the
                     following features:
                   </p>
                   <ul className="text-muted lh-lg mb-0">
@@ -304,8 +304,8 @@ export default function TermsOfServicePage() {
                     We do not claim ownership of any User Content you submit.
                   </p>
                   <p className="text-muted mb-0 lh-lg">
-                    <strong>License to HireAI:</strong> By submitting User Content to the Platform,
-                    you grant HireAI a worldwide, non-exclusive, royalty-free license to use,
+                    <strong>License to Joblio:</strong> By submitting User Content to the Platform,
+                    you grant Joblio a worldwide, non-exclusive, royalty-free license to use,
                     reproduce, store, process, analyse, display, and transmit your User Content
                     solely for the purpose of operating, providing, and improving the Platform. This
                     includes processing your content through AI systems (such as Google Gemini) to
@@ -412,7 +412,7 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="fs-5 fw-bold mb-2">16. Third-Party Services</h2>
                   <p className="text-muted mb-0 lh-lg">
-                    HireAI relies on several third-party service providers to operate the Platform.
+                    Joblio relies on several third-party service providers to operate the Platform.
                     These include:
                   </p>
                   <ul className="text-muted lh-lg mb-0">
@@ -465,7 +465,7 @@ export default function TermsOfServicePage() {
                   <h2 className="fs-5 fw-bold mb-2">18. Communications</h2>
                   <p className="text-muted mb-0 lh-lg">
                     By creating an account, you consent to receive electronic communications from
-                    HireAI. These communications may include:
+                    Joblio. These communications may include:
                   </p>
                   <ul className="text-muted lh-lg mb-0">
                     <li>Email verification messages (sent after registration).</li>
@@ -493,8 +493,8 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="fs-5 fw-bold mb-2">19. Intellectual Property</h2>
                   <p className="text-muted mb-0 lh-lg">
-                    <strong>Platform IP:</strong> The HireAI name, logo, brand, software, design,
-                    layout, and all non-user-generated content are the exclusive property of HireAI
+                    <strong>Platform IP:</strong> The Joblio name, logo, brand, software, design,
+                    layout, and all non-user-generated content are the exclusive property of Joblio
                     or its licensors. The Platform's code, AI models (excluding third-party
                     providers), algorithms, and proprietary technology are protected by copyright,
                     trademark, and other intellectual property laws. You may not copy, modify,
@@ -503,7 +503,7 @@ export default function TermsOfServicePage() {
                   </p>
                   <p className="text-muted mb-0 lh-lg">
                     <strong>User Content IP:</strong> As stated in Section 12, you retain all
-                    ownership rights to your User Content. You grant HireAI a limited license to
+                    ownership rights to your User Content. You grant Joblio a limited license to
                     process and display your content as necessary to provide the Platform's services.
                   </p>
                   <p className="text-muted mb-0 lh-lg">
@@ -544,7 +544,7 @@ export default function TermsOfServicePage() {
                   <p className="text-muted mb-0 lh-lg">
                     THE PLATFORM AND ALL FEATURES, INCLUDING AI-GENERATED OUTPUTS, ARE PROVIDED "AS
                     IS" AND "AS AVAILABLE" WITHOUT ANY WARRANTIES OF ANY KIND, EITHER EXPRESS OR
-                    IMPLIED. TO THE FULLEST EXTENT PERMITTED BY LAW, HIREAI DISCLAIMS ALL WARRANTIES,
+                    IMPLIED. TO THE FULLEST EXTENT PERMITTED BY LAW, JOBLIO DISCLAIMS ALL WARRANTIES,
                     INCLUDING BUT NOT LIMITED TO:
                   </p>
                   <ul className="text-muted lh-lg mb-0">
@@ -565,7 +565,7 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="fs-5 fw-bold mb-2">22. Limitation of Liability</h2>
                   <p className="text-muted mb-0 lh-lg">
-                    TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL HIREAI, ITS
+                    TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL JOBLIO, ITS
                     OFFICERS, DIRECTORS, EMPLOYEES, AGENTS, OR THIRD-PARTY SERVICE PROVIDERS BE
                     LIABLE FOR ANY:
                   </p>
@@ -580,7 +580,7 @@ export default function TermsOfServicePage() {
                   <p className="text-muted mt-3 mb-0 lh-lg">
                     OUR TOTAL LIABILITY TO YOU FOR ANY CLAIM ARISING FROM OR RELATING TO THESE TERMS
                     OR YOUR USE OF THE PLATFORM SHALL NOT EXCEED THE GREATER OF $100 OR THE TOTAL
-                    AMOUNTS PAID BY YOU TO HIREAI IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM (IF
+                    AMOUNTS PAID BY YOU TO JOBLIO IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM (IF
                     ANY). THIS LIMITATION APPLIES REGARDLESS OF THE LEGAL THEORY UNDER WHICH THE
                     CLAIM IS BROUGHT, WHETHER IN CONTRACT, TORT, NEGLIGENCE, STRICT LIABILITY, OR
                     OTHERWISE.
@@ -593,7 +593,7 @@ export default function TermsOfServicePage() {
                 <section>
                   <h2 className="fs-5 fw-bold mb-2">23. Indemnification</h2>
                   <p className="text-muted mb-0 lh-lg">
-                    You agree to indemnify, defend, and hold harmless HireAI, its affiliates,
+                    You agree to indemnify, defend, and hold harmless Joblio, its affiliates,
                     officers, directors, employees, and agents from and against any and all claims,
                     liabilities, damages, losses, costs, and expenses (including reasonable legal
                     fees) arising out of or related to:
@@ -616,7 +616,7 @@ export default function TermsOfServicePage() {
                     <strong>Suspension:</strong> We may suspend your access to the Platform
                     immediately without prior notice if we reasonably believe that you have violated
                     these Terms, engaged in prohibited conduct (as described in Section 14), or if
-                    your actions pose a security or legal risk to HireAI, other users, or third
+                    your actions pose a security or legal risk to Joblio, other users, or third
                     parties.
                   </p>
                   <p className="text-muted mb-0 lh-lg">
@@ -683,7 +683,7 @@ export default function TermsOfServicePage() {
                     the personal jurisdiction of such courts for the purpose of any such dispute.
                   </p>
                   <p className="text-muted mb-0 lh-lg">
-                    Notwithstanding the foregoing, HireAI may seek injunctive or other equitable
+                    Notwithstanding the foregoing, Joblio may seek injunctive or other equitable
                     relief in any court of competent jurisdiction to protect its intellectual property
                     or confidential information.
                   </p>
@@ -699,8 +699,8 @@ export default function TermsOfServicePage() {
                     Platform, you may contact us at:
                   </p>
                   <p className="text-muted mb-0 lh-lg">
-                    <strong>Email:</strong> support@hireai.app<br />
-                    <strong>Legal Inquiries:</strong> legal@hireai.app
+                    <strong>Email:</strong> support@joblio.app<br />
+                    <strong>Legal Inquiries:</strong> legal@joblio.app
                   </p>
                   <p className="text-muted mb-0 lh-lg">
                     We will use reasonable efforts to respond to your inquiry within a reasonable

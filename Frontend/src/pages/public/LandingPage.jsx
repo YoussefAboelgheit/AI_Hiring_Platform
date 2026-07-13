@@ -8,18 +8,18 @@ const STATS = [
   { value: "50K+", label: "Candidates Analyzed" },
   { value: "95%", label: "Match Accuracy" },
   { value: "10K+", label: "Interviews Scheduled" },
-  { value: "500+", label: "Companies Using HireAI" },
+  { value: "500+", label: "Companies Using Joblio" },
 ];
 
 const LOGOS = ["Google", "Microsoft", "Amazon", "Netflix", "Spotify", "Airbnb"];
 
 const FEATURES = [
-  { icon: "bi-person-lines-fill", color: "#1d2445", bg: "#f3f5fb", title: "AI CV Screening", desc: "Automatically extract and analyze data from thousands of resumes with pinpoint accuracy." },
-  { icon: "bi-trophy-fill", color: "#D97706", bg: "#FEF3C7", title: "Candidate Ranking", desc: "Proprietary algorithms rank candidates based on skill-match, cultural fit, and potential." },
-  { icon: "bi-clipboard2-pulse-fill", color: "#0EA5E9", bg: "#E0F2FE", title: "AI Assessments", desc: "Generate role-specific dynamic tests that evaluate technical depth and soft skills." },
-  { icon: "bi-chat-dots-fill", color: "#10B981", bg: "#D1FAE5", title: "Automated Feedback", desc: "Deliver personalized, constructive feedback to every applicant, maintaining brand reputation." },
-  { icon: "bi-diagram-3-fill", color: "#F43F5E", bg: "#FFE4E6", title: "Smart Matching", desc: "AI matches the right candidates to the right roles based on multiple intelligent factors." },
-  { icon: "bi-bar-chart-line-fill", color: "#374172", bg: "#f3f5fb", title: "Analytics & Insights", desc: "Real-time dashboards and reports to track your hiring performance and team productivity." },
+  { icon: "bi-person-lines-fill", color: "#1d2445", bg: "#EEF0F8", title: "AI CV Screening", desc: "Automatically extract and analyze data from thousands of resumes with pinpoint accuracy." },
+  { icon: "bi-trophy-fill", color: "#0D9488", bg: "#CCFBF1", title: "Candidate Ranking", desc: "Proprietary algorithms rank candidates based on skill-match, cultural fit, and potential." },
+  { icon: "bi-clipboard2-pulse-fill", color: "#374172", bg: "#E7E9F4", title: "AI Assessments", desc: "Generate role-specific dynamic tests that evaluate technical depth and soft skills." },
+  { icon: "bi-chat-dots-fill", color: "#0F766E", bg: "#D9F5F0", title: "Automated Feedback", desc: "Deliver personalized, constructive feedback to every applicant, maintaining brand reputation." },
+  { icon: "bi-diagram-3-fill", color: "#131933", bg: "#E2E4F0", title: "Smart Matching", desc: "AI matches the right candidates to the right roles based on multiple intelligent factors." },
+  { icon: "bi-bar-chart-line-fill", color: "#0D9488", bg: "#CCFBF1", title: "Analytics & Insights", desc: "Real-time dashboards and reports to track your hiring performance and team productivity." },
 ];
 
 const STEPS = [
@@ -31,18 +31,18 @@ const STEPS = [
 ];
 
 const TESTIMONIALS = [
-  { stars: 5, text: "HireAI has cut our time-to-hire by 70%. The AI matching is incredibly accurate and saves us hours every week.", name: "Jessica Martinez", role: "Head of Talent, TechCorp", initials: "JM", color: "#1d2445" },
-  { stars: 5, text: "The best recruitment platform we've ever used. The insights and analytics help us make smarter hiring decisions.", name: "Mark Thompson", role: "HR Director, InnovateX", initials: "MT", color: "#0EA5E9" },
-  { stars: 5, text: "Super easy to use and the AI assessments are a game changer! Highly recommended.", name: "Priya Sharma", role: "Talent Manager, GrowthLabs", initials: "PS", color: "#10B981" },
+  { stars: 5, text: "Joblio has cut our time-to-hire by 70%. The AI matching is incredibly accurate and saves us hours every week.", name: "Jessica Martinez", role: "Head of Talent, TechCorp", initials: "JM", color: "#1d2445" },
+  { stars: 5, text: "The best recruitment platform we've ever used. The insights and analytics help us make smarter hiring decisions.", name: "Mark Thompson", role: "HR Director, InnovateX", initials: "MT", color: "#0F766E" },
+  { stars: 5, text: "Super easy to use and the AI assessments are a game changer! Highly recommended.", name: "Priya Sharma", role: "Talent Manager, GrowthLabs", initials: "PS", color: "#374172" },
 ];
 
 const FAQS = [
   { q: "How does AI screening work?", a: "Our AI analyzes resumes using NLP and ML to extract skills, experience, and match them against your job requirements automatically." },
   { q: "How accurate are the match scores?", a: "Our matching algorithm achieves 95% accuracy based on data from over 50,000 successful placements." },
   { q: "Can I upload resumes manually?", a: "Yes! You can upload resumes in bulk via CSV, PDF, or connect directly to your existing ATS." },
-  { q: "Can I integrate with my existing ATS?", a: "HireAI integrates with all major ATS platforms including Greenhouse, Lever, Workday, and more." },
+  { q: "Can I integrate with my existing ATS?", a: "Joblio integrates with all major ATS platforms including Greenhouse, Lever, Workday, and more." },
   { q: "Is my data safe and secure?", a: "We use enterprise-grade encryption and are fully GDPR compliant. Your data is never shared with third parties." },
-  { q: "Is HireAI free to use?", a: "We offer a free trial with full access. No credit card required to get started." },
+  { q: "Is Joblio free to use?", a: "We offer a free trial with full access. No credit card required to get started." },
 ];
 
 const fadeUp = {
@@ -111,7 +111,7 @@ export default function LandingPage() {
               variants={stagger}
             >
               <motion.div className={s.badge} variants={fadeUp} transition={{ duration: 0.55 }}>
-                <i className="bi bi-stars me-2" style={{ color: "var(--primary)" }} />
+                <i className="bi bi-stars me-2" style={{ color: "#5EEAD4" }} />
                 Revolutionizing Recruitment
               </motion.div>
               <motion.h1 className={s.heroTitle} variants={fadeUp} transition={{ duration: 0.6 }}>
@@ -204,7 +204,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section id="features" style={{ padding: "80px 0", background: "#F8FAFC" }}>
+      <section id="features" style={{ padding: "80px 0", background: "var(--accent-teal-wash)" }}>
         <div className="container">
           <motion.div
             className="text-center mb-5"
@@ -267,7 +267,7 @@ export default function LandingPage() {
               <ul className={s.checkList}>
                 {["Track every candidate in your pipeline", "AI-powered match scores & insights", "Team collaboration made simple", "Data-driven hiring decisions"].map((item) => (
                   <li key={item} className={s.checkItem}>
-                    <i className="bi bi-check-circle-fill" style={{ color: "var(--primary)", marginRight: 10 }} />
+                    <i className="bi bi-check-circle-fill" style={{ color: "#0D9488", marginRight: 10 }} />
                     {item}
                   </li>
                 ))}
@@ -296,7 +296,7 @@ export default function LandingPage() {
                 transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
               >
                 <div className={s.dashHeader}>
-                  <span style={{ fontWeight: 700, color: "var(--primary)", fontSize: 15 }}>⚡ HireAI</span>
+                  <span style={{ fontWeight: 700, color: "#0D9488", fontSize: 15 }}>⚡ Joblio</span>
                   <span style={{ fontSize: 12, color: "#64748B" }}>Welcome back, Sarah 👋</span>
                 </div>
                 <div className={s.dashStats}>
@@ -328,7 +328,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" style={{ padding: "80px 0", background: "#F8FAFC" }}>
+      <section id="how-it-works" style={{ padding: "80px 0", background: "var(--accent-teal-wash)" }}>
         <div className="container">
           <motion.div
             className="text-center mb-5"
@@ -408,7 +408,7 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ */}
-      <section style={{ padding: "80px 0", background: "#F8FAFC" }}>
+      <section style={{ padding: "80px 0", background: "var(--accent-teal-wash)" }}>
         <div className="container">
           <motion.div
             className="text-center mb-5"
@@ -478,11 +478,11 @@ export default function LandingPage() {
               variants={slideLeft}
               transition={{ duration: 0.6 }}
             >
-              <h2 style={{ color: "#3B0764", fontWeight: 800, fontSize: "clamp(26px,4vw,44px)", marginBottom: 12 }}>
+              <h2 style={{ color: "#1d2445", fontWeight: 800, fontSize: "clamp(26px,4vw,44px)", marginBottom: 12 }}>
                 Ready to hire smarter?
               </h2>
               <p style={{ color: "#1d2445", marginBottom: 0, fontSize: 17 }}>
-                Join 500+ companies already using HireAI to build amazing teams.
+                Join 500+ companies already using Joblio to build amazing teams.
               </p>
             </motion.div>
             <motion.div

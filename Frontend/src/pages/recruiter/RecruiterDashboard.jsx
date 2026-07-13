@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/useAuth";
 import { getRecruiterDashboard } from "../../services/recruiterService";
 import StatusBadge from "../../components/common/StatusBadge";
+import StatCard from "../../components/common/StatCard";
 import LoadingState from "../../components/common/LoadingState";
 
 export default function RecruiterDashboard() {
@@ -35,7 +36,7 @@ export default function RecruiterDashboard() {
   const recentApplications = (dashboardData?.recentApplications ?? []).slice(0, RECENT_APPLICATIONS_LIMIT);
   const topMatches = dashboardData?.topMatches ?? [];
 
-  // إعداد الكروت الثابتة وربطها بالمتغيرات الفوقية مع ستايل الباستيل والـ border-0
+  // إعداد الكروت الثابتة وربطها بالمتغيرات الفوقية - نفس تدرجات الكحلي/التركواز بتاعة البراند
   const statCardsConfig = [
     {
       key: "activeJobs",
@@ -43,9 +44,7 @@ export default function RecruiterDashboard() {
       value: activeJobsCount,
       change: "+12%",
       icon: "bi-briefcase",
-      bg: "#EFF6FF",
-      iconBg: "#DBEAFE",
-      iconColor: "#1E40AF"
+      tint: "navy",
     },
     {
       key: "newApplications",
@@ -53,9 +52,7 @@ export default function RecruiterDashboard() {
       value: totalAppsCount,
       change: "+24%",
       icon: "bi-file-earmark-person",
-      bg: "#F0FDF4",
-      iconBg: "#DCFCE7",
-      iconColor: "#166534"
+      tint: "teal",
     },
     {
       key: "accepted",
@@ -63,9 +60,7 @@ export default function RecruiterDashboard() {
       value: acceptedCount,
       change: "+8%",
       icon: "bi-check-circle",
-      bg: "#FDF2F8",
-      iconBg: "#FCE7F3",
-      iconColor: "#9D174D"
+      tint: "tealDark",
     },
     {
       key: "assessmentsPending",
@@ -74,9 +69,7 @@ export default function RecruiterDashboard() {
       change: "-3%",
       negative: true,
       icon: "bi-hourglass-split",
-      bg: "#FFFBEB",
-      iconBg: "#FEF3C7",
-      iconColor: "#92400E"
+      tint: "navyLight",
     }
   ];
 
@@ -95,38 +88,10 @@ export default function RecruiterDashboard() {
         </button>
       </div>
 
-      {/* Stats Grid - Pastel & Borderless */}
+      {/* Stats Grid */}
       <div className="grid-stats-4 mb-4">
         {statCardsConfig.map((card) => (
-          <div 
-            key={card.key} 
-            className="hcard stat-card border-0 shadow-sm p-4" 
-            style={{ backgroundColor: card.bg, borderRadius: "16px", transition: "transform 0.15s ease, box-shadow 0.15s ease", cursor: "default" }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 8px 20px rgba(31,41,55,0.08)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = ""; }}
-          >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div className="w-100">
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                  <div 
-                    className="stat-icon d-flex align-items-center justify-content-center" 
-                    style={{ background: card.iconBg, width: 40, height: 40, fontSize: 18, borderRadius: "12px" }}
-                  >
-                    <i className={`bi ${card.icon}`} style={{ color: card.iconColor }}></i>
-                  </div>
-                  <span style={{ fontSize: 12, color: card.negative ? "var(--danger)" : "var(--success)", fontWeight: 700 }}>
-                    {card.change}
-                  </span>
-                </div>
-                <div className="stat-value fw-bold" style={{ fontSize: 32, color: "#1F2937", marginBottom: 4 }}>
-                  {card.value}
-                </div>
-                <div className="stat-label text-secondary" style={{ fontSize: 13, fontWeight: 500 }}>
-                  {card.label}
-                </div>
-              </div>
-            </div>
-          </div>
+          <StatCard key={card.key} {...card} />
         ))}
       </div>
 
@@ -177,7 +142,7 @@ export default function RecruiterDashboard() {
                       </div>
                     </td>
                     <td style={{ fontSize: 13 }}>
-                      <span className="badge p-2 rounded border-0" style={{ backgroundColor: '#f3f5fb', color: '#6B21A8', fontWeight: 600 }}>
+                      <span className="badge p-2 rounded border-0" style={{ backgroundColor: 'var(--accent-teal-bg)', color: 'var(--accent-teal-dark)', fontWeight: 600 }}>
                         {app.jobRole}
                       </span>
                     </td>

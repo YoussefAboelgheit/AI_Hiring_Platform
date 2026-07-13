@@ -9,7 +9,18 @@ export default function Topbar() {
 
   const isCandidate = pathname.startsWith("/candidate");
   const isAdmin = pathname.startsWith("/admin");
-  const settingsPath = isAdmin ? "/admin/settings" : isCandidate ? "/candidate/settings" : "/recruiter/settings";
+
+  const settingsPath = isAdmin
+    ? "/admin/settings"
+    : isCandidate
+    ? "/candidate/settings"
+    : "/recruiter/settings";
+
+  const profilePath = isAdmin
+    ? "/admin/profile"
+    : isCandidate
+    ? "/candidate/profile"
+    : "/recruiter/profile";
 
   return (
     <header className="topbar">
@@ -21,22 +32,33 @@ export default function Topbar() {
       >
         <i className="bi bi-list" />
       </button>
+
       <div style={{ flex: 1 }} />
+
       <div className="topbar-actions">
-        <button type="button" className="topbar-icon-btn d-none d-md-flex" aria-label="Settings">
-          <Link to={settingsPath}>
-            <i className="bi bi-gear" />
-          </Link>
-        </button>
-        <div className="user-chip">
+        <Link
+          to={settingsPath}
+          className="topbar-icon-btn d-none d-md-flex"
+          aria-label="Settings"
+        >
+          <i className="bi bi-gear" />
+        </Link>
+
+        <Link to={profilePath} className="user-chip">
           <img src={user?.avatar} alt={user?.name || "User"} />
+
           <div className="d-none d-sm-block">
             <div className="name">{user?.name || "User"}</div>
+
             <div className="role">
-              {user?.role === "Recruiter" ? "Company" : user?.role === "Candidate" ? "Candidate":"Admin"}
+              {user?.role === "Recruiter"
+                ? "Company"
+                : user?.role === "Candidate"
+                ? "Candidate"
+                : "Admin"}
             </div>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );

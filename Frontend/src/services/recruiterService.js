@@ -1,5 +1,6 @@
 import apiClient from "./apiClient";
 import { getApiErrorMessage } from "./apiErrors";
+import { getAssessment } from "./assessmentService";
 import {
   recruiterStats,
   recruiterDashboardStats,
@@ -308,6 +309,19 @@ function getCategoryIcon(categoryName = "") {
   return "bi-briefcase";
 }
 
+// Mirrors the eligibility rules used in ApplicantsListPage (eligibleApplications +
+// sortedApplications): a candidate only counts as a "visible" applicant if they
+// uploaded a CV, aren't rejected, and — for jobs that actually require an
+// assessment — have completed it. Keeping this in sync means the applicant count
+// shown under each job card on My Jobs matches what the recruiter actually sees
+// when they open View Applicants for that job.
+function isVisibleApplication(app, requiresAssessment) {
+  if (!app.CV) return false;
+  if (requiresAssessment && app.assessmentStatus !== "completed") return false;
+  if ((app.status || "Pending").toLowerCase() === "rejected") return false;
+  return true;
+}
+
 export async function getMyJobs(recruiterId) {
   const { data } = await apiClient.get("/jobs/hr/my-jobs/applications");
   const jobs = data.jobs || [];
@@ -321,8 +335,22 @@ export async function getMyJobs(recruiterId) {
     { label: "Total Positions", value: jobs.length.toString(), change: "All time posts", icon: "bi-briefcase", iconBg: "#E0F2FE", iconColor: "#0284C7" },
   ];
 
-  const uiJobs = jobs.map((job) => {
+  // Find out, per job, whether it actually requires an assessment (type AI/MANUAL,
+  // not the default "NONE") — same check ApplicantsListPage does via getAssessment.
+  const requiresAssessmentFlags = await Promise.all(
+    jobs.map((job) =>
+      getAssessment(job._id)
+        .then(({ data: res }) => Boolean(res?.assessment?.type && res.assessment.type !== "NONE"))
+        .catch(() => false)
+    )
+  );
+
+  const uiJobs = jobs.map((job, idx) => {
     const status = job.status;
+    const requiresAssessment = requiresAssessmentFlags[idx];
+    const applications = job.applications || [];
+    const visibleApplicantsCount = applications.filter((app) => isVisibleApplication(app, requiresAssessment)).length;
+
     return {
       id: job._id,
       _id: job._id,
@@ -331,7 +359,7 @@ export async function getMyJobs(recruiterId) {
       category: job.category?.name || "Uncategorized",
       location: job.location || "Remote",
       type: job.jobType || "Full Time",
-      applicants: job.applications?.length || job.applicantsCount || 0,
+      applicants: visibleApplicantsCount,
       icon: getCategoryIcon(job.category?.name),
       applicationEnd: job.applicationEnd,
       createdAt: job.createdAt,

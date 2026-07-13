@@ -78,11 +78,28 @@ function SavedJobCard({ job, onUnsave, removing }) {
 
       <button
         type="button"
-        className="btn-outline-custom"
-        style={{ width: "100%", marginTop: "auto" }}
+        style={{
+          width: "100%",
+          marginTop: "auto",
+          padding: "9px 16px",
+          fontSize: 13,
+          fontWeight: 600,
+          borderRadius: 10,
+          border: "none",
+          background: "var(--accent-teal-dark)",
+          color: "#fff",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          transition: "background 0.15s",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "#0C5D57"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "var(--accent-teal-dark)"; }}
         onClick={() => navigate(`/candidate/jobs/${job.id}`)}
       >
-        View Details <i className="bi bi-arrow-right ms-1" aria-hidden="true" />
+        View Details <i className="bi bi-arrow-right" aria-hidden="true" />
       </button>
     </div>
   );

@@ -3,6 +3,7 @@ export const queryKeys = {
   jobs: {
     all: ["jobs"],
     candidateList: (filters) => ["jobs", "candidate", filters],
+    saved: ["jobs", "saved"],
   },
   applications: {
     mine: ["applications", "mine"],
