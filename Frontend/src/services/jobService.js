@@ -30,7 +30,7 @@ function mapFormToJobPayload(form) {
 }
 export async function getJobs(filters = {}) {
   const { data } = await apiClient.get("/jobs", { params: filters });
-  return data.jobs || [];
+  return data;
 }
 export async function getCandidateJobs(params = {}) {
   try {

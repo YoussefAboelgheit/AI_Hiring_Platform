@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+
 import { getJobs, deleteJob, adminCloseJob } from "../../services/jobService";
 import { getErrorMessage } from "../../utils/errorMessages";
 
@@ -7,18 +7,23 @@ import LoadingState from "../../components/common/LoadingState";
 import toast from "react-hot-toast";
 
 export default function JobManagementPage() {
-  const navigate = useNavigate();
+
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState(null); // job pending deletion, or null
   const [deleting, setDeleting] = useState(false);
   const [closeTarget, setCloseTarget] = useState(null); // job pending closing, or null
   const [closing, setClosing] = useState(false);
 
-  const loadJobs = async () => {
+  const loadJobs = async (pageNumber = 1) => {
     try {
-      const data = await getJobs();
-      setJobs(data);
+      setLoading(true);
+      const data = await getJobs({ page: pageNumber, limit: 10 });
+      setJobs(data.jobs || []);
+      setPage(data.page || 1);
+      setTotalPages(data.pages || 1);
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to load jobs"));
     } finally {
@@ -38,8 +43,8 @@ export default function JobManagementPage() {
     try {
       await deleteJob(deleteTarget._id);
       toast.success("Job deleted");
-      setJobs((prev) => prev.filter((j) => j._id !== deleteTarget._id));
       setDeleteTarget(null);
+      loadJobs(page);
     } catch (err) {
       toast.error(getErrorMessage(err, "Delete failed"));
     } finally {
@@ -56,10 +61,8 @@ export default function JobManagementPage() {
     try {
       await adminCloseJob(closeTarget._id);
       toast.success("Job closed");
-      setJobs((prev) =>
-        prev.map((j) => (j._id === closeTarget._id ? { ...j, status: "Closed" } : j))
-      );
       setCloseTarget(null);
+      loadJobs(page);
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to close job"));
     } finally {
@@ -67,7 +70,7 @@ export default function JobManagementPage() {
     }
   };
 
-  if (loading) return <LoadingState message="Loading jobs..." />;
+  if (loading && jobs.length === 0) return <LoadingState message="Loading jobs..." />;
 
   return (
     <div className="container-fluid py-4">
@@ -95,13 +98,12 @@ export default function JobManagementPage() {
                   <td>{job.category?.name || "Uncategorized"}</td>
                   <td>
                     <span
-                      className={`badge ${
-                        job.status === "Open"
+                      className={`badge ${job.status === "Open"
                           ? "text-bg-success"
                           : job.status === "Closed"
-                          ? "text-bg-secondary"
-                          : "text-bg-warning"
-                      }`}
+                            ? "text-bg-secondary"
+                            : "text-bg-warning"
+                        }`}
                     >
                       {job.status || "Open"}
                     </span>
@@ -137,13 +139,35 @@ export default function JobManagementPage() {
               )}
             </tbody>
           </table>
-          <button
-            className="btn btn-primary"
-            style={{ marginTop: 12 }}
-            onClick={() => navigate("/admin/dashboard")}
-          >
-            Back to Dashboard
-          </button>
+
+          {/* Pagination Footer */}
+          {totalPages > 1 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+              </span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn-outline-custom"
+                  style={{ padding: "6px 12px", fontSize: 12 }}
+                  disabled={page <= 1 || loading}
+                  onClick={() => loadJobs(page - 1)}
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  className="btn-outline-custom"
+                  style={{ padding: "6px 12px", fontSize: 12 }}
+                  disabled={page >= totalPages || loading}
+                  onClick={() => loadJobs(page + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
