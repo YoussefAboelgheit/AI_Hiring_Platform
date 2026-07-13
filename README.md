@@ -1,4 +1,4 @@
-# HireAI — AI-Powered Hiring Platform
+# Joblio
 
 > A full-stack recruitment platform that leverages Google Gemini AI and vector embeddings to automate the full hiring lifecycle — from CV parsing and job matching to AI-generated assessments and intelligent candidate analysis.
 
