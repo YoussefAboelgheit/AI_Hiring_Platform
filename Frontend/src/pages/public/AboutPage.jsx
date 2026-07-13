@@ -1,8 +1,30 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import { getAboutContent } from "../../services/contentService";
 import LoadingState from "../../components/common/LoadingState";
 import BackButton from "../../components/common/BackButton";
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const stagger = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
+};
+
+const ctaViewport = { once: true, amount: 0.3 };
+
+const TEAM_MEMBERS = [
+  { name: "Waleed Mamdouh", initials: "WM" },
+  { name: "Yousef Aboelgheit", initials: "YA" },
+  { name: "Abanob Maqqar", initials: "AM" },
+  { name: "Mohamed Khaled", initials: "MK" },
+  { name: "Sara El-Amir", initials: "SE" },
+  { name: "Shahd Amr", initials: "SA" },
+];
 
 export default function AboutPage() {
   const navigate = useNavigate();
@@ -88,16 +110,55 @@ export default function AboutPage() {
 
       <section className="public-section-sm bg-white">
         <div className="container">
-          <div className="cta-banner">
-            <h2 className="text-white fw-bold mb-3">Ready to transform your hiring?</h2>
-            <p className="text-white-75 mb-4">Join thousands of companies and candidates already using Joblio.</p>
-            <div className="d-flex flex-wrap gap-3 justify-content-center">
-              <button type="button" className="btn-cta-primary" onClick={() => navigate("/register")}>Get Started</button>
-              <button type="button" className="btn-cta-outline" onClick={() => navigate("/")}>Back to Home</button>
-            </div>
+          <div className="text-center mb-5">
+            <h2 className="section-heading">Meet Our Team</h2>
+            <p className="text-muted">The people behind Joblio.</p>
+          </div>
+          <div className="row g-4 justify-content-center">
+            {TEAM_MEMBERS.map((member) => (
+              <div key={member.name} className="col-6 col-sm-4 col-lg-2">
+                <div className="hcard p-4 h-100 text-center team-card">
+                  <div className="team-avatar">{member.initials}</div>
+                  <div className="fw-bold mt-3">{member.name}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
+
+      <motion.section
+        className="cta-banner"
+        initial="hidden"
+        whileInView="visible"
+        viewport={ctaViewport}
+        variants={stagger}
+      >
+        <div className="container">
+          <motion.h2 variants={fadeUp} transition={{ duration: 0.5 }} className="text-white fw-bold mb-3">Ready to transform your hiring?</motion.h2>
+          <motion.p variants={fadeUp} transition={{ duration: 0.5 }} className="text-white-75 mb-4">Join thousands of companies and candidates already using Joblio.</motion.p>
+          <motion.div variants={fadeUp} transition={{ duration: 0.5 }} className="d-flex flex-wrap gap-3 justify-content-center">
+            <motion.button
+              type="button"
+              className="btn-cta-primary"
+              onClick={() => navigate("/register")}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Get Started
+            </motion.button>
+            <motion.button
+              type="button"
+              className="btn-cta-outline"
+              onClick={() => navigate("/")}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              Back to Home
+            </motion.button>
+          </motion.div>
+        </div>
+      </motion.section>
     </>
   );
 }

@@ -52,7 +52,7 @@ export default function PrivacyPolicyPage() {
     <>
       <section className="public-section landing-hero" style={{ paddingBottom: 48 }}>
         <div className="container">
-          <BackButton fallbackTo="/" label="Back to Home" />
+          {/* <BackButton fallbackTo="/" label="Back to Home" /> */}
           <div className="row justify-content-center">
             <div className="col-12 col-lg-8 text-center">
               <div className="landing-hero-badge">

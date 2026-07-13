@@ -66,7 +66,7 @@ export default function RegisterPage() {
           <div style={{ display: "flex", gap: 10, marginBottom: 32 }}>
             {[
               { id: "candidate", label: "I'm a Candidate", icon: "bi-person" },
-              { id: "recruiter", label: "I'm a Recruiter", icon: "bi-briefcase" },
+              { id: "recruiter", label: "I'm a Company", icon: "bi-briefcase" },
             ].map(({ id, label, icon }) => (
               <button
                 key={id}

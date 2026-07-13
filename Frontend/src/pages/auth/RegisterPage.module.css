@@ -50,13 +50,13 @@
   left: 0px; 
   font-size: 12px;
   font-weight: 600;
-  color: #6366f1; 
+  color: #0d9488; 
 }
 
 .floatingInputWrap:focus-within {
-  border-bottom-color: #6366f1;
+  border-bottom-color: #0d9488;
 }
 
 .floatingInputWrap:focus-within .inputIcon {
-  color: #6366f1;
+  color: #0d9488;
 }

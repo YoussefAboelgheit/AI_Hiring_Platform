@@ -251,7 +251,7 @@ export default function UserManagementPage() {
                     </td>
                     <td style={{ textAlign: "right" }}>
                       <div style={{ display: "inline-flex", gap: 8 }}>
-                        <button
+                        {/* <button
                           type="button"
                           className="topbar-icon-btn"
                           style={{ width: 32, height: 32, fontSize: 14 }}
@@ -263,7 +263,7 @@ export default function UserManagementPage() {
                           aria-label={`Edit user ${u.name}`}
                         >
                           <i className="bi bi-pencil" aria-hidden="true" />
-                        </button>
+                        </button> */}
                         <button
                           type="button"
                           className="topbar-icon-btn"
