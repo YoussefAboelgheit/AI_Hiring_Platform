@@ -195,7 +195,7 @@ export const createJob = async (req, res, next) => {
     if (saveAsDraft) {
       jobData.editableUntil = null;
     } else {
-      jobData.editableUntil = new Date(Date.now() + 5 * 60 * 1000);
+      jobData.editableUntil = new Date(Date.now() + 30 * 60 * 1000);
     }
 
     const job = await Job.create(jobData);
@@ -706,10 +706,10 @@ export const applyToJob = async (req, res, next) => {
     const uploadedCV = req.files?.CV?.[0];
     const cvUrl = uploadedCV
       ? await uploadToSupabase(
-          uploadedCV.buffer,
-          uploadedCV.mimetype,
-          "applications/cvs",
-        )
+        uploadedCV.buffer,
+        uploadedCV.mimetype,
+        "applications/cvs",
+      )
       : req.user.CV;
 
     const application = await JobApplication.create({
@@ -727,11 +727,11 @@ export const applyToJob = async (req, res, next) => {
     if (lockedAssessment) {
       application.assessmentStatus = "not_started";
       application.assessmentDeadline = new Date(
-        // Date.now() + 3 * 24 * 60 * 60 * 1000,
+        Date.now() + 3 * 24 * 60 * 60 * 1000,
 
         //@desc test for 2 minutes//------------TEST-------------------------
-        Date.now() + 7* 60 * 1000,
-         
+        // Date.now() + 7* 60 * 1000,
+
       );
       await application.save();
     }
@@ -952,30 +952,33 @@ export const updateApplicationStatus = async (req, res, next) => {
     const { status } = req.body;
     const { jobId, applicationId } = req.params;
 
-   
+
     const job = await Job.findById(jobId);
     if (!job) return next(new HTTPError(404, "Job not found"));
 
-    if ( job.recruiter.toString() !== req.user._id.toString()) {
+    if (job.recruiter.toString() !== req.user._id.toString()) {
       return next(
         new HTTPError(403, "You can only manage applications for your own jobs")
       );
     }
 
-  
+
     const application = await JobApplication.findOne({
       _id: applicationId,
-      job: jobId,})
-      .populate({ path: "candidate",
-                 select: "name email",});
+      job: jobId,
+    })
+      .populate({
+        path: "candidate",
+        select: "name email",
+      });
 
     if (!application) return next(new HTTPError(404, "Application not found"));
 
-   
+
     application.status = status;
     await application.save();
 
-   
+
     const emailTemplates = {
       Accepted: {
         subject: `🎉 Congratulations! Your application for "${job.title}" has been accepted`,
@@ -1022,7 +1025,7 @@ export const updateApplicationStatus = async (req, res, next) => {
           html: emailTemplates[status].html,
         });
       } catch (emailErr) {
-       
+
         console.error("Failed to send status email:", emailErr.message);
       }
     }
@@ -1043,18 +1046,18 @@ export const updateApplicationStatus = async (req, res, next) => {
 // saved jobs by candidate
 export const toggleSaveJob = async (req, res, next) => {
   try {
-    const { jobId } = req.params; 
-    const candidateId = req.user._id; 
+    const { jobId } = req.params;
+    const candidateId = req.user._id;
 
-   
+
     const job = await Job.findById(jobId);
     if (!job) return next(new HTTPError(404, "Job not found"));
 
-   
+
     const existingSave = await SavedJob.findOne({ candidate: candidateId, job: jobId });
 
     if (existingSave) {
-    
+
       await SavedJob.findByIdAndDelete(existingSave._id);
       return res.status(200).json({
         success: true,
@@ -1079,10 +1082,10 @@ export const getMySavedJobs = async (req, res, next) => {
     const candidateId = req.user._id;
 
     const savedJobs = await SavedJob.find({ candidate: candidateId })
-    .populate({
-      path: "job",
-      select: "title status description skills", 
-    }).sort("-createdAt"); 
+      .populate({
+        path: "job",
+        select: "title status description skills",
+      }).sort("-createdAt");
 
     res.status(200).json({
       success: true,

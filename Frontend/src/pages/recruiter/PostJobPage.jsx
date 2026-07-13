@@ -63,7 +63,7 @@ export default function PostJobPage() {
         toast.success("Job saved as draft. Publish it whenever you're ready.");
         navigate("/recruiter/jobs");
       } else {
-        toast.success("Job posted! It will go live automatically in 5 minutes — edit it now if you need to.");
+        toast.success("Job posted! It will go live automatically in 45 minutes — edit it now if you need to.");
         navigate(`/recruiter/jobs/${job._id}/assessment`);
       }
     },
@@ -147,7 +147,7 @@ export default function PostJobPage() {
               )}
 
               <div className="card" style={{ padding: 32, marginBottom: 20, borderRadius: 12, border: "1px solid var(--border)" }}>
-                
+
                 {/* Category */}
                 <div className="mb-4">
                   <label style={labelStyle} htmlFor="category">Category</label>
