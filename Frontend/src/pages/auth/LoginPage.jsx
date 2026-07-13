@@ -52,15 +52,12 @@ export default function LoginPage() {
       );
     },
     onError: (err) => {
-      const errData = err?.response?.data;
-      const errMsg = errData?.message || "";
-      if (
-        (err?.response?.status === 403 && errMsg.toLowerCase().includes("verify your email")) ||
-        errMsg.toLowerCase().includes("verify your email before logging in")
-      ) {
-        setVerifyEmail(lastEmailRef.current);
-      } else {
-        setVerifyEmail("");
+      const errMsg = err?.message || "";
+      if (errMsg.toLowerCase().includes("verify your email")) {
+        navigate("/verify-email", {
+          replace: true,
+          state: { email: lastEmailRef.current },
+        });
       }
     },
   });

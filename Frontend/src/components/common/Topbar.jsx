@@ -8,7 +8,8 @@ export default function Topbar() {
   const { pathname } = useLocation();
 
   const isCandidate = pathname.startsWith("/candidate");
-  const settingsPath = isCandidate ? "/candidate/settings" : "/recruiter/settings";
+  const isAdmin = pathname.startsWith("/admin");
+  const settingsPath = isAdmin ? "/admin/settings" : isCandidate ? "/candidate/settings" : "/recruiter/settings";
 
   return (
     <header className="topbar">
@@ -32,7 +33,7 @@ export default function Topbar() {
           <div className="d-none d-sm-block">
             <div className="name">{user?.name || "User"}</div>
             <div className="role">
-              {user?.title === "Recruiter" ? "Company" : "Member"}
+              {user?.role === "Recruiter" ? "Company" : user?.role === "Candidate" ? "Candidate":"Admin"}
             </div>
           </div>
         </div>

@@ -136,7 +136,7 @@ export default function RegisterPage() {
                   />
                   <label htmlFor="terms">
                     I agree to the{" "}
-                    <a href="#terms" style={{ color: "var(--primary)" }}>Terms of Service</a>
+                    <Link to="/terms" style={{ color: "var(--primary)" }}>Terms of Service</Link>
                     {" "}and{" "}
                     <Link to="/privacy" style={{ color: "var(--primary)" }}>Privacy Policy</Link>
                   </label>

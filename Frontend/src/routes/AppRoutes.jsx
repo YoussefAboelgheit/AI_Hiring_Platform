@@ -131,6 +131,7 @@ export default function AppRoutes() {
           <Route path="categories" element={<CategoryManagementPage />} />
           <Route path="jobs" element={<JobManagementPage />} />
           <Route path="users" element={<UserManagementPage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
       </Route>
