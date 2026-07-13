@@ -3,7 +3,7 @@ import BackButton from "../../components/common/BackButton";
 const SECTIONS = [
   {
     title: "1. Information We Collect",
-    body: "We collect information you provide when creating an account, completing your profile, applying to jobs, or posting roles. This may include your name, email address, resume or CV, skills, education history, company details, and other professional information you choose to share on HireAI.",
+    body: "We collect information you provide when creating an account, completing your profile, applying to jobs, or posting roles. This may include your name, email address, resume or CV, skills, education history, company details, and other professional information you choose to share on Joblio.",
   },
   {
     title: "2. How We Use Your Information",
@@ -11,7 +11,7 @@ const SECTIONS = [
   },
   {
     title: "3. AI Processing",
-    body: "When you upload a resume or participate in assessments, parts of that content may be processed by AI systems to extract skills, generate match scores, or provide feedback. These outputs are used within HireAI to support hiring decisions and are subject to the same access controls as other profile data.",
+    body: "When you upload a resume or participate in assessments, parts of that content may be processed by AI systems to extract skills, generate match scores, or provide feedback. These outputs are used within Joblio to support hiring decisions and are subject to the same access controls as other profile data.",
   },
   {
     title: "4. CV Visibility & Sharing",
@@ -35,15 +35,15 @@ const SECTIONS = [
   },
   {
     title: "9. Third-Party Services",
-    body: "HireAI may use trusted vendors for hosting, file storage, email delivery, and AI processing. These providers process data only on our instructions and under appropriate confidentiality and security obligations.",
+    body: "Joblio may use trusted vendors for hosting, file storage, email delivery, and AI processing. These providers process data only on our instructions and under appropriate confidentiality and security obligations.",
   },
   {
     title: "10. Changes to This Policy",
-    body: "We may update this Privacy Policy from time to time. Material changes will be reflected on this page with an updated “Last updated” date. Continued use of HireAI after changes means you acknowledge the revised policy.",
+    body: "We may update this Privacy Policy from time to time. Material changes will be reflected on this page with an updated “Last updated” date. Continued use of Joblio after changes means you acknowledge the revised policy.",
   },
   {
     title: "11. Contact Us",
-    body: "If you have questions about this Privacy Policy or how we handle your data, contact us at privacy@hireai.app or through the Contact options on the HireAI website.",
+    body: "If you have questions about this Privacy Policy or how we handle your data, contact us at privacy@joblio.app or through the Contact options on the Joblio website.",
   },
 ];
 
@@ -60,7 +60,7 @@ export default function PrivacyPolicyPage() {
               </div>
               <h1 className="landing-hero-title">Privacy Policy</h1>
               <p className="landing-hero-desc mx-auto" style={{ maxWidth: 640 }}>
-                How HireAI collects, uses, and protects your information when you use our recruitment platform.
+                How Joblio collects, uses, and protects your information when you use our recruitment platform.
               </p>
               <p className="text-muted small mb-0">Last updated: July 8, 2026</p>
             </div>
@@ -74,7 +74,7 @@ export default function PrivacyPolicyPage() {
             <div className="col-12 col-lg-8">
               <div className="hcard p-4 p-lg-5">
                 <p className="text-muted lh-lg mb-4">
-                  This Privacy Policy describes how HireAI (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) handles personal information
+                  This Privacy Policy describes how Joblio (&quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) handles personal information
                   for candidates, recruiters, and visitors who use our website and services.
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>

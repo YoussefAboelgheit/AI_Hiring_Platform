@@ -254,7 +254,7 @@
 
 /* ─── Stats ──────────────────────────────────────────────────────────────────── */
 .statCard {
-  background: #F8FAFC;
+  background: var(--accent-teal-wash);
   border-radius: 16px;
   padding: 24px 20px;
   text-align: center;
@@ -284,7 +284,7 @@
 .sectionEyebrow {
   font-size: 12px;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--accent-teal-dark);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 12px;
@@ -353,7 +353,7 @@
 .learnMore {
   font-size: 13px;
   font-weight: 600;
-  color: var(--primary);
+  color: var(--accent-teal-dark);
   text-decoration: none;
   transition: gap 0.2s;
 }
@@ -458,7 +458,7 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: #f3f5fb;
+  background: var(--accent-teal-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -468,7 +468,7 @@
 
 .stepCard:hover .stepIconWrap {
   transform: scale(1.15);
-  background: #e2e2e2;
+  background: #A7F3D0;
 }
 
 .stepTitle {
@@ -496,7 +496,7 @@
 
 /* ─── Testimonials ───────────────────────────────────────────────────────────── */
 .testimonialCard {
-  background: #F8FAFC;
+  background: var(--accent-teal-wash);
   border-radius: 16px;
   padding: 28px;
   height: 100%;
@@ -538,8 +538,8 @@
 }
 
 .faqCardOpen {
-  border-color: var(--primary);
-  box-shadow: 0 4px 16px rgba(29,36,69,0.1);
+  border-color: var(--accent-teal-dark);
+  box-shadow: 0 4px 16px rgba(13,148,136,0.12);
 }
 
 .faqQ {
@@ -562,7 +562,7 @@
 
 .faqArrow {
   transition: transform 0.3s ease;
-  color: var(--primary);
+  color: var(--accent-teal-dark);
   font-size: 18px;
   flex-shrink: 0;
 }
@@ -589,7 +589,7 @@
 .ctaSection {
   position: relative;
   padding: 80px 0;
-  background: #f3f5fb;
+  background: var(--accent-teal-wash-deep);
   overflow: hidden;
 }
 
