@@ -21,23 +21,15 @@ export const regenerateAssessment = (jobId) =>
 export const addManualQuestion = (jobId, question) =>
   apiClient.post(`/jobs/${jobId}/assessment/questions`, question);
 
-// PUT /api/jobs/assessment/questions/{questionId} (update question)
 export const updateQuestion = (questionId, question) =>
   apiClient.put(`/jobs/assessment/questions/${questionId}`, question);
 
-// DELETE /api/jobs/assessment/questions/{questionId}
 export const deleteQuestion = (questionId) =>
   apiClient.delete(`/jobs/assessment/questions/${questionId}`);
 
-// POST /api/jobs/assessment/questions/{questionId}/regenerate
 export const regenerateQuestion = (questionId) =>
   apiClient.post(`/jobs/assessment/questions/${questionId}/regenerate`);
 
-// ===== Candidate-facing endpoints =====
-
-// POST /api/jobs/{jobId}/assessment/start
-// Job must be Open and assessment Locked. Randomly selects questionCount questions.
-// Returns questions WITHOUT correctAnswer. Resumes existing session if already started.
 export const startAssessment = (jobId) =>
   apiClient.post(`/jobs/${jobId}/assessment/start`);
 
@@ -50,20 +42,3 @@ export const saveAnswer = (jobId, questionId, selectedAnswer) =>
 // No body needed — backend reads saved answers from DB
 export const submitCandidateAssessment = (jobId) =>
   apiClient.post(`/jobs/${jobId}/assessment/submit`);
-
-// Candidate Mock Functions
-import { assessmentData } from "../mock/assessments";
-import { simulateDelay } from "../mock/utils";
-
-export async function getAssessmentById(id) {
-  await simulateDelay();
-  void id;
-  return assessmentData;
-}
-
-export async function submitAssessment(id, answers) {
-  await simulateDelay(500);
-  void id;
-  void answers;
-  return { success: true, applicationId: "a1" };
-}

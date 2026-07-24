@@ -1,10 +1,6 @@
 import apiClient from "./apiClient";
 import { getApiErrorMessage } from "./apiErrors";
-import {
-  myApplications,
-  candidateDashboardStats,
-  applicationDetailExtras,
-} from "../mock/applications";
+import { candidateDashboardStats } from "../mock/applications";
 import { applicationSubmitted } from "../mock/recruiterExtended";
 import { simulateDelay } from "../mock/utils";
 import { mapApplicationForDetail, mapApplicationForList } from "../utils/applicationMappers";
@@ -75,14 +71,6 @@ export async function getCandidateDashboardStats() {
   return candidateDashboardStats;
 }
 
-export async function updateApplicationStatus(appId, status) {
-  await simulateDelay();
-  void appId;
-  void status;
-  void apiClient;
-  return { success: true };
-}
-
 export async function getApplicationSubmitted(applicationId) {
   try {
     const application = await getApplicationById(applicationId);
@@ -107,14 +95,4 @@ export async function getApplicationSubmitted(applicationId) {
     await simulateDelay();
     return applicationSubmitted;
   }
-}
-
-// Kept for any legacy imports that still expect mock extras during detail rendering.
-export function getApplicationDetailExtras() {
-  return applicationDetailExtras;
-}
-
-// Legacy mock export retained for tests or gradual migration.
-export function getMockApplications() {
-  return myApplications;
 }

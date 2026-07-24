@@ -11,7 +11,6 @@ import {
 import {
   myJobsStats,
   myJobsList,
-  assessmentGenerator,
   aiRecommendation,
   emailInvitations,
 } from "../mock/recruiterExtended";
@@ -20,7 +19,6 @@ import { simulateDelay } from "../mock/utils";
 const TOP_CANDIDATES_PER_JOB = 3;
 const TOP_CANDIDATES_ALL_JOBS_LIMIT = 10;
 
-// دالة مساعدة لتوحيد حقول الـ Scores
 function mapApplicationScores(app, jobTitle) {
   const matchScore = app.matchScore ?? 0;
   return {
@@ -37,7 +35,6 @@ function mapApplicationScores(app, jobTitle) {
     assessmentCompleted: app.assessmentStatus === "completed",
     assessmentScore: app.assessmentScore ?? 0,
   };
-
 }
 
 function sortByMatchScore(applications) {
@@ -65,9 +62,6 @@ export async function getRecruiterDashboard() {
         job: {
           ...nestedJob,
           _id: nestedJob?._id || job._id,
-          // The application's own nested job object doesn't always include a title
-          // (sometimes it's only partially populated), so we fall back to the
-          // parent job's title — which we always have here — instead of losing it.
           title: nestedJob?.title || job.title,
         },
       };
@@ -105,8 +99,6 @@ export async function getRecruiterDashboard() {
       status: app.status || "pending",
     }));
 
-  // Real top matches — highest-scored applicants across all of the recruiter's jobs.
-  // (replaces the old hardcoded mock names/scores)
   const topMatches = applications
     .map((app) => ({
       id: app._id,
@@ -127,7 +119,6 @@ export async function getRecruiterDashboard() {
   };
 }
 
-// جلب كل المتقدمين مع معالجة البيانات وتوحيدها (تحسين الأمان هنا)
 export async function getApplicantsList(jobId) {
   try {
     const { data } = await apiClient.get("/jobs/hr/my-jobs/applications");
@@ -243,7 +234,7 @@ export async function getCandidateReview(id) {
   try {
     const { data } = await apiClient.get(`/jobs/${id}/applications`);
     const app = data.application || data;
-    
+
     return {
       applicant: {
         id: app._id,
@@ -281,7 +272,7 @@ export async function getCandidateReview(id) {
 export async function getJobApplicants(jobId) {
   const { data } = await apiClient.get(`/jobs/${jobId}/applications`);
   const applications = data.applications || [];
-  
+
   return applications.map((app) => ({
     id: app._id,
     name: app.candidate?.name || "Unknown",
@@ -309,12 +300,6 @@ function getCategoryIcon(categoryName = "") {
   return "bi-briefcase";
 }
 
-// Mirrors the eligibility rules used in ApplicantsListPage (eligibleApplications +
-// sortedApplications): a candidate only counts as a "visible" applicant if they
-// uploaded a CV, aren't rejected, and — for jobs that actually require an
-// assessment — have completed it. Keeping this in sync means the applicant count
-// shown under each job card on My Jobs matches what the recruiter actually sees
-// when they open View Applicants for that job.
 function isVisibleApplication(app, requiresAssessment) {
   if (!app.CV) return false;
   if (requiresAssessment && app.assessmentStatus !== "completed") return false;
@@ -335,8 +320,6 @@ export async function getMyJobs(recruiterId) {
     { label: "Total Positions", value: jobs.length.toString(), change: "All time posts", icon: "bi-briefcase", iconBg: "#E0F2FE", iconColor: "#0284C7" },
   ];
 
-  // Find out, per job, whether it actually requires an assessment (type AI/MANUAL,
-  // not the default "NONE") — same check ApplicantsListPage does via getAssessment.
   const requiresAssessmentFlags = await Promise.all(
     jobs.map((job) =>
       getAssessment(job._id)
@@ -367,19 +350,6 @@ export async function getMyJobs(recruiterId) {
   });
 
   return { stats, jobs: uiJobs };
-}
-
-export async function getAssessmentGenerator() {
-  await simulateDelay();
-  void apiClient;
-  return assessmentGenerator;
-}
-
-export async function saveAssessmentGenerator(data) {
-  await simulateDelay(500);
-  void data;
-  void apiClient;
-  return { success: true };
 }
 
 export async function getAIRecommendation(candidateId) {

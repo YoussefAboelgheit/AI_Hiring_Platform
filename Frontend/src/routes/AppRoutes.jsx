@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import PublicLayout from "../layouts/PublicLayout";
@@ -8,53 +9,53 @@ import AdminLayout from "../layouts/AdminLayout";
 import StandaloneLayout from "../layouts/StandaloneLayout";
 import ProtectedRoute from "./ProtectedRoute";
 import GuestRoute from "./GuestRoute";
+import LoadingState from "../components/common/LoadingState";
 
-import LandingPage from "../pages/public/LandingPage";
-import AboutPage from "../pages/public/AboutPage";
-import PrivacyPolicyPage from "../pages/public/PrivacyPolicyPage";
-import TermsOfServicePage from "../pages/public/TermsOfServicePage";
-import NotFoundPage from "../pages/public/NotFoundPage";
-import LoginPage from "../pages/auth/LoginPage";
-import RegisterPage from "../pages/auth/RegisterPage";
-import ResetPasswordPage from "../pages/auth/ResetPasswordPage";
-import VerifyEmailPage from "../pages/auth/VerifyEmailPage";
+const LandingPage = lazy(() => import("../pages/public/LandingPage"));
+const AboutPage = lazy(() => import("../pages/public/AboutPage"));
+const PrivacyPolicyPage = lazy(() => import("../pages/public/PrivacyPolicyPage"));
+const TermsOfServicePage = lazy(() => import("../pages/public/TermsOfServicePage"));
+const NotFoundPage = lazy(() => import("../pages/public/NotFoundPage"));
+const LoginPage = lazy(() => import("../pages/auth/LoginPage"));
+const RegisterPage = lazy(() => import("../pages/auth/RegisterPage"));
+const ResetPasswordPage = lazy(() => import("../pages/auth/ResetPasswordPage"));
+const VerifyEmailPage = lazy(() => import("../pages/auth/VerifyEmailPage"));
 
-import CandidateDashboard from "../pages/candidate/CandidateDashboard";
-import BrowseJobsPage from "../pages/candidate/BrowseJobsPage";
-import SavedJobsPage from "../pages/candidate/SavedJobsPage";
-import JobDetailsPage from "../pages/recruiter/JobDetailsPage";
-import JobDetailPage from "../pages/candidate/JobDetailPage";
-import ApplyJobPage from "../pages/candidate/ApplyJobPage";
-import MyApplicationsPage from "../pages/candidate/MyApplicationsPage";
-import ApplicationDetailPage from "../pages/candidate/ApplicationDetailPage";
-import AssessmentPage from "../pages/candidate/AssessmentPage";
-import ChatPage from "../pages/candidate/ChatPage";
-import AIFeedbackPage from "../pages/candidate/AIFeedbackPage";
-import CandidateProfilePage from "../pages/candidate/CandidateProfilePage";
-import CandidateEditProfilePage from "../pages/candidate/CandidateEditProfilePage";
-import CompleteProfilePage from "../pages/candidate/CompleteProfilePage";
-import ApplicationSubmittedPage from "../pages/candidate/ApplicationSubmittedPage";
+const CandidateDashboard = lazy(() => import("../pages/candidate/CandidateDashboard"));
+const BrowseJobsPage = lazy(() => import("../pages/candidate/BrowseJobsPage"));
+const SavedJobsPage = lazy(() => import("../pages/candidate/SavedJobsPage"));
+const JobDetailsPage = lazy(() => import("../pages/recruiter/JobDetailsPage"));
+const JobDetailPage = lazy(() => import("../pages/candidate/JobDetailPage"));
+const ApplyJobPage = lazy(() => import("../pages/candidate/ApplyJobPage"));
+const MyApplicationsPage = lazy(() => import("../pages/candidate/MyApplicationsPage"));
+const ApplicationDetailPage = lazy(() => import("../pages/candidate/ApplicationDetailPage"));
+const AssessmentPage = lazy(() => import("../pages/candidate/AssessmentPage"));
+const ChatPage = lazy(() => import("../pages/candidate/ChatPage"));
+const AIFeedbackPage = lazy(() => import("../pages/candidate/AIFeedbackPage"));
+const CandidateProfilePage = lazy(() => import("../pages/candidate/CandidateProfilePage"));
+const CandidateEditProfilePage = lazy(() => import("../pages/candidate/CandidateEditProfilePage"));
+const CompleteProfilePage = lazy(() => import("../pages/candidate/CompleteProfilePage"));
+const ApplicationSubmittedPage = lazy(() => import("../pages/candidate/ApplicationSubmittedPage"));
 
-import RecruiterDashboard from "../pages/recruiter/RecruiterDashboard";
-import MyJobsPage from "../pages/recruiter/MyJobsPage";
-import PostJobPage from "../pages/recruiter/PostJobPage";
-import EditJobPage from "../pages/recruiter/EditJobPage";
-import ApplicantsListPage from "../pages/recruiter/ApplicantsListPage";
-import CandidateReviewPage from "../pages/recruiter/CandidateReviewPage";
-import TopCandidatesPage from "../pages/recruiter/TopCandidatesPage";
-import RecruiterFeedbackPage from "../pages/recruiter/RecruiterFeedbackPage";
-import AssessmentGeneratorPage from "../pages/recruiter/AssessmentGeneratorPage";
-import AIRecommendationPage from "../pages/recruiter/AIRecommendationPage";
-import EmailInvitationsPage from "../pages/recruiter/EmailInvitationsPage";
-import RecruiterProfilePage from "../pages/recruiter/RecruiterProfilePage";
-import RecruiterEditProfilePage from "../pages/recruiter/RecruiterEditProfilePage";
-import SettingsPage from "../pages/settings/SettingsPage";
+const RecruiterDashboard = lazy(() => import("../pages/recruiter/RecruiterDashboard"));
+const MyJobsPage = lazy(() => import("../pages/recruiter/MyJobsPage"));
+const PostJobPage = lazy(() => import("../pages/recruiter/PostJobPage"));
+const EditJobPage = lazy(() => import("../pages/recruiter/EditJobPage"));
+const ApplicantsListPage = lazy(() => import("../pages/recruiter/ApplicantsListPage"));
+const CandidateReviewPage = lazy(() => import("../pages/recruiter/CandidateReviewPage"));
+const TopCandidatesPage = lazy(() => import("../pages/recruiter/TopCandidatesPage"));
+const RecruiterFeedbackPage = lazy(() => import("../pages/recruiter/RecruiterFeedbackPage"));
+const AssessmentGeneratorPage = lazy(() => import("../pages/recruiter/AssessmentGeneratorPage"));
+const AIRecommendationPage = lazy(() => import("../pages/recruiter/AIRecommendationPage"));
+const EmailInvitationsPage = lazy(() => import("../pages/recruiter/EmailInvitationsPage"));
+const RecruiterProfilePage = lazy(() => import("../pages/recruiter/RecruiterProfilePage"));
+const RecruiterEditProfilePage = lazy(() => import("../pages/recruiter/RecruiterEditProfilePage"));
+const SettingsPage = lazy(() => import("../pages/settings/SettingsPage"));
 
-
-import AdminDashboard from "../pages/admin/AdminDashboard";
-import CategoryManagementPage from "../pages/admin/CategoryManagementPage";
-import JobManagementPage from "../pages/admin/JobManagementPage";
-import UserManagementPage from "../pages/admin/UserManagementPage";
+const AdminDashboard = lazy(() => import("../pages/admin/AdminDashboard"));
+const CategoryManagementPage = lazy(() => import("../pages/admin/CategoryManagementPage"));
+const JobManagementPage = lazy(() => import("../pages/admin/JobManagementPage"));
+const UserManagementPage = lazy(() => import("../pages/admin/UserManagementPage"));
 
 export default function AppRoutes() {
   return (
@@ -86,8 +87,22 @@ export default function AppRoutes() {
           <Route path="candidate/application-submitted" element={<ApplicationSubmittedPage />} />
         </Route>
 
-        <Route path="candidate/jobs/:jobId/assessment" element={<AssessmentPage />} />
-        <Route path="candidate/chat" element={<ChatPage />} />
+        <Route
+          path="candidate/jobs/:jobId/assessment"
+          element={
+            <Suspense fallback={<LoadingState message="Loading page..." />}>
+              <AssessmentPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="candidate/chat"
+          element={
+            <Suspense fallback={<LoadingState message="Loading page..." />}>
+              <ChatPage />
+            </Suspense>
+          }
+        />
 
         <Route path="candidate" element={<CandidateLayout />}>
           <Route path="dashboard" element={<CandidateDashboard />} />
@@ -139,7 +154,14 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
-      <Route path="*" element={<NotFoundPage />} />
+      <Route
+        path="*"
+        element={
+          <Suspense fallback={<LoadingState message="Loading page..." />}>
+            <NotFoundPage />
+          </Suspense>
+        }
+      />
     </Routes>
   );
 }

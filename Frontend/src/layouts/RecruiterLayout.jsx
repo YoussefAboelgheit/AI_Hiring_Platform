@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import RecruiterSidebar from "../components/recruiter/RecruiterSidebar";
 import Topbar from "../components/common/Topbar";
 import Footer from "../components/common/Footer";
+import LoadingState from "../components/common/LoadingState";
 import { AppShellProvider } from "../context/AppShellProvider";
 
 function getSearchPlaceholder(pathname) {
@@ -20,7 +22,9 @@ export default function RecruiterLayout() {
         <div className="main-layout">
           <Topbar placeholder={getSearchPlaceholder(pathname)} />
           <main className="page-content">
-            <Outlet />
+            <Suspense fallback={<LoadingState message="Loading page..." />}>
+              <Outlet />
+            </Suspense>
           </main>
           <Footer variant="app" />
         </div>
